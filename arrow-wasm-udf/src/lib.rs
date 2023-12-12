@@ -25,7 +25,7 @@ pub struct FunctionSignature {
     pub name: String,
 
     /// The argument types.
-    pub inputs_type: Vec<SigDataType>,
+    pub arg_types: Vec<SigDataType>,
 
     /// Whether the function is variadic.
     pub variadic: bool,
@@ -44,6 +44,12 @@ pub enum SigDataType {
     Exact(DataType),
     /// Accepts any data type
     Any,
+}
+
+impl From<DataType> for SigDataType {
+    fn from(dt: DataType) -> Self {
+        Self::Exact(dt)
+    }
 }
 
 pub trait ScalarFunction {

@@ -114,7 +114,7 @@ impl FunctionAttr {
 
                 FunctionSignature {
                     name: #name.into(),
-                    inputs_type: vec![#(#args),*],
+                    arg_types: vec![#(#args),*],
                     variadic: #variadic,
                     return_type: #ret,
                     function: #function,

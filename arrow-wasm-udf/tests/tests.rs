@@ -12,6 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::Arc;
+
+use arrow::{
+    array::{AsArray, Int32Array, RecordBatch},
+    datatypes::{DataType, Field, Int32Type, Schema},
+};
 use arrow_wasm_udf::function;
 
 // test no return value
@@ -42,7 +48,12 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
 }
 
 #[function("count(varchar) -> int")]
-fn count(s: &str) -> i32 {
+fn count_varchar(s: &str) -> i32 {
+    s.len() as i32
+}
+
+#[function("count(bytea) -> int")]
+fn count_bytea(s: &[u8]) -> i32 {
     s.len() as i32
 }
 
@@ -79,8 +90,30 @@ fn bytes2(x: i32) -> Box<[u8]> {
 }
 
 #[function("bytes3(int) -> bytea")]
-fn bytes3(x: i32, output: &mut impl std::io::Write) {
+fn bytes3(x: i32) -> [u8; 10] {
+    [x as u8; 10]
+}
+
+#[function("bytes4(int) -> bytea")]
+fn bytes4(x: i32, output: &mut impl std::io::Write) {
     for _ in 0..x {
         output.write_all(&[0]).unwrap();
     }
+}
+
+#[test]
+fn test_double() {
+    let sig = double_sig();
+    assert_eq!(sig.name, "double");
+    assert_eq!(sig.arg_types, vec![DataType::Int32.into()]);
+    assert_eq!(sig.variadic, false);
+    assert_eq!(sig.return_type, DataType::Int32.into());
+
+    let schema = Schema::new(vec![Field::new("int32", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    let expected = Int32Array::from(vec![Some(2), None, Some(6)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = sig.function.eval(&input).unwrap();
+    assert_eq!(output.as_primitive::<Int32Type>(), &expected);
 }

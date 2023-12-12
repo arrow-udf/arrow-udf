@@ -109,8 +109,8 @@ impl FunctionAttr {
         let function = self.generate_scalar_function(user_fn)?;
 
         Ok(quote! {
-            fn #ctor_name() -> arrow_wasm_udf::FunctionSignature {
-                use arrow_wasm_udf::{FunctionSignature, SigDataType, codegen::arrow::datatypes::DataType};
+            fn #ctor_name() -> arrow_udf::FunctionSignature {
+                use arrow_udf::{FunctionSignature, SigDataType, codegen::arrow::datatypes::DataType};
 
                 FunctionSignature {
                     name: #name.into(),
@@ -260,10 +260,10 @@ impl FunctionAttr {
             });
             let builder = match self.ret.as_str() {
                 "varchar" => {
-                    quote! { arrow_wasm_udf::byte_builder::StringBuilder::with_capacity(input.num_rows(), 1024) }
+                    quote! { arrow_udf::byte_builder::StringBuilder::with_capacity(input.num_rows(), 1024) }
                 }
                 "bytea" => {
-                    quote! { arrow_wasm_udf::byte_builder::BinaryBuilder::with_capacity(input.num_rows(), 1024) }
+                    quote! { arrow_udf::byte_builder::BinaryBuilder::with_capacity(input.num_rows(), 1024) }
                 }
                 _ => quote! { #builder_type::with_capacity(input.num_rows()) },
             };
@@ -280,15 +280,15 @@ impl FunctionAttr {
         Ok(quote! {
             {
                 use std::sync::Arc;
-                use arrow_wasm_udf::{BoxScalarFunction, Result, Error};
-                use arrow_wasm_udf::codegen::arrow::array::*;
-                use arrow_wasm_udf::codegen::arrow;
-                use arrow_wasm_udf::codegen::itertools;
+                use arrow_udf::{BoxScalarFunction, Result, Error};
+                use arrow_udf::codegen::arrow::array::*;
+                use arrow_udf::codegen::arrow;
+                use arrow_udf::codegen::itertools;
 
                 #[derive(Debug)]
                 struct #struct_name;
 
-                impl arrow_wasm_udf::ScalarFunction for #struct_name {
+                impl arrow_udf::ScalarFunction for #struct_name {
                     fn eval(&self, input: &RecordBatch) -> Result<ArrayRef> {
                         #(
                             let #arrays: &#arg_arrays = input.column(#children_indices).as_any().downcast_ref()

@@ -14,7 +14,7 @@
 
 pub use arrow::error::{ArrowError as Error, Result};
 use arrow::{array::ArrayRef, datatypes::DataType, record_batch::RecordBatch};
-pub use arrow_wasm_udf_macros::function;
+pub use arrow_udf_macros::function;
 
 #[doc(hidden)]
 pub mod byte_builder;

@@ -18,7 +18,7 @@ use arrow::{
     array::{AsArray, Int32Array, RecordBatch},
     datatypes::{DataType, Field, Int32Type, Schema},
 };
-use arrow_wasm_udf::function;
+use arrow_udf::function;
 
 // test no return value
 #[function("null()")]

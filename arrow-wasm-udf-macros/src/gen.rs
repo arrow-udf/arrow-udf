@@ -105,7 +105,7 @@ impl FunctionAttr {
         .collect_vec();
         let ret = sig_data_type(&self.ret);
 
-        let ctor_name = format_ident!("{}_sig", &user_fn.name);
+        let ctor_name = format_ident!("{}_sig", self.ident_name());
         let function = self.generate_scalar_function(user_fn)?;
 
         Ok(quote! {

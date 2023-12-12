@@ -366,7 +366,7 @@ mod utils;
 ///
 /// | SQL type           | owned type    | reference type     | primitive? |
 /// | ------------------ | ------------- | ------------------ | ---------- |
-/// | `boolean`          | `bool`        | `bool`             | yes        |
+/// | `boolean`          | `bool`        | `bool`             | no         |
 /// | `smallint`         | `i16`         | `i16`              | yes        |
 /// | `integer`          | `i32`         | `i32`              | yes        |
 /// | `bigint`           | `i64`         | `i64`              | yes        |

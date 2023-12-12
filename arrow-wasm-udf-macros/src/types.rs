@@ -17,7 +17,7 @@
 //  name                data type   array prefix owned type     ref type            primitive
 const TYPE_MATRIX: &str = "
     void                Null        Null        ()              ()                  _
-    boolean,bool        Boolean     Boolean     bool            bool                y
+    boolean,bool        Boolean     Boolean     bool            bool                _
     smallint,int2       Int16       Int16       i16             i16                 y
     integer,int,int4    Int32       Int32       i32             i32                 y
     bigint,int8         Int64       Int64       i64             i64                 y

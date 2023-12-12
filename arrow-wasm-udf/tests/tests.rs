@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
+use std::{ops::Neg, sync::Arc};
 
 use arrow::{
     array::{AsArray, Int32Array, RecordBatch},
@@ -31,9 +31,13 @@ fn zero() -> i32 {
 }
 
 // test simd with 1 arguments
-#[function("double(int) -> int")]
-fn double(x: i32) -> i32 {
-    x * 2
+#[function("neg(int2) -> int2")]
+#[function("neg(int4) -> int4")]
+#[function("neg(int8) -> int8")]
+#[function("neg(float4) -> float4")]
+#[function("neg(float8) -> float8")]
+fn neg<T: Neg<Output = T>>(x: T) -> T {
+    x.neg()
 }
 
 // test simd with 2 arguments
@@ -47,14 +51,35 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
     a
 }
 
-#[function("count(varchar) -> int")]
-fn count_varchar(s: &str) -> i32 {
-    s.len() as i32
+#[function("identity(boolean) -> boolean")]
+#[function("identity(int2) -> int2")]
+#[function("identity(int4) -> int4")]
+#[function("identity(int8) -> int8")]
+#[function("identity(float4) -> float4")]
+#[function("identity(float8) -> float8")]
+#[function("identity(varchar) -> varchar")]
+#[function("identity(bytea) -> bytea")]
+fn identity<T>(x: T) -> T {
+    x
 }
 
-#[function("count(bytea) -> int")]
-fn count_bytea(s: &[u8]) -> i32 {
-    s.len() as i32
+#[function("length(varchar) -> int")]
+#[function("length(bytea) -> int")]
+fn length(s: impl AsRef<[u8]>) -> i32 {
+    s.as_ref().len() as i32
+}
+
+#[function("substring(varchar, int) -> varchar")]
+fn substring_varchar(s: &str, start: i32) -> &str {
+    s.char_indices()
+        .nth(start.max(0) as usize)
+        .map_or("", |(i, _)| &s[i..])
+}
+
+#[function("substring(bytea, int) -> bytea")]
+fn substring_bytea(s: &[u8], start: i32) -> &[u8] {
+    let start = start.max(0).min(s.len() as i32) as usize;
+    &s[start..]
 }
 
 #[function("to_string1(int) -> varchar")]
@@ -102,16 +127,16 @@ fn bytes4(x: i32, output: &mut impl std::io::Write) {
 }
 
 #[test]
-fn test_double() {
-    let sig = double_sig();
-    assert_eq!(sig.name, "double");
+fn test_neg() {
+    let sig = neg_int4_int4_sig();
+    assert_eq!(sig.name, "neg");
     assert_eq!(sig.arg_types, vec![DataType::Int32.into()]);
     assert_eq!(sig.variadic, false);
     assert_eq!(sig.return_type, DataType::Int32.into());
 
     let schema = Schema::new(vec![Field::new("int32", DataType::Int32, true)]);
-    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
-    let expected = Int32Array::from(vec![Some(2), None, Some(6)]);
+    let arg0 = Int32Array::from(vec![Some(1), None]);
+    let expected = Int32Array::from(vec![Some(-1), None]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = sig.function.eval(&input).unwrap();

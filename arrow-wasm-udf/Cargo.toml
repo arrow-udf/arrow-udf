@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 arrow = { version = "49", default-features = false }
+arrow-buffer = "49"
 arrow-wasm-udf-macros = { version = "0.1.0", path = "../arrow-wasm-udf-macros" }
 itertools = "0.12"

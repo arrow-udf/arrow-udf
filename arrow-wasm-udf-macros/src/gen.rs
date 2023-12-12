@@ -105,7 +105,7 @@ impl FunctionAttr {
         .collect_vec();
         let ret = sig_data_type(&self.ret);
 
-        let ctor_name = format_ident!("{}_sig", self.ident_name());
+        let ctor_name = format_ident!("{}_sig", &user_fn.name);
         let function = self.generate_scalar_function(user_fn)?;
 
         Ok(quote! {
@@ -173,8 +173,6 @@ impl FunctionAttr {
         // handle error if the function returns `Result`
         // wrap a `Some` if the function doesn't return `Option`
         output = match user_fn.return_type_kind {
-            // XXX: we don't support void type yet. return null::int for now.
-            _ if self.ret == "void" => quote! { { #output; Option::<i32>::None } },
             ReturnTypeKind::T => quote! { Some(#output) },
             ReturnTypeKind::Option => output,
             ReturnTypeKind::Result => quote! { Some(#output?) },
@@ -193,7 +191,7 @@ impl FunctionAttr {
         // now the `output` is: Option<impl ScalarRef or Scalar>
         let append_output = match user_fn.write {
             true => quote! {{
-                let mut writer = builder.writer().begin();
+                let mut writer = builder.writer();
                 if #output.is_some() {
                     writer.finish();
                 } else {
@@ -201,6 +199,12 @@ impl FunctionAttr {
                     builder.append_null();
                 }
             }},
+            _ if self.ret == "void" => quote! {
+                match #output {
+                    Some(s) => builder.append_empty_value(),
+                    None => builder.append_null(),
+                }
+            },
             false => quote! {
                 match #output {
                     Some(s) => builder.append_value(s),
@@ -218,38 +222,31 @@ impl FunctionAttr {
             let fn_name = format_ident!("{}", batch_fn);
             quote! {
                 let c = #fn_name(#(#arrays),*);
-                Ok(Arc::new(c.into()))
+                Ok(Arc::new(c))
             }
-        // } else if (types::is_primitive(&self.ret) || self.ret == "boolean")
-        //     && user_fn.is_pure()
-        //     && !variadic
-        // {
-        //     // SIMD optimization for primitive types
-        //     match self.args.len() {
-        //         0 => quote! {
-        //             let c = #ret_array_type::from_iter_values(
-        //                 std::iter::repeat_with(|| #fn_name()).take(input.num_rows())
-        //             );
-        //             Ok(Arc::new(c.into()))
-        //         },
-        //         1 => quote! {
-        //             let c = #ret_array_type::from_iter_values(
-        //                 a0.values().iter().map(|a| #fn_name(a)),
-        //                 a0.null_bitmap().clone()
-        //             );
-        //             Ok(Arc::new(c.into()))
-        //         },
-        //         2 => quote! {
-        //             let c = #ret_array_type::from_iter_values(
-        //                 a0.values().iter()
-        //                     .zip(a1.values().iter())
-        //                     .map(|(a, b)| #fn_name(a, b)),
-        //                 a0.null_bitmap() & a1.null_bitmap(),
-        //             );
-        //             Ok(Arc::new(c.into()))
-        //         },
-        //         n => todo!("SIMD optimization for {n} arguments"),
-        //     }
+        } else if types::is_primitive(&self.ret)
+            && self.args.iter().all(|ty| types::is_primitive(ty))
+            && user_fn.is_pure()
+            && !variadic
+        {
+            // SIMD optimization for primitive types
+            match self.args.len() {
+                0 => quote! {
+                    let c = #ret_array_type::from_iter_values(
+                        std::iter::repeat_with(|| #fn_name()).take(input.num_rows())
+                    );
+                    Ok(Arc::new(c))
+                },
+                1 => quote! {
+                    let c: #ret_array_type = arrow::compute::unary(a0, #fn_name);
+                    Ok(Arc::new(c))
+                },
+                2 => quote! {
+                    let c: #ret_array_type = arrow::compute::binary(a0, a1, #fn_name)?;
+                    Ok(Arc::new(c))
+                },
+                n => todo!("SIMD optimization for {n} arguments"),
+            }
         } else {
             // no optimization
             let array_zip = match children_indices.len() {
@@ -261,8 +258,17 @@ impl FunctionAttr {
                     let variadic_row = variadic_input.row_at_unchecked_vis(i);
                 }
             });
+            let builder = match self.ret.as_str() {
+                "varchar" => {
+                    quote! { arrow_wasm_udf::byte_builder::StringBuilder::with_capacity(input.num_rows(), 1024) }
+                }
+                "bytea" => {
+                    quote! { arrow_wasm_udf::byte_builder::BinaryBuilder::with_capacity(input.num_rows(), 1024) }
+                }
+                _ => quote! { #builder_type::with_capacity(input.num_rows()) },
+            };
             quote! {
-                let mut builder = #builder_type::with_capacity(input.num_rows());
+                let mut builder = #builder;
                 for (i, (#(#inputs,)*)) in #array_zip.enumerate() {
                     #let_variadic
                     #append_output
@@ -276,6 +282,7 @@ impl FunctionAttr {
                 use std::sync::Arc;
                 use arrow_wasm_udf::{BoxScalarFunction, Result, Error};
                 use arrow_wasm_udf::codegen::arrow::array::*;
+                use arrow_wasm_udf::codegen::arrow;
                 use arrow_wasm_udf::codegen::itertools;
 
                 #[derive(Debug)]

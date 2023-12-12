@@ -14,8 +14,9 @@
 
 //! This module provides utility functions for SQL data type conversion and manipulation.
 
-//  name                data type   array prefix owned type      ref type            primitive
+//  name                data type   array prefix owned type     ref type            primitive
 const TYPE_MATRIX: &str = "
+    void                Null        Null        ()              ()                  _
     boolean,bool        Boolean     Boolean     bool            bool                y
     smallint,int2       Int16       Int16       i16             i16                 y
     integer,int,int4    Int32       Int32       i32             i32                 y
@@ -66,10 +67,6 @@ fn lookup_matrix(mut ty: &str, idx: usize) -> &str {
         ty = "anyarray";
     } else if ty.starts_with("struct") {
         ty = "struct";
-    } else if ty == "void" {
-        // XXX: we don't support void type yet.
-        //      replace it with int for now.
-        ty = "int4";
     }
     let s = TYPE_MATRIX.trim().lines().find_map(|line| {
         let mut parts = line.split_whitespace();
@@ -90,7 +87,7 @@ pub fn expand_type_wildcard(ty: &str) -> Vec<&str> {
             .trim()
             .lines()
             .map(|l| l.split_whitespace().next().unwrap())
-            .filter(|l| *l != "any")
+            .filter(|l| *l != "any" && *l != "void")
             .collect(),
         "*int" => vec!["int2", "int4", "int8"],
         "*float" => vec!["float4", "float8"],

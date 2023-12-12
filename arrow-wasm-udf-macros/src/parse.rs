@@ -71,18 +71,12 @@ impl Parse for FunctionAttr {
                 parsed.state = Some(get_value()?);
             } else if meta.path().is_ident("init_state") {
                 parsed.init_state = Some(get_value()?);
-            } else if meta.path().is_ident("prebuild") {
-                parsed.prebuild = Some(get_value()?);
             } else if meta.path().is_ident("type_infer") {
                 parsed.type_infer = Some(get_value()?);
             } else if meta.path().is_ident("generic") {
                 parsed.generic = Some(get_value()?);
             } else if meta.path().is_ident("volatile") {
                 parsed.volatile = true;
-            } else if meta.path().is_ident("deprecated") || meta.path().is_ident("internal") {
-                parsed.deprecated = true;
-            } else if meta.path().is_ident("rewritten") {
-                parsed.rewritten = true;
             } else if meta.path().is_ident("append_only") {
                 parsed.append_only = true;
             } else {

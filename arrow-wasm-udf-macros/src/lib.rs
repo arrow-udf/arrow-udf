@@ -364,32 +364,27 @@ mod utils;
 ///
 /// ## Base Types
 ///
-/// | name        | SQL type           | owned type    | reference type     | primitive? |
-/// | ----------- | ------------------ | ------------- | ------------------ | ---------- |
-/// | boolean     | `boolean`          | `bool`        | `bool`             | yes        |
-/// | int2        | `smallint`         | `i16`         | `i16`              | yes        |
-/// | int4        | `integer`          | `i32`         | `i32`              | yes        |
-/// | int8        | `bigint`           | `i64`         | `i64`              | yes        |
-/// | int256      | `rw_int256`        | `Int256`      | `Int256Ref<'_>`    | no         |
-/// | float4      | `real`             | `F32`         | `F32`              | yes        |
-/// | float8      | `double precision` | `F64`         | `F64`              | yes        |
-/// | decimal     | `numeric`          | `Decimal`     | `Decimal`          | yes        |
-/// | serial      | `serial`           | `Serial`      | `Serial`           | yes        |
-/// | date        | `date`             | `Date`        | `Date`             | yes        |
-/// | time        | `time`             | `Time`        | `Time`             | yes        |
-/// | timestamp   | `timestamp`        | `Timestamp`   | `Timestamp`        | yes        |
-/// | timestamptz | `timestamptz`      | `Timestamptz` | `Timestamptz`      | yes        |
-/// | interval    | `interval`         | `Interval`    | `Interval`         | yes        |
-/// | varchar     | `varchar`          | `Box<str>`    | `&str`             | no         |
-/// | bytea       | `bytea`            | `Box<[u8]>`   | `&[u8]`            | no         |
-/// | jsonb       | `jsonb`            | `JsonbVal`    | `JsonbRef<'_>`     | no         |
-/// | any         | `any`              | `ScalarImpl`  | `ScalarRefImpl<'_>`| no         |
+/// | SQL type           | owned type    | reference type     | primitive? |
+/// | ------------------ | ------------- | ------------------ | ---------- |
+/// | `boolean`          | `bool`        | `bool`             | yes        |
+/// | `smallint`         | `i16`         | `i16`              | yes        |
+/// | `integer`          | `i32`         | `i32`              | yes        |
+/// | `bigint`           | `i64`         | `i64`              | yes        |
+/// | `real`             | `f32`         | `F32`              | yes        |
+/// | `double precision` | `f64`         | `F64`              | yes        |
+/// | `numeric`          | `Decimal`     | `Decimal`          | yes        |
+/// | `date`             | `Date`        | `Date`             | yes        |
+/// | `time`             | `Time`        | `Time`             | yes        |
+/// | `timestamp`        | `Timestamp`   | `Timestamp`        | yes        |
+/// | `timestamptz`      | `Timestamptz` | `Timestamptz`      | yes        |
+/// | `interval`         | `Interval`    | `Interval`         | yes        |
+/// | `varchar`          | `String`      | `&str`             | no         |
+/// | `bytea`            | `Box<[u8]>`   | `&[u8]`            | no         |
 ///
 /// ## Composite Types
 ///
 /// | name                   | SQL type             | owned type    | reference type     |
 /// | ---------------------- | -------------------- | ------------- | ------------------ |
-/// | anyarray               | `any[]`              | `ListValue`   | `ListRef<'_>`      |
 /// | struct                 | `record`             | `StructValue` | `StructRef<'_>`    |
 /// | T[^1][]                | `T[]`                | `ListValue`   | `ListRef<'_>`      |
 /// | struct<name T[^1], ..> | `struct<name T, ..>` | `(T, ..)`     | `(&T, ..)`         |
@@ -405,61 +400,7 @@ pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         let mut tokens: TokenStream2 = item.into();
         for attr in fn_attr.expand() {
-            tokens.extend(attr.generate_function_descriptor(&user_fn, false)?);
-        }
-        Ok(tokens)
-    }
-    match inner(attr, item) {
-        Ok(tokens) => tokens.into(),
-        Err(e) => e.to_compile_error().into(),
-    }
-}
-
-#[proc_macro_attribute]
-pub fn build_function(attr: TokenStream, item: TokenStream) -> TokenStream {
-    fn inner(attr: TokenStream, item: TokenStream) -> Result<TokenStream2> {
-        let fn_attr: FunctionAttr = syn::parse(attr)?;
-        let user_fn: UserFunctionAttr = syn::parse(item.clone())?;
-
-        let mut tokens: TokenStream2 = item.into();
-        for attr in fn_attr.expand() {
-            tokens.extend(attr.generate_function_descriptor(&user_fn, true)?);
-        }
-        Ok(tokens)
-    }
-    match inner(attr, item) {
-        Ok(tokens) => tokens.into(),
-        Err(e) => e.to_compile_error().into(),
-    }
-}
-
-#[proc_macro_attribute]
-pub fn aggregate(attr: TokenStream, item: TokenStream) -> TokenStream {
-    fn inner(attr: TokenStream, item: TokenStream) -> Result<TokenStream2> {
-        let fn_attr: FunctionAttr = syn::parse(attr)?;
-        let user_fn: AggregateFnOrImpl = syn::parse(item.clone())?;
-
-        let mut tokens: TokenStream2 = item.into();
-        for attr in fn_attr.expand() {
-            tokens.extend(attr.generate_aggregate_descriptor(&user_fn, false)?);
-        }
-        Ok(tokens)
-    }
-    match inner(attr, item) {
-        Ok(tokens) => tokens.into(),
-        Err(e) => e.to_compile_error().into(),
-    }
-}
-
-#[proc_macro_attribute]
-pub fn build_aggregate(attr: TokenStream, item: TokenStream) -> TokenStream {
-    fn inner(attr: TokenStream, item: TokenStream) -> Result<TokenStream2> {
-        let fn_attr: FunctionAttr = syn::parse(attr)?;
-        let user_fn: AggregateFnOrImpl = syn::parse(item.clone())?;
-
-        let mut tokens: TokenStream2 = item.into();
-        for attr in fn_attr.expand() {
-            tokens.extend(attr.generate_aggregate_descriptor(&user_fn, true)?);
+            tokens.extend(attr.generate_function_descriptor(&user_fn)?);
         }
         Ok(tokens)
     }
@@ -489,19 +430,12 @@ struct FunctionAttr {
     /// Initial state value for aggregate function.
     /// If not specified, it will be NULL.
     init_state: Option<String>,
-    /// Prebuild function for arguments.
-    /// This could be any Rust expression.
-    prebuild: Option<String>,
     /// Type inference function.
     type_infer: Option<String>,
     /// Generic type.
     generic: Option<String>,
     /// Whether the function is volatile.
     volatile: bool,
-    /// If true, the function is unavailable on the frontend.
-    deprecated: bool,
-    /// If true, the function is not implemented on the backend, but its signature is defined.
-    rewritten: bool,
 }
 
 /// Attributes from function signature `fn(..)`

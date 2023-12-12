@@ -14,28 +14,21 @@
 
 //! This module provides utility functions for SQL data type conversion and manipulation.
 
-//  name        data type   array type          owned type      ref type            primitive
+//  name                data type   array prefix owned type      ref type            primitive
 const TYPE_MATRIX: &str = "
-    boolean     Boolean     BoolArray           bool            bool                _
-    int2        Int16       I16Array            i16             i16                 y
-    int4        Int32       I32Array            i32             i32                 y
-    int8        Int64       I64Array            i64             i64                 y
-    int256      Int256      Int256Array         Int256          Int256Ref<'_>       _
-    float4      Float32     F32Array            F32             F32                 y
-    float8      Float64     F64Array            F64             F64                 y
-    decimal     Decimal     DecimalArray        Decimal         Decimal             y
-    serial      Serial      SerialArray         Serial          Serial              y
-    date        Date        DateArray           Date            Date                y
-    time        Time        TimeArray           Time            Time                y
-    timestamp   Timestamp   TimestampArray      Timestamp       Timestamp           y
-    timestamptz Timestamptz TimestamptzArray    Timestamptz     Timestamptz         y
-    interval    Interval    IntervalArray       Interval        Interval            y
-    varchar     Varchar     Utf8Array           Box<str>        &str                _
-    bytea       Bytea       BytesArray          Box<[u8]>       &[u8]               _
-    jsonb       Jsonb       JsonbArray          JsonbVal        JsonbRef<'_>        _
-    anyarray    List        ListArray           ListValue       ListRef<'_>         _
-    struct      Struct      StructArray         StructValue     StructRef<'_>       _
-    any         ???         ArrayImpl           ScalarImpl      ScalarRefImpl<'_>   _
+    boolean,bool        Boolean     Boolean     bool            bool                y
+    smallint,int2       Int16       Int16       i16             i16                 y
+    integer,int,int4    Int32       Int32       i32             i32                 y
+    bigint,int8         Int64       Int64       i64             i64                 y
+    real,float4         Float32     Float32     f32             f32                 y
+    float8              Float64     Float64     f64             f64                 y
+    date                Date32      Date32      Date            Date                y
+    time                Time64      Time64      Time            Time                y
+    timestamp           Timestamp   Timestamp   Timestamp       Timestamp           y
+    timestamptz         Timestamptz Timestamptz Timestamptz     Timestamptz         y
+    interval            Interval    Interval    Interval        Interval            y
+    varchar             Utf8        String      String          &str                _
+    bytea               Binary      Binary      Box<[u8]>       &[u8]               _
 ";
 
 /// Maps a data type to its corresponding data type name.
@@ -44,8 +37,13 @@ pub fn data_type(ty: &str) -> &str {
 }
 
 /// Maps a data type to its corresponding array type name.
-pub fn array_type(ty: &str) -> &str {
-    lookup_matrix(ty, 2)
+pub fn array_type(ty: &str) -> String {
+    format!("{}Array", lookup_matrix(ty, 2))
+}
+
+/// Maps a data type to its corresponding array type name.
+pub fn array_builder_type(ty: &str) -> String {
+    format!("{}Builder", lookup_matrix(ty, 2))
 }
 
 /// Maps a data type to its corresponding `Scalar` type name.
@@ -75,7 +73,8 @@ fn lookup_matrix(mut ty: &str, idx: usize) -> &str {
     }
     let s = TYPE_MATRIX.trim().lines().find_map(|line| {
         let mut parts = line.split_whitespace();
-        if parts.next() == Some(ty) {
+        let name = parts.next()?;
+        if name.split(',').any(|n| n == ty) {
             Some(parts.nth(idx - 1).unwrap())
         } else {
             None
@@ -96,54 +95,5 @@ pub fn expand_type_wildcard(ty: &str) -> Vec<&str> {
         "*int" => vec!["int2", "int4", "int8"],
         "*float" => vec!["float4", "float8"],
         _ => vec![ty],
-    }
-}
-
-/// Computes the minimal compatible type between a pair of data types.
-///
-/// This function is used to determine the `auto` type.
-pub fn min_compatible_type(types: &[impl AsRef<str>]) -> &str {
-    if types.len() == 1 {
-        return types[0].as_ref();
-    }
-    assert_eq!(types.len(), 2);
-    match (types[0].as_ref(), types[1].as_ref()) {
-        (a, b) if a == b => a,
-
-        ("int2", "int2") => "int2",
-        ("int2", "int4") => "int4",
-        ("int2", "int8") => "int8",
-
-        ("int4", "int2") => "int4",
-        ("int4", "int4") => "int4",
-        ("int4", "int8") => "int8",
-
-        ("int8", "int2") => "int8",
-        ("int8", "int4") => "int8",
-        ("int8", "int8") => "int8",
-
-        ("int2", "int256") => "int256",
-        ("int4", "int256") => "int256",
-        ("int8", "int256") => "int256",
-        ("int256", "int2") => "int256",
-        ("int256", "int4") => "int256",
-        ("int256", "int8") => "int256",
-        ("int256", "float8") => "float8",
-        ("float8", "int256") => "float8",
-
-        ("float4", "float4") => "float4",
-        ("float4", "float8") => "float8",
-
-        ("float8", "float4") => "float8",
-        ("float8", "float8") => "float8",
-
-        ("decimal", "decimal") => "decimal",
-
-        ("date", "timestamp") => "timestamp",
-        ("timestamp", "date") => "timestamp",
-        ("time", "interval") => "interval",
-        ("interval", "time") => "interval",
-
-        (a, b) => panic!("unknown minimal compatible type for {a:?} and {b:?}"),
     }
 }

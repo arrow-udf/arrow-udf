@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub use arrow::error::{ArrowError as Error, Result};
-use arrow::{array::ArrayRef, datatypes::DataType, record_batch::RecordBatch};
+use arrow_array::{ArrayRef, RecordBatch};
+pub use arrow_schema::ArrowError as Error;
+use arrow_schema::DataType;
 pub use arrow_udf_macros::function;
 
-#[doc(hidden)]
-pub mod byte_builder;
+pub type Result<T> = std::result::Result<T, Error>;
+
+mod byte_builder;
 
 /// A function signature.
 pub struct FunctionSignature {
@@ -34,7 +36,7 @@ pub struct FunctionSignature {
     pub return_type: SigDataType,
 
     /// The function
-    pub function: BoxScalarFunction,
+    pub function: ScalarFunction,
 }
 
 /// An extended data type that can be used to declare a function's argument or result type.
@@ -52,13 +54,49 @@ impl From<DataType> for SigDataType {
     }
 }
 
-pub trait ScalarFunction {
-    fn eval(&self, input: &RecordBatch) -> Result<ArrayRef>;
-}
-
-pub type BoxScalarFunction = Box<dyn ScalarFunction>;
+pub type ScalarFunction = fn(input: &RecordBatch) -> Result<ArrayRef>;
 
 pub mod codegen {
-    pub use arrow;
+    pub use crate::byte_builder::*;
+    pub use arrow_arith;
+    pub use arrow_array;
+    pub use arrow_schema;
     pub use itertools;
+
+    use crate::{Error, ScalarFunction};
+    use arrow_array::RecordBatch;
+    use arrow_ipc::{reader::FileReader, writer::FileWriter};
+    use arrow_schema::{Field, Schema};
+    use std::sync::Arc;
+
+    #[no_mangle]
+    unsafe extern "C" fn dealloc(ptr: *mut u8, len: usize) {
+        std::alloc::dealloc(ptr, std::alloc::Layout::from_size_align_unchecked(len, 1));
+    }
+
+    pub unsafe fn ffi_wrapper(
+        function: ScalarFunction,
+        ptr: *const u8,
+        len: usize,
+    ) -> Result<Box<[u8]>, Error> {
+        let input_bytes = unsafe { std::slice::from_raw_parts(ptr, len) };
+        let mut reader = FileReader::try_new(std::io::Cursor::new(input_bytes), None)?;
+        let input_batch = reader.next().unwrap()?;
+        let output_array = function(&input_batch)?;
+
+        let mut buf = vec![];
+        // Write data to IPC buffer
+        let schema = Schema::new(vec![Field::new(
+            "result",
+            output_array.data_type().clone(),
+            true,
+        )]);
+        let mut writer = FileWriter::try_new(&mut buf, &schema)?;
+        let batch = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(output_array)])?;
+        writer.write(&batch)?;
+        writer.finish()?;
+        drop(writer);
+
+        Ok(buf.into())
+    }
 }

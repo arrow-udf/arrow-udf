@@ -412,6 +412,8 @@ pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[derive(Debug, Clone, Default)]
 struct FunctionAttr {
+    /// Function signature
+    signature: String,
     /// Function name
     name: String,
     /// Input argument types

@@ -48,6 +48,7 @@ impl Parse for FunctionAttr {
         };
         parsed.ret = ret.trim().to_string();
         parsed.is_table_function = is_table_function;
+        parsed.signature = sig_str;
 
         if input.parse::<Token![,]>().is_err() {
             return Ok(parsed);

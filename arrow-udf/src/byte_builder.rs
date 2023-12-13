@@ -14,12 +14,12 @@
 
 //! Specialized byte builder that supports partial writes.
 
-use arrow::{
-    array::{ArrayDataBuilder, BufferBuilder, GenericByteArray},
-    datatypes::{ByteArrayType, GenericBinaryType, GenericStringType},
+use arrow_array::{
+    array::GenericByteArray,
+    types::{ByteArrayType, GenericBinaryType, GenericStringType},
 };
-use arrow_buffer::ArrowNativeType;
-use arrow_buffer::NullBufferBuilder;
+use arrow_buffer::{ArrowNativeType, BufferBuilder, NullBufferBuilder};
+use arrow_data::ArrayDataBuilder;
 
 pub type StringBuilder = GenericByteBuilder<GenericStringType<i32>>;
 pub type BinaryBuilder = GenericByteBuilder<GenericBinaryType<i32>>;

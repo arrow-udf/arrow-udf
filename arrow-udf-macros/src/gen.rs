@@ -106,11 +106,31 @@ impl FunctionAttr {
         let ret = sig_data_type(&self.ret);
 
         let ctor_name = format_ident!("{}_sig", self.ident_name());
+        let export_name = format!(
+            "arrowudf_{}",
+            base64_encode(&self.signature.replace(' ', ""))
+        );
         let function = self.generate_scalar_function(user_fn)?;
 
         Ok(quote! {
+            #[cfg(target_arch = "wasm32")]
+            #[doc(hidden)]
+            #[export_name = #export_name]
+            unsafe extern "C" fn #ctor_name(ptr: *const u8, len: usize) -> (*const u8, usize) {
+                match arrow_udf::codegen::ffi_wrapper(#function, ptr, len) {
+                    Ok(data) => {
+                        let ptr = data.as_ptr();
+                        let len = data.len();
+                        std::mem::forget(data);
+                        (ptr, len)
+                    }
+                    Err(_) => (std::ptr::null(), 0),
+                }
+            }
+
+            #[cfg(not(target_arch = "wasm32"))]
             fn #ctor_name() -> arrow_udf::FunctionSignature {
-                use arrow_udf::{FunctionSignature, SigDataType, codegen::arrow::datatypes::DataType};
+                use arrow_udf::{FunctionSignature, SigDataType, codegen::arrow_schema::DataType};
 
                 FunctionSignature {
                     name: #name.into(),
@@ -128,7 +148,6 @@ impl FunctionAttr {
         let variadic = matches!(self.args.last(), Some(t) if t == "...");
         let num_args = self.args.len() - if variadic { 1 } else { 0 };
         let fn_name = format_ident!("{}", user_fn.name);
-        let struct_name = format_ident!("{}", utils::to_camel_case(&self.ident_name()));
 
         let children_indices = (0..num_args).collect_vec();
 
@@ -238,11 +257,11 @@ impl FunctionAttr {
                     Ok(Arc::new(c))
                 },
                 1 => quote! {
-                    let c: #ret_array_type = arrow::compute::unary(a0, #fn_name);
+                    let c: #ret_array_type = arrow_arith::arity::unary(a0, #fn_name);
                     Ok(Arc::new(c))
                 },
                 2 => quote! {
-                    let c: #ret_array_type = arrow::compute::binary(a0, a1, #fn_name)?;
+                    let c: #ret_array_type = arrow_arith::arity::binary(a0, a1, #fn_name)?;
                     Ok(Arc::new(c))
                 },
                 n => todo!("SIMD optimization for {n} arguments"),
@@ -260,10 +279,10 @@ impl FunctionAttr {
             });
             let builder = match self.ret.as_str() {
                 "varchar" => {
-                    quote! { arrow_udf::byte_builder::StringBuilder::with_capacity(input.num_rows(), 1024) }
+                    quote! { arrow_udf::codegen::StringBuilder::with_capacity(input.num_rows(), 1024) }
                 }
                 "bytea" => {
-                    quote! { arrow_udf::byte_builder::BinaryBuilder::with_capacity(input.num_rows(), 1024) }
+                    quote! { arrow_udf::codegen::BinaryBuilder::with_capacity(input.num_rows(), 1024) }
                 }
                 _ => quote! { #builder_type::with_capacity(input.num_rows()) },
             };
@@ -280,26 +299,22 @@ impl FunctionAttr {
         Ok(quote! {
             {
                 use std::sync::Arc;
-                use arrow_udf::{BoxScalarFunction, Result, Error};
-                use arrow_udf::codegen::arrow::array::*;
-                use arrow_udf::codegen::arrow;
+                use arrow_udf::{Result, Error};
+                use arrow_udf::codegen::arrow_array::RecordBatch;
+                use arrow_udf::codegen::arrow_array::array::*;
+                use arrow_udf::codegen::arrow_array::builder::*;
+                use arrow_udf::codegen::arrow_arith;
                 use arrow_udf::codegen::itertools;
 
-                #[derive(Debug)]
-                struct #struct_name;
-
-                impl arrow_udf::ScalarFunction for #struct_name {
-                    fn eval(&self, input: &RecordBatch) -> Result<ArrayRef> {
-                        #(
-                            let #arrays: &#arg_arrays = input.column(#children_indices).as_any().downcast_ref()
-                                .ok_or_else(|| Error::CastError(format!("expect {} for the {}-th argument", stringify!(#arg_arrays), #children_indices)))?;
-                        )*
-                        #eval_variadic
-                        #eval
-                    }
+                fn eval(input: &RecordBatch) -> Result<ArrayRef> {
+                    #(
+                        let #arrays: &#arg_arrays = input.column(#children_indices).as_any().downcast_ref()
+                            .ok_or_else(|| Error::CastError(format!("expect {} for the {}-th argument", stringify!(#arg_arrays), #children_indices)))?;
+                    )*
+                    #eval_variadic
+                    #eval
                 }
-
-                Box::new(#struct_name)
+                eval
             }
         })
     }
@@ -344,4 +359,19 @@ fn output_types(ty: &str) -> Vec<&str> {
     } else {
         vec![ty]
     }
+}
+
+/// Encode a string to a symbol name using customized base64.
+fn base64_encode(input: &str) -> String {
+    use base64::{
+        alphabet::Alphabet,
+        engine::{general_purpose::NO_PAD, GeneralPurpose},
+        Engine,
+    };
+    // standard base64 uses '+' and '/', which is not a valid symbol name.
+    // we use '$' and '_' instead.
+    let alphabet =
+        Alphabet::new("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$_").unwrap();
+    let engine = GeneralPurpose::new(&alphabet, NO_PAD);
+    engine.encode(input)
 }

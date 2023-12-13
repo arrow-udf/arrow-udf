@@ -14,10 +14,10 @@
 
 use std::{ops::Neg, sync::Arc};
 
-use arrow::{
-    array::{AsArray, Int32Array, RecordBatch},
-    datatypes::{DataType, Field, Int32Type, Schema},
-};
+use arrow_array::cast::AsArray;
+use arrow_array::types::Int32Type;
+use arrow_array::{Int32Array, RecordBatch};
+use arrow_schema::{DataType, Field, Schema};
 use arrow_udf::function;
 
 // test no return value
@@ -139,6 +139,6 @@ fn test_neg() {
     let expected = Int32Array::from(vec![Some(-1), None]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = sig.function.eval(&input).unwrap();
+    let output = (sig.function)(&input).unwrap();
     assert_eq!(output.as_primitive::<Int32Type>(), &expected);
 }

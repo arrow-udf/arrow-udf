@@ -3,11 +3,14 @@ name = "arrow-udf"
 version = "0.1.0"
 edition = "2021"
 description = "User-defined function framework for arrow-rs."
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-arrow = { version = "49", default-features = false }
+arrow-arith = "49"
+arrow-array = "49"
 arrow-buffer = "49"
+arrow-data = "49"
+arrow-ipc = "49"
+arrow-schema = "49"
 arrow-udf-macros = { version = "0.1.0", path = "../arrow-udf-macros" }
 itertools = "0.12"

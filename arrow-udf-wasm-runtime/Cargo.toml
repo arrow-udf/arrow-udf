@@ -14,4 +14,10 @@ wasmtime = "15"
 wasmtime-wasi = "15"
 
 [dev-dependencies]
+arrow-arith = "49"
 arrow-cast = { version = "49", features = ["prettyprint"] }
+criterion = "0.5"
+
+[[bench]]
+name = "wasm"
+harness = false

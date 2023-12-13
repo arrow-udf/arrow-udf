@@ -12,3 +12,6 @@ arrow-schema = "49"
 base64 = "0.21"
 wasmtime = "15"
 wasmtime-wasi = "15"
+
+[dev-dependencies]
+arrow-cast = { version = "49", features = ["prettyprint"] }

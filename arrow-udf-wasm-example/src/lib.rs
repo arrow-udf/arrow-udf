@@ -26,3 +26,9 @@ fn create_file() -> i32 {
     std::fs::File::create("test").unwrap();
     0
 }
+
+#[function("length(varchar) -> int")]
+#[function("length(bytea) -> int")]
+fn length(s: impl AsRef<[u8]>) -> i32 {
+    s.as_ref().len() as i32
+}

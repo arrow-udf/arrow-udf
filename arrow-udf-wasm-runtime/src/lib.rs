@@ -46,8 +46,6 @@ impl Runtime {
             .get_memory(&mut store, "memory")
             .expect("no memory");
 
-        dbg!(&symbols);
-
         Ok(Runtime {
             engine,
             module,
@@ -104,6 +102,12 @@ impl Runtime {
             .call(&mut self.store, (output_ptr, output_len))?;
 
         Ok(output.column(0).clone())
+    }
+
+    /// List all functions. The first element of each tuple is the symbol name, and the second is
+    /// the function signature.
+    pub fn functions(&self) -> &[(String, String)] {
+        &self.symbols
     }
 }
 

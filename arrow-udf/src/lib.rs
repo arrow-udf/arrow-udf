@@ -70,9 +70,18 @@ pub mod codegen {
     use std::sync::Arc;
 
     #[no_mangle]
+    unsafe extern "C" fn alloc(len: usize) -> *mut u8 {
+        std::alloc::alloc(std::alloc::Layout::from_size_align_unchecked(len, 1))
+    }
+
+    #[no_mangle]
     unsafe extern "C" fn dealloc(ptr: *mut u8, len: usize) {
         std::alloc::dealloc(ptr, std::alloc::Layout::from_size_align_unchecked(len, 1));
     }
+
+    #[no_mangle]
+    #[used]
+    static ARROW_UDF_VERSION: u8 = 1;
 
     pub unsafe fn ffi_wrapper(
         function: ScalarFunction,

@@ -116,15 +116,15 @@ impl FunctionAttr {
             #[cfg(target_arch = "wasm32")]
             #[doc(hidden)]
             #[export_name = #export_name]
-            unsafe extern "C" fn #ctor_name(ptr: *const u8, len: usize) -> (*const u8, usize) {
+            unsafe extern "C" fn #ctor_name(ptr: *const u8, len: usize) -> u64 {
                 match arrow_udf::codegen::ffi_wrapper(#function, ptr, len) {
                     Ok(data) => {
                         let ptr = data.as_ptr();
                         let len = data.len();
                         std::mem::forget(data);
-                        (ptr, len)
+                        ((ptr as u64) << 32) | (len as u64)
                     }
-                    Err(_) => (std::ptr::null(), 0),
+                    Err(_) => 0,
                 }
             }
 

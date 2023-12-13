@@ -1,3 +1,8 @@
 [workspace]
 resolver = "2"
-members = ["arrow-udf", "arrow-udf-macros"]
+members = [
+    "arrow-udf",
+    "arrow-udf-macros",
+    "arrow-udf-wasm-example",
+    "arrow-udf-wasm-runtime",
+]

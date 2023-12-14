@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702528623664,
+  "lastUpdate": 1702555581432,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf-wasm",
   "entries": {
     "Rust Benchmark": [
@@ -28,6 +28,36 @@ window.BENCHMARK_DATA = {
           {
             "name": "gcd/native",
             "value": 3904,
+            "range": "± 7",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "771a88ce8cdf743abcbdcdef62dd6dba7257d373",
+          "message": "impl Debug for Runtime\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2023-12-14T20:00:58+08:00",
+          "tree_id": "1d3e14226ea18727567d6591c6e0af25084dfe04",
+          "url": "https://github.com/risingwavelabs/arrow-udf-wasm/commit/771a88ce8cdf743abcbdcdef62dd6dba7257d373"
+        },
+        "date": 1702555580945,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3903,
             "range": "± 7",
             "unit": "ns/iter"
           }

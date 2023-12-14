@@ -8,10 +8,7 @@ fn main() {
     let filename = std::env::args().nth(1).expect("no filename");
     let mut runtime = Runtime::new(&std::fs::read(filename).unwrap()).unwrap();
 
-    println!("functions:");
-    for name in runtime.functions() {
-        println!("  {name}");
-    }
+    println!("{runtime:#?}");
 
     println!("\ncall gcd");
 

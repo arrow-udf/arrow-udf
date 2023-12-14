@@ -1,6 +1,7 @@
 use anyhow::{ensure, Context};
 use arrow_array::RecordBatch;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use wasmtime::*;
 use wasmtime_wasi::{sync::WasiCtxBuilder, WasiCtx};
 
@@ -10,6 +11,15 @@ pub struct Runtime {
     functions: HashMap<String, TypedFunc<(u32, u32), u64>>,
     memory: Memory,
     store: Store<WasiCtx>,
+}
+
+impl Debug for Runtime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Runtime")
+            .field("functions", &self.functions.keys())
+            .field("memory_size", &self.memory.data_size(&self.store))
+            .finish()
+    }
 }
 
 impl Runtime {
@@ -71,7 +81,10 @@ impl Runtime {
         //      wasm record batch -> wasm memory -> host record batch
 
         // get function
-        let func = self.functions.get(name).context("function not found")?;
+        let func = self
+            .functions
+            .get(name)
+            .with_context(|| format!("function not found: {name}"))?;
 
         // encode input batch
         let input = encode_record_batch(input)?;
@@ -105,11 +118,6 @@ impl Runtime {
             .call(&mut self.store, (output_ptr, output_len))?;
 
         Ok(output)
-    }
-
-    /// List all functions.
-    pub fn functions(&self) -> impl Iterator<Item = &str> {
-        self.functions.keys().map(|s| s.as_str())
     }
 }
 

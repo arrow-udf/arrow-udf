@@ -1,4 +1,4 @@
-use arrow_array::{ArrayRef, RecordBatch};
+use arrow_array::RecordBatch;
 use wasmtime::*;
 use wasmtime_wasi::{sync::WasiCtxBuilder, WasiCtx};
 
@@ -58,7 +58,7 @@ impl Runtime {
         })
     }
 
-    pub fn call(&mut self, name: &str, input: &RecordBatch) -> Result<ArrayRef> {
+    pub fn call(&mut self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         // TODO: optimize data transfer
         // currently there are 3 copies in input path:
         //      host record batch -> host encoding -> wasm memory -> wasm record batch
@@ -101,7 +101,7 @@ impl Runtime {
         self.dealloc
             .call(&mut self.store, (output_ptr, output_len))?;
 
-        Ok(output.column(0).clone())
+        Ok(output)
     }
 
     /// List all functions. The first element of each tuple is the symbol name, and the second is

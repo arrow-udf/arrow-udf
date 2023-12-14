@@ -242,6 +242,7 @@ impl FunctionAttr {
             }
         } else if types::is_primitive(&self.ret)
             && self.args.iter().all(|ty| types::is_primitive(ty))
+            && self.args.len() <= 2
             && user_fn.is_pure()
             && !variadic
         {

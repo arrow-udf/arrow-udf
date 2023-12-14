@@ -16,7 +16,7 @@ use std::{ops::Neg, sync::Arc};
 
 use arrow_array::cast::AsArray;
 use arrow_array::types::Int32Type;
-use arrow_array::{Int32Array, RecordBatch};
+use arrow_array::{Int32Array, RecordBatch, StringArray};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf::function;
 
@@ -126,6 +126,16 @@ fn bytes4(x: i32, output: &mut impl std::io::Write) {
     }
 }
 
+#[function("key_value(varchar) -> struct<key:varchar,value:varchar>")]
+fn key_value(kv: &str) -> Option<(&str, &str)> {
+    kv.split_once('=')
+}
+
+#[function("nested_struct() -> struct<a:int, b:struct<c:int, d:varchar>>")]
+fn nested_struct() -> (i32, (i32, &'static str)) {
+    (1, (2, "g"))
+}
+
 #[test]
 fn test_neg() {
     let sig = neg_int4_int4_sig();
@@ -141,4 +151,53 @@ fn test_neg() {
 
     let output = (sig.function)(&input).unwrap();
     assert_eq!(output.as_primitive::<Int32Type>(), &expected);
+}
+
+#[test]
+fn test_key_value() {
+    let sig = key_value_varchar_struct_key_varchar_value_varchar__sig();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8, true)]);
+    let arg0 = StringArray::from(vec!["a=b", "??"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = (sig.function)(&input).unwrap();
+    assert_eq!(
+        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++--------------------+
+| result             |
++--------------------+
+| {key: a, value: b} |
+|                    |
++--------------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_nested_struct() {
+    let sig = nested_struct_struct_a_int4_b_struct_c_int4_d_varchar__sig();
+
+    let schema = Schema::new(vec![Field::new("int32", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![1]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = (sig.function)(&input).unwrap();
+    assert_eq!(
+        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-------------------------+
+| result                  |
++-------------------------+
+| {a: 1, b: {c: 2, d: g}} |
++-------------------------+
+"#
+        .trim()
+    );
 }

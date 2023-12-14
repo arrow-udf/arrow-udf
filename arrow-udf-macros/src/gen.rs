@@ -127,7 +127,7 @@ impl FunctionAttr {
 
             #[cfg(not(target_arch = "wasm32"))]
             fn #ctor_name() -> arrow_udf::FunctionSignature {
-                use arrow_udf::{FunctionSignature, SigDataType, codegen::arrow_schema::DataType};
+                use arrow_udf::{FunctionSignature, SigDataType, codegen::arrow_schema};
 
                 FunctionSignature {
                     name: #name.into(),
@@ -205,8 +205,14 @@ impl FunctionAttr {
             };
         };
         // now the `output` is: Option<impl ScalarRef or Scalar>
-        let append_output = match user_fn.write {
-            true => quote! {{
+        let append_output = if user_fn.write {
+            if self.ret != "varchar" && self.ret != "bytea" {
+                return Err(Error::new(
+                    Span::call_site(),
+                    "`&mut Write` can only be used for returning `varchar` or `bytea`",
+                ));
+            }
+            quote! {{
                 let mut writer = builder.writer();
                 if #output.is_some() {
                     writer.finish();
@@ -214,19 +220,58 @@ impl FunctionAttr {
                     drop(writer);
                     builder.append_null();
                 }
-            }},
-            _ if self.ret == "void" => quote! {
-                match #output {
-                    Some(s) => builder.append_empty_value(),
-                    None => builder.append_null(),
+            }}
+        } else {
+            /// Generate code to append the `v` to the `builder`.
+            fn gen_append_value(ty: &str) -> TokenStream2 {
+                if ty.starts_with("struct") {
+                    let append_fields = types::iter_fields(ty).enumerate().map(|(i, (_, ty))| {
+                        let index = syn::Index::from(i);
+                        let builder_type = format_ident!("{}", types::array_builder_type(ty));
+                        let append = gen_append_value(ty);
+                        quote! {{
+                            let builder = builder.field_builder::<#builder_type>(#i).unwrap();
+                            let v = v.#index;
+                            #append
+                        }}
+                    });
+                    quote! {{
+                        #(#append_fields)*
+                        builder.append(true);
+                    }}
+                } else if ty == "void" {
+                    quote! { builder.append_empty_value() }
+                } else {
+                    quote! { builder.append_value(v) }
                 }
-            },
-            false => quote! {
-                match #output {
-                    Some(s) => builder.append_value(s),
-                    None => builder.append_null(),
+            }
+            /// Generate code to append null to the `builder`.
+            fn gen_append_null(ty: &str) -> TokenStream2 {
+                if ty.starts_with("struct") {
+                    let append_fields = types::iter_fields(ty).enumerate().map(|(i, (_, ty))| {
+                        let append = gen_append_null(ty);
+                        let builder_type = format_ident!("{}", types::array_builder_type(ty));
+                        quote! {{
+                            let builder = builder.field_builder::<#builder_type>(#i).unwrap();
+                            #append
+                        }}
+                    });
+                    quote! {{
+                        #(#append_fields)*
+                        builder.append(false);
+                    }}
+                } else {
+                    quote! { builder.append_null() }
                 }
-            },
+            }
+            let append_value = gen_append_value(&self.ret);
+            let append_null = gen_append_null(&self.ret);
+            quote! {
+                match #output {
+                    Some(v) => #append_value,
+                    None => #append_null,
+                }
+            }
         };
         // the main body in `eval`
         let eval = if let Some(batch_fn) = &self.batch_fn {
@@ -282,6 +327,10 @@ impl FunctionAttr {
                 "bytea" => {
                     quote! { arrow_udf::codegen::BinaryBuilder::with_capacity(input.num_rows(), 1024) }
                 }
+                s if s.starts_with("struct") => {
+                    let fields = fields(s);
+                    quote! { StructBuilder::from_fields(#fields, input.num_rows()) }
+                }
                 _ => quote! { #builder_type::with_capacity(input.num_rows()) },
             };
             quote! {
@@ -302,6 +351,7 @@ impl FunctionAttr {
                 use arrow_udf::codegen::arrow_array::array::*;
                 use arrow_udf::codegen::arrow_array::builder::*;
                 use arrow_udf::codegen::arrow_arith;
+                use arrow_udf::codegen::arrow_schema;
                 use arrow_udf::codegen::itertools;
 
                 fn eval(input: &RecordBatch) -> Result<ArrayRef> {
@@ -330,33 +380,27 @@ fn sig_data_type(ty: &str) -> TokenStream2 {
     }
 }
 
+/// Returns a `DataType` from type name.
 fn data_type(ty: &str) -> TokenStream2 {
     if let Some(ty) = ty.strip_suffix("[]") {
         let inner_type = data_type(ty);
-        return quote! { DataType::List(Box::new(#inner_type)) };
+        return quote! { arrow_schema::DataType::List(Box::new(#inner_type)) };
     }
-    if ty.starts_with("struct<") {
-        return quote! { DataType::Struct(#ty.parse().expect("invalid struct type")) };
+    if ty.starts_with("struct<") && ty.ends_with('>') {
+        let fields = fields(ty);
+        return quote! { arrow_schema::DataType::Struct(#fields) };
     }
     let variant = format_ident!("{}", types::data_type(ty));
-    quote! { DataType::#variant }
+    quote! { arrow_schema::DataType::#variant }
 }
 
-/// Extract multiple output types.
-///
-/// ```ignore
-/// output_types("int4") -> ["int4"]
-/// output_types("struct<key varchar, value jsonb>") -> ["varchar", "jsonb"]
-/// ```
-fn output_types(ty: &str) -> Vec<&str> {
-    if ty.starts_with("struct<") && ty.ends_with('>') {
-        ty[7..ty.len() - 1]
-            .split(',')
-            .map(|s| s.split_whitespace().nth(1).unwrap())
-            .collect()
-    } else {
-        vec![ty]
-    }
+/// Returns a `Fields` from struct type name.
+fn fields(ty: &str) -> TokenStream2 {
+    let fields = types::iter_fields(ty).map(|(name, ty)| {
+        let ty = data_type(ty);
+        quote! { arrow_schema::Field::new(#name, #ty, true) }
+    });
+    quote! { arrow_schema::Fields::from(vec![#(#fields,)*]) }
 }
 
 /// Encode a string to a symbol name using customized base64.

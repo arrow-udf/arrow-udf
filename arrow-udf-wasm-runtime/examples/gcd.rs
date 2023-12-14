@@ -42,6 +42,24 @@ fn main() {
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
     arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
 
+    println!("\ncall key_value");
+
+    let input = RecordBatch::try_new(
+        Arc::new(Schema::new(vec![Field::new("s", DataType::Utf8, true)])),
+        vec![Arc::new(StringArray::from(vec!["rising=wave", "???"]))],
+    )
+    .unwrap();
+
+    let output = runtime
+        .call(
+            "key_value(varchar)->struct<key:varchar,value:varchar>",
+            &input,
+        )
+        .unwrap();
+
+    arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
+    arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
+
     println!("\ncall segfault");
 
     let input = RecordBatch::try_new_with_options(

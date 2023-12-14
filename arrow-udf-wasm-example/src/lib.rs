@@ -37,3 +37,8 @@ fn sleep(second: i32) -> i32 {
 fn length(s: impl AsRef<[u8]>) -> i32 {
     s.as_ref().len() as i32
 }
+
+#[function("key_value(varchar) -> struct<key:varchar, value:varchar>")]
+fn key_value(kv: &str) -> Option<(&str, &str)> {
+    kv.split_once('=')
+}

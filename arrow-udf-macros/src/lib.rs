@@ -528,7 +528,7 @@ impl FunctionAttr {
         format!("{}_{}_{}", self.name, self.args.join("_"), self.ret)
             .replace("[]", "array")
             .replace("...", "variadic")
-            .replace(['<', '>', ' ', ','], "_")
+            .replace(['<', '>', ' ', ',', ':'], "_")
             .replace("__", "_")
     }
 

@@ -14,3 +14,6 @@ arrow-ipc = "49"
 arrow-schema = "49"
 arrow-udf-macros = { version = "0.1.0", path = "../arrow-udf-macros" }
 itertools = "0.12"
+
+[dev-dependencies]
+arrow-cast = { version = "49", features = ["prettyprint"] }

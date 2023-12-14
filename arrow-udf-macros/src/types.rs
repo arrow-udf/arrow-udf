@@ -14,22 +14,24 @@
 
 //! This module provides utility functions for SQL data type conversion and manipulation.
 
-//  name                data type   array prefix owned type     ref type            primitive
+use itertools::Itertools;
+
+//  name        data type   array prefix owned type     ref type            primitive
 const TYPE_MATRIX: &str = "
-    void                Null        Null        ()              ()                  _
-    boolean,bool        Boolean     Boolean     bool            bool                _
-    smallint,int2       Int16       Int16       i16             i16                 y
-    integer,int,int4    Int32       Int32       i32             i32                 y
-    bigint,int8         Int64       Int64       i64             i64                 y
-    real,float4         Float32     Float32     f32             f32                 y
-    float8              Float64     Float64     f64             f64                 y
-    date                Date32      Date32      Date            Date                y
-    time                Time64      Time64      Time            Time                y
-    timestamp           Timestamp   Timestamp   Timestamp       Timestamp           y
-    timestamptz         Timestamptz Timestamptz Timestamptz     Timestamptz         y
-    interval            Interval    Interval    Interval        Interval            y
-    varchar             Utf8        String      String          &str                _
-    bytea               Binary      Binary      Box<[u8]>       &[u8]               _
+    void        Null        Null        ()              ()                  _
+    boolean     Boolean     Boolean     bool            bool                _
+    int2        Int16       Int16       i16             i16                 y
+    int4        Int32       Int32       i32             i32                 y
+    int8        Int64       Int64       i64             i64                 y
+    float4      Float32     Float32     f32             f32                 y
+    float8      Float64     Float64     f64             f64                 y
+    date        Date32      Date32      Date            Date                y
+    time        Time64      Time64      Time            Time                y
+    timestamp   Timestamp   Timestamp   Timestamp       Timestamp           y
+    timestamptz Timestamptz Timestamptz Timestamptz     Timestamptz         y
+    interval    Interval    Interval    Interval        Interval            y
+    varchar     Utf8        String      String          &str                _
+    bytea       Binary      Binary      Box<[u8]>       &[u8]               _
 ";
 
 /// Maps a data type to its corresponding data type name.
@@ -70,14 +72,42 @@ fn lookup_matrix(mut ty: &str, idx: usize) -> &str {
     }
     let s = TYPE_MATRIX.trim().lines().find_map(|line| {
         let mut parts = line.split_whitespace();
-        let name = parts.next()?;
-        if name.split(',').any(|n| n == ty) {
+        if parts.next()? == ty {
             Some(parts.nth(idx - 1).unwrap())
         } else {
             None
         }
     });
     s.unwrap_or_else(|| panic!("unknown type: {}", ty))
+}
+
+/// Normalizes a data type string.
+pub fn normalize_type(ty: &str) -> String {
+    if let Some(t) = ty.strip_suffix("[]") {
+        return format!("{}[]", normalize_type(t));
+    }
+    if ty.starts_with("struct<") && ty.ends_with(">") {
+        return ty[7..ty.len() - 1]
+            .split(',')
+            .map(|field| {
+                let mut parts = field.split_ascii_whitespace();
+                let name = parts.next().unwrap();
+                let ty = parts.next().unwrap();
+                format!("{} {}", name, normalize_type(ty))
+            })
+            .join(",");
+    }
+    match ty {
+        "bool" => "boolean",
+        "smallint" => "int2",
+        "int" | "integer" => "int4",
+        "bigint" => "int8",
+        "real" => "float4",
+        "double precision" => "float8",
+        "character varying" => "varchar",
+        _ => ty,
+    }
+    .to_string()
 }
 
 /// Expands a type wildcard string into a list of concrete types.

@@ -4,13 +4,13 @@ use arrow_array::{Int32Array, RecordBatch, RecordBatchOptions, StringArray};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_wasm_runtime::Runtime;
 
-fn main() -> wasmtime::Result<()> {
+fn main() {
     let filename = std::env::args().nth(1).expect("no filename");
     let mut runtime = Runtime::new(&std::fs::read(filename).unwrap()).unwrap();
 
     println!("functions:");
-    for (encoded, decoded) in runtime.functions() {
-        println!("  {decoded:20}{encoded}");
+    for name in runtime.functions() {
+        println!("  {name}");
     }
 
     println!("\ncall gcd");
@@ -27,9 +27,7 @@ fn main() -> wasmtime::Result<()> {
     )
     .unwrap();
 
-    let output = runtime
-        .call("arrowudf_Z2NkKGludCxpbnQpLT5pbnQ", &input)
-        .unwrap();
+    let output = runtime.call("gcd(int4,int4)->int4", &input).unwrap();
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
     arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
@@ -42,9 +40,7 @@ fn main() -> wasmtime::Result<()> {
     )
     .unwrap();
 
-    let output = runtime
-        .call("arrowudf_bGVuZ3RoKHZhcmNoYXIpLT5pbnQ", &input)
-        .unwrap();
+    let output = runtime.call("length(varchar)->int4", &input).unwrap();
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
     arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
@@ -58,9 +54,8 @@ fn main() -> wasmtime::Result<()> {
     )
     .unwrap();
 
-    let output = runtime.call("arrowudf_c2VnZmF1bHQoKS0$aW50", &input);
+    let output = runtime.call("segfault()->void", &input);
     println!("{}", output.unwrap_err());
 
     println!("\nBye!");
-    Ok(())
 }

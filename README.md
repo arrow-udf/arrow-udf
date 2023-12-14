@@ -5,9 +5,7 @@
 Build the WebAssembly module:
 
 ```sh
-cd arrow-udf-wasm-example
-cargo build --release
-cd ..
+cargo build --release -p arrow-udf-wasm-example --target wasm32-wasi
 ```
 
 Run the example:

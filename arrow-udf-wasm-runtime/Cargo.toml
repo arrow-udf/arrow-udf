@@ -6,10 +6,12 @@ description = "WebAssembly runtime for Arrow UDFs."
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1"
 arrow-array = "49"
 arrow-ipc = "49"
 arrow-schema = "49"
 base64 = "0.21"
+lazy_static = "1"
 wasmtime = "15"
 wasmtime-wasi = "15"
 

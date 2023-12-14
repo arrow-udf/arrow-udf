@@ -106,10 +106,7 @@ impl FunctionAttr {
         let ret = sig_data_type(&self.ret);
 
         let ctor_name = format_ident!("{}_sig", self.ident_name());
-        let export_name = format!(
-            "arrowudf_{}",
-            base64_encode(&self.signature.replace(' ', ""))
-        );
+        let export_name = format!("arrowudf_{}", base64_encode(&self.normalize_signature()));
         let function = self.generate_scalar_function(user_fn)?;
 
         Ok(quote! {

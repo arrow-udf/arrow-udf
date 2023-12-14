@@ -44,11 +44,12 @@ impl Parse for FunctionAttr {
         parsed.args = if args.is_empty() {
             vec![]
         } else {
-            args.split(',').map(|s| s.trim().to_string()).collect()
+            args.split(',')
+                .map(|s| types::normalize_type(s.trim()))
+                .collect()
         };
-        parsed.ret = ret.trim().to_string();
+        parsed.ret = types::normalize_type(ret.trim());
         parsed.is_table_function = is_table_function;
-        parsed.signature = sig_str;
 
         if input.parse::<Token![,]>().is_err() {
             return Ok(parsed);

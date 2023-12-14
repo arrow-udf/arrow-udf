@@ -412,8 +412,6 @@ pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[derive(Debug, Clone, Default)]
 struct FunctionAttr {
-    /// Function signature
-    signature: String,
     /// Function name
     name: String,
     /// Input argument types
@@ -532,6 +530,11 @@ impl FunctionAttr {
             .replace("...", "variadic")
             .replace(['<', '>', ' ', ','], "_")
             .replace("__", "_")
+    }
+
+    /// Return a unique signature of the function.
+    fn normalize_signature(&self) -> String {
+        format!("{}({})->{}", self.name, self.args.join(","), self.ret)
     }
 }
 

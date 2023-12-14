@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702555581432,
+  "lastUpdate": 1702556403713,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf-wasm",
   "entries": {
     "Rust Benchmark": [
@@ -59,6 +59,36 @@ window.BENCHMARK_DATA = {
             "name": "gcd/native",
             "value": 3903,
             "range": "± 7",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "3b01596f59541711fdf0cdab8264a239e1d2c73d",
+          "message": "fix panic on simd\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2023-12-14T20:14:54+08:00",
+          "tree_id": "c3c2a225acb17263d44b239f79338298f931c7c9",
+          "url": "https://github.com/risingwavelabs/arrow-udf-wasm/commit/3b01596f59541711fdf0cdab8264a239e1d2c73d"
+        },
+        "date": 1702556403274,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3903,
+            "range": "± 4",
             "unit": "ns/iter"
           }
         ]

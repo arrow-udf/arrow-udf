@@ -14,11 +14,15 @@
 
 //! Specialized byte builder that supports partial writes.
 
+use std::{any::Any, sync::Arc};
+
 use arrow_array::{
     array::GenericByteArray,
+    builder::ArrayBuilder,
     types::{ByteArrayType, GenericBinaryType, GenericStringType},
+    ArrayRef,
 };
-use arrow_buffer::{ArrowNativeType, BufferBuilder, NullBufferBuilder};
+use arrow_buffer::{ArrowNativeType, Buffer, BufferBuilder, NullBufferBuilder};
 use arrow_data::ArrayDataBuilder;
 
 pub type StringBuilder = GenericByteBuilder<GenericStringType<i32>>;
@@ -71,6 +75,15 @@ impl<T: ByteArrayType> GenericByteBuilder<T> {
         self.offsets_builder.append(self.next_offset());
     }
 
+    /// Append an `Option` value into the builder.
+    #[inline]
+    pub fn append_option(&mut self, value: Option<impl AsRef<T::Native>>) {
+        match value {
+            None => self.append_null(),
+            Some(v) => self.append_value(v),
+        };
+    }
+
     /// Append a null value into the builder.
     #[inline]
     pub fn append_null(&mut self) {
@@ -101,6 +114,21 @@ impl<T: ByteArrayType> GenericByteBuilder<T> {
             .nulls(self.null_buffer_builder.finish());
 
         self.offsets_builder.append(self.next_offset());
+        let array_data = unsafe { array_builder.build_unchecked() };
+        GenericByteArray::from(array_data)
+    }
+
+    /// Builds the [`GenericByteArray`] without resetting the builder.
+    pub fn finish_cloned(&self) -> GenericByteArray<T> {
+        let array_type = T::DATA_TYPE;
+        let offset_buffer = Buffer::from_slice_ref(self.offsets_builder.as_slice());
+        let value_buffer = Buffer::from_slice_ref(self.value_builder.as_slice());
+        let array_builder = ArrayDataBuilder::new(array_type)
+            .len(self.len())
+            .add_buffer(offset_buffer)
+            .add_buffer(value_buffer)
+            .nulls(self.null_buffer_builder.finish_cloned());
+
         let array_data = unsafe { array_builder.build_unchecked() };
         GenericByteArray::from(array_data)
     }
@@ -142,5 +170,46 @@ impl<T: ByteArrayType> ByteWriter<'_, T> {
 impl<T: ByteArrayType> Drop for ByteWriter<'_, T> {
     fn drop(&mut self) {
         self.builder.value_builder.truncate(self.begin_offset);
+    }
+}
+
+impl<T: ByteArrayType> ArrayBuilder for GenericByteBuilder<T> {
+    /// Returns the number of binary slots in the builder
+    fn len(&self) -> usize {
+        self.null_buffer_builder.len()
+    }
+
+    /// Builds the array and reset this builder.
+    fn finish(&mut self) -> ArrayRef {
+        Arc::new(self.finish())
+    }
+
+    /// Builds the array without resetting the builder.
+    fn finish_cloned(&self) -> ArrayRef {
+        Arc::new(self.finish_cloned())
+    }
+
+    /// Returns the builder as a non-mutable `Any` reference.
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    /// Returns the builder as a mutable `Any` reference.
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+
+    /// Returns the boxed builder as a box of `Any`.
+    fn into_box_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
+}
+
+impl<T: ByteArrayType, V: AsRef<T::Native>> Extend<Option<V>> for GenericByteBuilder<T> {
+    #[inline]
+    fn extend<I: IntoIterator<Item = Option<V>>>(&mut self, iter: I) {
+        for v in iter {
+            self.append_option(v)
+        }
     }
 }

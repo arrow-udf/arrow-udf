@@ -126,6 +126,11 @@ fn bytes4(x: i32, output: &mut impl std::io::Write) {
     }
 }
 
+#[function("split(varchar) -> varchar[]")]
+fn split(s: &str) -> impl Iterator<Item = &str> {
+    s.split(',')
+}
+
 #[function("key_value(varchar) -> struct<key:varchar,value:varchar>")]
 fn key_value(kv: &str) -> Option<(&str, &str)> {
     kv.split_once('=')
@@ -197,6 +202,30 @@ fn test_nested_struct() {
 +-------------------------+
 | {a: 1, b: {c: 2, d: g}} |
 +-------------------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_split() {
+    let sig = split_varchar_varchararray_sig();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8, true)]);
+    let arg0 = StringArray::from(vec!["a,b"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = (sig.function)(&input).unwrap();
+    assert_eq!(
+        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++--------+
+| result |
++--------+
+| [a, b] |
++--------+
 "#
         .trim()
     );

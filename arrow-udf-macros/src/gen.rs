@@ -161,7 +161,6 @@ impl FunctionAttr {
             .iter()
             .map(|i| format_ident!("{}", types::array_type(&self.args[*i])));
         let ret_array_type = format_ident!("{}", types::array_type(&self.ret));
-        let builder_type = format_ident!("{}", types::array_builder_type(&self.ret));
 
         // evaluate variadic arguments in `eval`
         let eval_variadic = variadic.then(|| {
@@ -264,7 +263,15 @@ impl FunctionAttr {
                     quote! { builder.append_null() }
                 }
             }
-            let append_value = gen_append_value(&self.ret);
+            let mut append_value = gen_append_value(&self.ret);
+            if user_fn.iterator_item_kind == Some(ReturnTypeKind::T) {
+                // the user function returns an iterator of `T`
+                // we need to wrap the item with `Some`
+                append_value = quote! {{
+                    let v = v.map(Some);
+                    #append_value
+                }};
+            }
             let append_null = gen_append_null(&self.ret);
             quote! {
                 match #output {
@@ -320,19 +327,7 @@ impl FunctionAttr {
                     let variadic_row = variadic_input.row_at_unchecked_vis(i);
                 }
             });
-            let builder = match self.ret.as_str() {
-                "varchar" => {
-                    quote! { arrow_udf::codegen::StringBuilder::with_capacity(input.num_rows(), 1024) }
-                }
-                "bytea" => {
-                    quote! { arrow_udf::codegen::BinaryBuilder::with_capacity(input.num_rows(), 1024) }
-                }
-                s if s.starts_with("struct") => {
-                    let fields = fields(s);
-                    quote! { StructBuilder::from_fields(#fields, input.num_rows()) }
-                }
-                _ => quote! { #builder_type::with_capacity(input.num_rows()) },
-            };
+            let builder = builder(&self.ret);
             quote! {
                 let mut builder = #builder;
                 for (i, (#(#inputs,)*)) in #array_zip.enumerate() {
@@ -384,7 +379,7 @@ fn sig_data_type(ty: &str) -> TokenStream2 {
 fn data_type(ty: &str) -> TokenStream2 {
     if let Some(ty) = ty.strip_suffix("[]") {
         let inner_type = data_type(ty);
-        return quote! { arrow_schema::DataType::List(Box::new(#inner_type)) };
+        return quote! { arrow_schema::DataType::List(Arc::new(arrow_schema::Field::new("item", #inner_type, true))) };
     }
     if ty.starts_with("struct<") && ty.ends_with('>') {
         let fields = fields(ty);
@@ -401,6 +396,30 @@ fn fields(ty: &str) -> TokenStream2 {
         quote! { arrow_schema::Field::new(#name, #ty, true) }
     });
     quote! { arrow_schema::Fields::from(vec![#(#fields,)*]) }
+}
+
+/// Generate a builder for the given type.
+fn builder(ty: &str) -> TokenStream2 {
+    match ty {
+        "varchar" => {
+            quote! { arrow_udf::codegen::StringBuilder::with_capacity(input.num_rows(), 1024) }
+        }
+        "bytea" => {
+            quote! { arrow_udf::codegen::BinaryBuilder::with_capacity(input.num_rows(), 1024) }
+        }
+        s if s.ends_with("[]") => {
+            let values_builder = builder(ty.strip_suffix("[]").unwrap());
+            quote! { ListBuilder::with_capacity(#values_builder, input.num_rows()) }
+        }
+        s if s.starts_with("struct") => {
+            let fields = fields(s);
+            quote! { StructBuilder::from_fields(#fields, input.num_rows()) }
+        }
+        _ => {
+            let builder_type = format_ident!("{}", types::array_builder_type(ty));
+            quote! { #builder_type::with_capacity(input.num_rows()) }
+        }
+    }
 }
 
 /// Encode a string to a symbol name using customized base64.

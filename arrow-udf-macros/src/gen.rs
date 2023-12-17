@@ -127,7 +127,7 @@ impl FunctionAttr {
 
             #[cfg(not(target_arch = "wasm32"))]
             fn #ctor_name() -> arrow_udf::FunctionSignature {
-                use arrow_udf::{FunctionSignature, SigDataType, codegen::arrow_schema};
+                use arrow_udf::{FunctionSignature, SigDataType, codegen::arrow_schema::{self, TimeUnit, IntervalUnit}};
 
                 FunctionSignature {
                     name: #name.into(),
@@ -180,7 +180,18 @@ impl FunctionAttr {
         // transform inputs for array arguments
         // e.g. for `int[]`, transform `ArrayRef` -> `&[T]`
         let transformed_inputs = inputs.iter().zip(&self.args).map(|(input, ty)| {
-            if let Some(elem_type) = ty.strip_suffix("[]") {
+            if ty == "date" {
+                return quote! { arrow_array::types::Date32Type::to_naive_date(#input) };
+            } else if ty == "time" {
+                return quote! { arrow_array::temporal_conversions::as_time::<arrow_array::types::Time64MicrosecondType>(#input).unwrap() };
+            } else if ty == "timestamp" {
+                return quote! { arrow_array::temporal_conversions::as_datetime::<arrow_array::types::TimestampMicrosecondType>(#input).unwrap() };
+            } else if ty == "interval" {
+                return quote! {{
+                    let (months, days, nanos) = arrow_array::types::IntervalMonthDayNanoType::to_parts(#input);
+                    arrow_udf::types::Interval { months, days, nanos }
+                }};
+            } else if let Some(elem_type) = ty.strip_suffix("[]") {
                 if types::is_primitive(elem_type) {
                     let array_type = format_ident!("{}", types::array_type(elem_type));
                     return quote! {{
@@ -261,6 +272,17 @@ impl FunctionAttr {
                         #(#append_fields)*
                         builder.append(true);
                     }}
+                } else if ty == "date" {
+                    quote! { builder.append_value(arrow_array::types::Date32Type::from_naive_date(v)) }
+                } else if ty == "time" {
+                    quote! { builder.append_value(arrow_array::temporal_conversions::time_to_time64us(v)) }
+                } else if ty == "timestamp" {
+                    quote! { builder.append_value(v.timestamp_micros()) }
+                } else if ty == "interval" {
+                    quote! { builder.append_value({
+                        let v: arrow_udf::types::Interval = v.into();
+                        arrow_array::types::IntervalMonthDayNanoType::make_value(v.months, v.days, v.nanos)
+                    }) }
                 } else if ty == "void" {
                     quote! { builder.append_empty_value() }
                 } else {
@@ -368,8 +390,10 @@ impl FunctionAttr {
                 use arrow_udf::codegen::arrow_array::RecordBatch;
                 use arrow_udf::codegen::arrow_array::array::*;
                 use arrow_udf::codegen::arrow_array::builder::*;
+                use arrow_udf::codegen::arrow_schema::{IntervalUnit, TimeUnit};
                 use arrow_udf::codegen::arrow_arith;
                 use arrow_udf::codegen::arrow_schema;
+                use arrow_udf::codegen::chrono;
                 use arrow_udf::codegen::itertools;
 
                 fn eval(input: &RecordBatch) -> Result<ArrayRef> {
@@ -408,7 +432,7 @@ fn data_type(ty: &str) -> TokenStream2 {
         let fields = fields(ty);
         return quote! { arrow_schema::DataType::Struct(#fields) };
     }
-    let variant = format_ident!("{}", types::data_type(ty));
+    let variant: TokenStream2 = types::data_type(ty).parse().unwrap();
     quote! { arrow_schema::DataType::#variant }
 }
 

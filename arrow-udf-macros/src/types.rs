@@ -16,29 +16,28 @@
 
 use itertools::Itertools;
 
-//  name        data type   array prefix primitive
+//  name    primitive   array prefix            data type
 const TYPE_MATRIX: &str = "
-    void        Null        Null        _
-    boolean     Boolean     Boolean     _
-    int2        Int16       Int16       y
-    int4        Int32       Int32       y
-    int8        Int64       Int64       y
-    float4      Float32     Float32     y
-    float8      Float64     Float64     y
-    date        Date32      Date32      y
-    time        Time64      Time64      y
-    timestamp   Timestamp   Timestamp   y
-    timestamptz Timestamptz Timestamptz y
-    interval    Interval    Interval    y
-    varchar     Utf8        String      _
-    bytea       Binary      Binary      _
-    array       List        List        _
-    struct      Struct      Struct      _
+    void        _       Null                    Null
+    boolean     _       Boolean                 Boolean
+    int2        y       Int16                   Int16
+    int4        y       Int32                   Int32
+    int8        y       Int64                   Int64
+    float4      y       Float32                 Float32
+    float8      y       Float64                 Float64
+    date        _       Date32                  Date32
+    time        _       Time64Microsecond       Time64(TimeUnit::Microsecond)
+    timestamp   _       TimestampMicrosecond    Timestamp(TimeUnit::Microsecond,None)
+    interval    _       IntervalMonthDayNano    Interval(IntervalUnit::MonthDayNano)
+    varchar     _       String                  Utf8
+    bytea       _       Binary                  Binary
+    array       _       List                    List
+    struct      _       Struct                  Struct
 ";
 
 /// Maps a data type to its corresponding data type name.
 pub fn data_type(ty: &str) -> &str {
-    lookup_matrix(ty, 1)
+    lookup_matrix(ty, 3)
 }
 
 /// Maps a data type to its corresponding array type name.
@@ -53,7 +52,7 @@ pub fn array_builder_type(ty: &str) -> String {
 
 /// Checks if a data type is primitive.
 pub fn is_primitive(ty: &str) -> bool {
-    lookup_matrix(ty, 3) == "y"
+    lookup_matrix(ty, 1) == "y"
 }
 
 fn lookup_matrix(mut ty: &str, idx: usize) -> &str {

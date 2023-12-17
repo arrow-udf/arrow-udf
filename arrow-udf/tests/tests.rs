@@ -16,10 +16,14 @@ use std::iter::Sum;
 use std::{ops::Neg, sync::Arc};
 
 use arrow_array::cast::AsArray;
-use arrow_array::types::Int32Type;
-use arrow_array::{Int32Array, ListArray, RecordBatch, StringArray};
-use arrow_schema::{DataType, Field, Schema};
+use arrow_array::temporal_conversions::time_to_time64us;
+use arrow_array::types::{Date32Type, Int32Type};
+use arrow_array::{
+    Date32Array, Int32Array, ListArray, RecordBatch, StringArray, Time64MicrosecondArray,
+};
+use arrow_schema::{DataType, Field, Schema, TimeUnit};
 use arrow_udf::function;
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
 // test no return value
 #[function("null()")]
@@ -58,6 +62,11 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
 #[function("identity(int8) -> int8")]
 #[function("identity(float4) -> float4")]
 #[function("identity(float8) -> float8")]
+#[function("identity(date) -> date")]
+#[function("identity(time) -> time")]
+#[function("identity(timestamp) -> timestamp")]
+// #[function("identity(timestamptz) -> timestamptz")]
+#[function("identity(interval) -> interval")]
 #[function("identity(varchar) -> varchar")]
 #[function("identity(bytea) -> bytea")]
 fn identity<T>(x: T) -> T {
@@ -67,6 +76,11 @@ fn identity<T>(x: T) -> T {
 #[function("option_add(int, int) -> int")]
 fn option_add(x: i32, y: Option<i32>) -> i32 {
     x + y.unwrap_or(0)
+}
+
+#[function("datetime(date, time) -> timestamp")]
+fn datetime(date: NaiveDate, time: NaiveTime) -> NaiveDateTime {
+    NaiveDateTime::new(date, time)
 }
 
 #[function("length(varchar) -> int")]
@@ -309,6 +323,39 @@ fn test_array_sum() {
 | 8      |
 | 13     |
 +--------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_temporal() {
+    let sig = datetime_date_time_timestamp_sig();
+
+    let schema = Schema::new(vec![
+        Field::new("date", DataType::Date32, true),
+        Field::new("time", DataType::Time64(TimeUnit::Microsecond), true),
+    ]);
+    let arg0 = Date32Array::from(vec![Date32Type::from_naive_date(
+        NaiveDate::from_ymd_opt(2022, 4, 8).unwrap(),
+    )]);
+    let arg1 = Time64MicrosecondArray::from(vec![time_to_time64us(
+        NaiveTime::from_hms_micro_opt(12, 34, 56, 789_012).unwrap(),
+    )]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let output = (sig.function)(&input).unwrap();
+    assert_eq!(
+        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++----------------------------+
+| result                     |
++----------------------------+
+| 2022-04-08T12:34:56.789012 |
++----------------------------+
 "#
         .trim()
     );

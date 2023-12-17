@@ -56,11 +56,21 @@ impl From<DataType> for SigDataType {
 
 pub type ScalarFunction = fn(input: &RecordBatch) -> Result<ArrayRef>;
 
+pub mod types {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct Interval {
+        pub months: i32,
+        pub days: i32,
+        pub nanos: i64,
+    }
+}
+
 pub mod codegen {
     pub use crate::byte_builder::*;
     pub use arrow_arith;
     pub use arrow_array;
     pub use arrow_schema;
+    pub use chrono;
     pub use itertools;
 
     use crate::{Error, ScalarFunction};

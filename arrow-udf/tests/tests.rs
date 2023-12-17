@@ -63,6 +63,11 @@ fn identity<T>(x: T) -> T {
     x
 }
 
+#[function("option_add(int, int) -> int")]
+fn option_add(x: i32, y: Option<i32>) -> i32 {
+    x + y.unwrap_or(0)
+}
+
 #[function("length(varchar) -> int")]
 #[function("length(bytea) -> int")]
 fn length(s: impl AsRef<[u8]>) -> i32 {
@@ -225,6 +230,38 @@ fn test_split() {
 | result |
 +--------+
 | [a, b] |
++--------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_option_add() {
+    let sig = option_add_int4_int4_int4_sig();
+
+    let schema = Schema::new(vec![
+        Field::new("x", DataType::Int32, true),
+        Field::new("y", DataType::Int32, true),
+    ]);
+    let arg0 = Int32Array::from(vec![Some(1), Some(1), None, None]);
+    let arg1 = Int32Array::from(vec![Some(1), None, Some(1), None]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let output = (sig.function)(&input).unwrap();
+    assert_eq!(
+        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++--------+
+| result |
++--------+
+| 2      |
+| 1      |
+|        |
+|        |
 +--------+
 "#
         .trim()

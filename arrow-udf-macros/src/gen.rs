@@ -195,15 +195,24 @@ impl FunctionAttr {
         };
         // if user function accepts non-option arguments, we assume the function
         // returns null on null input, so we need to unwrap the inputs before calling.
-        if !user_fn.arg_option {
-            output = quote! {
-                match (#(#inputs,)*) {
-                    (#(Some(#inputs),)*) => #output,
-                    _ => None,
+        let some_inputs = inputs
+            .iter()
+            .zip(user_fn.args_option.iter())
+            .map(|(input, opt)| {
+                if *opt {
+                    quote! { #input }
+                } else {
+                    quote! { Some(#input) }
                 }
-            };
+            });
+        output = quote! {
+            match (#(#inputs,)*) {
+                (#(#some_inputs,)*) => #output,
+                _ => None,
+            }
         };
-        // now the `output` is: Option<impl ScalarRef or Scalar>
+        // append the `output` to the `builder`
+        // now the `output` is: Option<impl AsRef<T>>
         let append_output = if user_fn.write {
             if self.ret != "varchar" && self.ret != "bytea" {
                 return Err(Error::new(

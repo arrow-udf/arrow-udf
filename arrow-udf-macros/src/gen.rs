@@ -177,10 +177,24 @@ impl FunctionAttr {
         let context = user_fn.context.then(|| quote! { &self.context, });
         let writer = user_fn.write.then(|| quote! { &mut writer, });
         let await_ = user_fn.async_.then(|| quote! { .await });
+        // transform inputs for array arguments
+        // e.g. for `int[]`, transform `ArrayRef` -> `&[T]`
+        let transformed_inputs = inputs.iter().zip(&self.args).map(|(input, ty)| {
+            if let Some(elem_type) = ty.strip_suffix("[]") {
+                if types::is_primitive(elem_type) {
+                    let array_type = format_ident!("{}", types::array_type(elem_type));
+                    return quote! {{
+                        let primitive_array: &#array_type = #input.as_primitive();
+                        primitive_array.values().as_ref()
+                    }};
+                }
+            }
+            quote! { #input }
+        });
         // call the user defined function
         // inputs: [ Option<impl ScalarRef> ]
         let mut output = quote! { #fn_name(
-            #(#inputs,)*
+            #(#transformed_inputs,)*
             #variadic_args
             #context
             #writer

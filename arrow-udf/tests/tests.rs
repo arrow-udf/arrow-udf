@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::iter::Sum;
 use std::{ops::Neg, sync::Arc};
 
 use arrow_array::cast::AsArray;
 use arrow_array::types::Int32Type;
-use arrow_array::{Int32Array, RecordBatch, StringArray};
+use arrow_array::{Int32Array, ListArray, RecordBatch, StringArray};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf::function;
 
@@ -129,6 +130,15 @@ fn bytes4(x: i32, output: &mut impl std::io::Write) {
     for _ in 0..x {
         output.write_all(&[0]).unwrap();
     }
+}
+
+#[function("array_sum(int2[]) -> int2")]
+#[function("array_sum(int4[]) -> int4")]
+#[function("array_sum(int8[]) -> int8")]
+#[function("array_sum(float4[]) -> float4")]
+#[function("array_sum(float8[]) -> float8")]
+fn array_sum<T: Sum + Copy>(s: &[T]) -> T {
+    s.iter().cloned().sum()
 }
 
 #[function("split(varchar) -> varchar[]")]
@@ -262,6 +272,42 @@ fn test_option_add() {
 | 1      |
 |        |
 |        |
++--------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_array_sum() {
+    let sig = array_sum_int4array_int4_sig();
+
+    let schema = Schema::new(vec![Field::new(
+        "x",
+        DataType::new_list(DataType::Int32, true),
+        true,
+    )]);
+    let arg0 = ListArray::from_iter_primitive::<Int32Type, _, _>(vec![
+        Some(vec![Some(0), Some(1), Some(2)]),
+        None,
+        Some(vec![Some(3), None, Some(5)]),
+        Some(vec![Some(6), Some(7)]),
+    ]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = (sig.function)(&input).unwrap();
+    assert_eq!(
+        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++--------+
+| result |
++--------+
+| 3      |
+|        |
+| 8      |
+| 13     |
 +--------+
 "#
         .trim()

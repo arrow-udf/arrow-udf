@@ -29,7 +29,7 @@ fn bench_eval_gcd(c: &mut Criterion) {
         })
     });
 
-    let filepath = "target/wasm32-wasi/release/arrow_udf_wasm_example.wasm";
+    let filepath = "../target/wasm32-wasi/release/arrow_udf_wasm_example.wasm";
     let binary = std::fs::read(filepath).unwrap();
     let input = RecordBatch::try_new(
         Arc::new(Schema::new(vec![
@@ -45,7 +45,7 @@ fn bench_eval_gcd(c: &mut Criterion) {
 
     c.bench_function("gcd/wasm", |bencher| {
         let mut rt = Runtime::new(&binary).unwrap();
-        bencher.iter(|| rt.call("arrowudf_Z2NkKGludCxpbnQpLT5pbnQ", &input).unwrap())
+        bencher.iter(|| rt.call("gcd(int4,int4)->int4", &input).unwrap())
     });
 }
 

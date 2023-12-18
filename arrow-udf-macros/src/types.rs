@@ -84,7 +84,7 @@ pub fn normalize_type(ty: &str) -> String {
     if let Some(t) = ty.strip_suffix("[]") {
         return format!("{}[]", normalize_type(t));
     }
-    if ty.starts_with("struct<") && ty.ends_with(">") {
+    if ty.starts_with("struct<") && ty.ends_with('>') {
         return format!(
             "struct<{}>",
             iter_fields(ty)

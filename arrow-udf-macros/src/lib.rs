@@ -440,6 +440,7 @@ struct FunctionAttr {
 
 /// Attributes from function signature `fn(..)`
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct UserFunctionAttr {
     /// Function name
     name: String,
@@ -465,53 +466,6 @@ struct UserFunctionAttr {
     generic: usize,
     /// The span of return type.
     return_type_span: proc_macro2::Span,
-}
-
-#[derive(Debug, Clone)]
-struct AggregateImpl {
-    struct_name: String,
-    accumulate: UserFunctionAttr,
-    retract: Option<UserFunctionAttr>,
-    #[allow(dead_code)] // TODO(wrj): add merge to trait
-    merge: Option<UserFunctionAttr>,
-    finalize: Option<UserFunctionAttr>,
-    create_state: Option<UserFunctionAttr>,
-    #[allow(dead_code)] // TODO(wrj): support encode
-    encode_state: Option<UserFunctionAttr>,
-    #[allow(dead_code)] // TODO(wrj): support decode
-    decode_state: Option<UserFunctionAttr>,
-}
-
-#[derive(Debug, Clone)]
-#[allow(clippy::large_enum_variant)]
-enum AggregateFnOrImpl {
-    /// A simple accumulate/retract function.
-    Fn(UserFunctionAttr),
-    /// A full impl block.
-    Impl(AggregateImpl),
-}
-
-impl AggregateFnOrImpl {
-    fn as_fn(&self) -> &UserFunctionAttr {
-        match self {
-            AggregateFnOrImpl::Fn(attr) => attr,
-            _ => panic!("expect fn"),
-        }
-    }
-
-    fn accumulate(&self) -> &UserFunctionAttr {
-        match self {
-            AggregateFnOrImpl::Fn(attr) => attr,
-            AggregateFnOrImpl::Impl(impl_) => &impl_.accumulate,
-        }
-    }
-
-    fn has_retract(&self) -> bool {
-        match self {
-            AggregateFnOrImpl::Fn(fn_) => fn_.retract,
-            AggregateFnOrImpl::Impl(impl_) => impl_.retract.is_some(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]

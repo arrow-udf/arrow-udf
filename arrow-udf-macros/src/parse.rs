@@ -131,47 +131,6 @@ impl From<&syn::Signature> for UserFunctionAttr {
     }
 }
 
-impl Parse for AggregateImpl {
-    fn parse(input: ParseStream<'_>) -> Result<Self> {
-        let itemimpl: syn::ItemImpl = input.parse()?;
-        let parse_function = |name: &str| {
-            itemimpl.items.iter().find_map(|item| match item {
-                syn::ImplItem::Fn(syn::ImplItemFn { sig, .. }) if sig.ident == name => {
-                    Some(UserFunctionAttr::from(sig))
-                }
-                _ => None,
-            })
-        };
-        let self_path = itemimpl.self_ty.to_token_stream().to_string();
-        let struct_name = match self_path.split_once('<') {
-            Some((path, _)) => path.trim().into(), // remove generic parameters
-            None => self_path,
-        };
-        Ok(AggregateImpl {
-            struct_name,
-            accumulate: parse_function("accumulate").expect("expect accumulate function"),
-            retract: parse_function("retract"),
-            merge: parse_function("merge"),
-            finalize: parse_function("finalize"),
-            create_state: parse_function("create_state"),
-            encode_state: parse_function("encode_state"),
-            decode_state: parse_function("decode_state"),
-        })
-    }
-}
-
-impl Parse for AggregateFnOrImpl {
-    fn parse(input: ParseStream<'_>) -> Result<Self> {
-        // consume attributes
-        let _ = input.call(syn::Attribute::parse_outer)?;
-        if input.peek(Token![impl]) {
-            Ok(AggregateFnOrImpl::Impl(input.parse()?))
-        } else {
-            Ok(AggregateFnOrImpl::Fn(input.parse()?))
-        }
-    }
-}
-
 /// Check if the argument is `&mut impl Write`.
 fn arg_is_write(arg: &syn::FnArg) -> bool {
     let syn::FnArg::Typed(arg) = arg else {

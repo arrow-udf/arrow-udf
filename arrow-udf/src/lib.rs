@@ -93,6 +93,14 @@ pub mod codegen {
     #[used]
     static ARROW_UDF_VERSION: u8 = 1;
 
+    /// A wrapper function for calling a scalar function from C.
+    ///
+    /// The input record batch is read from the IPC buffer pointed to by `ptr` and `len`.
+    /// The output record batch is returned as an IPC buffer.
+    ///
+    /// # Safety
+    ///
+    /// `ptr` and `len` must point to a valid buffer.
     pub unsafe fn ffi_wrapper(
         function: ScalarFunction,
         ptr: *const u8,

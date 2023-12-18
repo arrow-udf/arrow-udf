@@ -13,6 +13,7 @@
 // limitations under the License.
 
 /// Convert a string from `snake_case` to `CamelCase`.
+#[allow(dead_code)]
 pub fn to_camel_case(input: &str) -> String {
     input
         .split('_')

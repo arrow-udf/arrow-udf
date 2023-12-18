@@ -35,6 +35,12 @@ pub struct GenericByteBuilder<T: ByteArrayType> {
     null_buffer_builder: NullBufferBuilder,
 }
 
+impl<T: ByteArrayType> Default for GenericByteBuilder<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: ByteArrayType> GenericByteBuilder<T> {
     /// Creates a new [`GenericByteBuilder`].
     pub fn new() -> Self {

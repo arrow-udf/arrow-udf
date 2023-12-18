@@ -140,7 +140,7 @@ fn base64_decode(input: &str) -> Result<String> {
 fn encode_record_batch(batch: &RecordBatch) -> Result<Vec<u8>> {
     let mut buf = vec![];
     let mut writer = arrow_ipc::writer::FileWriter::try_new(&mut buf, &batch.schema())?;
-    writer.write(&batch)?;
+    writer.write(batch)?;
     writer.finish()?;
     drop(writer);
     Ok(buf)

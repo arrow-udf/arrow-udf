@@ -45,6 +45,7 @@ impl FunctionAttr {
     }
 
     /// Generate the type infer function.
+    #[allow(dead_code)]
     fn generate_type_infer_fn(&self) -> Result<TokenStream2> {
         if let Some(func) = &self.type_infer {
             if func == "panic" {
@@ -106,14 +107,14 @@ impl FunctionAttr {
         let ret = sig_data_type(&self.ret);
 
         let ctor_name = format_ident!("{}_sig", self.ident_name());
+        let ffi_name = format_ident!("{}_ffi", self.ident_name());
         let export_name = format!("arrowudf_{}", base64_encode(&self.normalize_signature()));
         let function = self.generate_scalar_function(user_fn)?;
 
         Ok(quote! {
-            #[cfg(target_arch = "wasm32")]
             #[doc(hidden)]
             #[export_name = #export_name]
-            unsafe extern "C" fn #ctor_name(ptr: *const u8, len: usize) -> u64 {
+            unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize) -> u64 {
                 match arrow_udf::codegen::ffi_wrapper(#function, ptr, len) {
                     Ok(data) => {
                         let ptr = data.as_ptr();
@@ -125,7 +126,6 @@ impl FunctionAttr {
                 }
             }
 
-            #[cfg(not(target_arch = "wasm32"))]
             fn #ctor_name() -> arrow_udf::FunctionSignature {
                 use arrow_udf::{FunctionSignature, SigDataType, codegen::arrow_schema::{self, TimeUnit, IntervalUnit}};
 

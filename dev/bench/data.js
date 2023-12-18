@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702865363144,
+  "lastUpdate": 1702868679415,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf-wasm",
   "entries": {
     "Rust Benchmark": [
@@ -149,6 +149,42 @@ window.BENCHMARK_DATA = {
             "name": "gcd/native",
             "value": 3907,
             "range": "± 10",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "4ee17770a6ec9ad3d5a1cc23af1a43b17c205768",
+          "message": "fix clippy\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2023-12-18T10:58:24+08:00",
+          "tree_id": "c5574aeb87f0b557528b4d894554522e5e575451",
+          "url": "https://github.com/risingwavelabs/arrow-udf-wasm/commit/4ee17770a6ec9ad3d5a1cc23af1a43b17c205768"
+        },
+        "date": 1702868678967,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3908,
+            "range": "± 14",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 27665,
+            "range": "± 832",
             "unit": "ns/iter"
           }
         ]

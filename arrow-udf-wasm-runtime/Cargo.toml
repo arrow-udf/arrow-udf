@@ -18,6 +18,7 @@ wasmtime-wasi = "16"
 [dev-dependencies]
 arrow-arith = "49"
 arrow-cast = { version = "49", features = ["prettyprint"] }
+arrow-udf-python = { path = "../arrow-udf-python" }
 criterion = "0.5"
 
 [[bench]]

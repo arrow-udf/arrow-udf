@@ -17,7 +17,8 @@ use std::sync::Arc;
 use arrow_arith::arity::binary;
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_wasm_runtime::Runtime;
+use arrow_udf_python::Runtime as PythonRuntime;
+use arrow_udf_wasm_runtime::Runtime as WasmRuntime;
 use criterion::{criterion_group, criterion_main, Criterion};
 
 fn bench_eval_gcd(c: &mut Criterion) {
@@ -44,8 +45,13 @@ fn bench_eval_gcd(c: &mut Criterion) {
     .unwrap();
 
     c.bench_function("gcd/wasm", |bencher| {
-        let mut rt = Runtime::new(&binary).unwrap();
+        let mut rt = WasmRuntime::new(&binary).unwrap();
         bencher.iter(|| rt.call("gcd(int4,int4)->int4", &input).unwrap())
+    });
+
+    c.bench_function("gcd/python", |bencher| {
+        let rt = PythonRuntime::new(PYTHON_CODE, "gcd").unwrap();
+        bencher.iter(|| rt.call(&input).unwrap())
     });
 }
 
@@ -57,6 +63,15 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
     }
     a
 }
+
+const PYTHON_CODE: &str = r#"
+def gcd(a: int, b: int) -> int:
+    if a is None or b is None:
+        return None
+    while b:
+        a, b = b, a % b
+    return a
+"#;
 
 criterion_group!(benches, bench_eval_gcd);
 criterion_main!(benches);

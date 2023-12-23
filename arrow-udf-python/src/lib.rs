@@ -27,7 +27,7 @@ impl Runtime {
         // convert each row to python objects and call the function
         let array = Python::with_gil(|py| -> Result<ArrayRef> {
             let mut results = Vec::with_capacity(input.num_rows());
-            let mut row = vec![];
+            let mut row = Vec::with_capacity(input.num_columns());
             for i in 0..input.num_rows() {
                 for column in input.columns() {
                     let pyobj = pyarrow::get_pyobject(py, column, i);

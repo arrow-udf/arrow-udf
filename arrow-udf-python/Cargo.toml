@@ -12,9 +12,9 @@ arrow-array = "49"
 arrow-ipc = "49"
 arrow-schema = "49"
 pyo3 = { version = "0.20.0", features = ["abi3-py311"] }
-wlr-libpy = { git = "https://github.com/vmware-labs/webassembly-language-runtimes.git", features = [
-    "py_main",
-] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wlr-libpy = { git = "https://github.com/vmware-labs/webassembly-language-runtimes.git" }
 
 [build-dependencies]
 wlr-libpy = { git = "https://github.com/vmware-labs/webassembly-language-runtimes.git", features = [

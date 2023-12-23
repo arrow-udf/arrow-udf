@@ -12,8 +12,8 @@ arrow-ipc = "49"
 arrow-schema = "49"
 base64 = "0.21"
 lazy_static = "1"
-wasmtime = "15"
-wasmtime-wasi = "15"
+wasmtime = "16"
+wasmtime-wasi = "16"
 
 [dev-dependencies]
 arrow-arith = "49"

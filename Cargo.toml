@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "arrow-udf",
     "arrow-udf-macros",
+    "arrow-udf-python",
     "arrow-udf-wasm-example",
     "arrow-udf-wasm-runtime",
 ]

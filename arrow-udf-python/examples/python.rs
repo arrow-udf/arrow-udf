@@ -5,15 +5,19 @@ use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_python::Runtime;
 
 fn main() {
-    let python_code = r#"
+    let runtime = Runtime::new(
+        "gcd",
+        DataType::Int32,
+        r#"
 def gcd(a: int, b: int) -> int:
     if a is None or b is None:
         return None
     while b:
         a, b = b, a % b
     return a
-"#;
-    let runtime = Runtime::new(python_code, "gcd", DataType::Int32).unwrap();
+"#,
+    )
+    .unwrap();
     println!("\ncall gcd");
 
     let input = RecordBatch::try_new(

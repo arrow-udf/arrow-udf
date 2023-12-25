@@ -11,7 +11,13 @@ cargo build --release -p arrow-udf-wasm-example --target wasm32-wasi
 Run the example:
 
 ```sh
-cargo run --example gcd -- target/wasm32-wasi/release/arrow_udf_wasm_example.wasm
+cargo run --example wasm -- target/wasm32-wasi/release/arrow_udf_wasm_example.wasm
+```
+
+Run the Python example:
+
+```sh
+cargo run --example python
 ```
 
 Build the Python WebAssembly module:

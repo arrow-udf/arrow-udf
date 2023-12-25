@@ -37,7 +37,7 @@ unsafe extern "C" fn add_function(
             FileReader::try_new(std::io::Cursor::new(bytes), None).expect("invalid schema");
         reader.schema().field(0).data_type().clone()
     };
-    let runtime = Runtime::new(code, name, return_type).expect("failed to initialize runtime");
+    let runtime = Runtime::new(name, return_type, code).expect("failed to initialize runtime");
     RUNTIMES.push((name.to_string(), runtime));
     0
 }

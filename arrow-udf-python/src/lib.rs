@@ -16,7 +16,7 @@ pub struct Runtime {
 
 impl Runtime {
     /// Create a new Python UDF runtime from a Python code.
-    pub fn new(code: &str, function_name: &str, return_type: DataType) -> Result<Self> {
+    pub fn new(function_name: &str, return_type: DataType, code: &str) -> Result<Self> {
         pyo3::prepare_freethreaded_python();
         let function = Python::with_gil(|py| -> PyResult<PyObject> {
             Ok(PyModule::from_code(py, code, "", "")?

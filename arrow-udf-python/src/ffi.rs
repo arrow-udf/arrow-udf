@@ -7,6 +7,7 @@
 use anyhow::Result;
 use arrow_ipc::reader::FileReader;
 use arrow_ipc::writer::FileWriter;
+use arrow_schema::DataType;
 use std::ffi::CStr;
 
 use crate::Runtime;
@@ -22,12 +23,20 @@ unsafe extern "C" fn dealloc(ptr: *mut u8, len: usize) {
 }
 
 #[no_mangle]
-unsafe extern "C" fn init(code: *const i8, function_name: *const i8) -> i32 {
+unsafe extern "C" fn init(
+    code: *const i8,
+    function_name: *const i8,
+    return_type: *const i8,
+) -> i32 {
     let code = CStr::from_ptr(code).to_str().expect("invalid utf8");
     let function_name = CStr::from_ptr(function_name)
         .to_str()
         .expect("invalid utf8");
-    let runtime = Runtime::new(code, function_name).expect("failed to initialize runtime");
+    let return_type_str = CStr::from_ptr(return_type).to_str().expect("invalid utf8");
+    let return_type = parse_data_type(return_type_str);
+
+    let runtime =
+        Runtime::new(code, function_name, return_type).expect("failed to initialize runtime");
     RUNTIME = Some(runtime);
     0
 }
@@ -63,4 +72,19 @@ fn call_internal(input: &[u8]) -> Result<Box<[u8]>> {
     drop(writer);
 
     Ok(buf.into())
+}
+
+fn parse_data_type(s: &str) -> DataType {
+    match s {
+        "null" => DataType::Null,
+        "boolean" => DataType::Boolean,
+        "int2" => DataType::Int16,
+        "int4" => DataType::Int32,
+        "int8" => DataType::Int64,
+        "float4" => DataType::Float32,
+        "float8" => DataType::Float64,
+        "varchar" => DataType::Utf8,
+        "bytea" => DataType::Binary,
+        _ => panic!("unsupported data type: {}", s),
+    }
 }

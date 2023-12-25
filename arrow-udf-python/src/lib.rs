@@ -8,19 +8,25 @@ use std::sync::Arc;
 mod ffi;
 mod pyarrow;
 
+/// The Python UDF runtime.
 pub struct Runtime {
     function: PyObject,
+    return_type: DataType,
 }
 
 impl Runtime {
-    pub fn new(code: &str, function_name: &str) -> Result<Self> {
+    /// Create a new Python UDF runtime from a Python code.
+    pub fn new(code: &str, function_name: &str, return_type: DataType) -> Result<Self> {
         pyo3::prepare_freethreaded_python();
         let function = Python::with_gil(|py| -> PyResult<PyObject> {
             Ok(PyModule::from_code(py, code, "", "")?
                 .getattr(function_name)?
                 .into())
         })?;
-        Ok(Self { function })
+        Ok(Self {
+            function,
+            return_type,
+        })
     }
 
     pub fn call(&self, input: &RecordBatch) -> Result<RecordBatch> {
@@ -37,7 +43,7 @@ impl Runtime {
                 let result = self.function.call1(py, args)?;
                 results.push(result);
             }
-            let result = pyarrow::build_array(&DataType::Int32, py, &results)?;
+            let result = pyarrow::build_array(&self.return_type, py, &results)?;
             Ok(result)
         })?;
         let schema = Schema::new(vec![Field::new("result", array.data_type().clone(), true)]);

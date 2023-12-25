@@ -50,7 +50,7 @@ fn bench_eval_gcd(c: &mut Criterion) {
     });
 
     c.bench_function("gcd/python", |bencher| {
-        let rt = PythonRuntime::new(PYTHON_CODE, "gcd").unwrap();
+        let rt = PythonRuntime::new(PYTHON_CODE, "gcd", DataType::Int32).unwrap();
         bencher.iter(|| rt.call(&input).unwrap())
     });
 }

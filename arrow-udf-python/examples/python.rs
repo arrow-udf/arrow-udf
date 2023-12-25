@@ -13,7 +13,7 @@ def gcd(a: int, b: int) -> int:
         a, b = b, a % b
     return a
 "#;
-    let runtime = Runtime::new(python_code, "gcd").unwrap();
+    let runtime = Runtime::new(python_code, "gcd", DataType::Int32).unwrap();
     println!("\ncall gcd");
 
     let input = RecordBatch::try_new(

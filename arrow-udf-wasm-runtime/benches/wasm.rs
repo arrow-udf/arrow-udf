@@ -18,6 +18,7 @@ use arrow_arith::arity::binary;
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_python::Runtime as PythonRuntime;
+use arrow_udf_python_wasm::Runtime as PythonWasmRuntime;
 use arrow_udf_wasm_runtime::Runtime as WasmRuntime;
 use criterion::{criterion_group, criterion_main, Criterion};
 
@@ -52,6 +53,13 @@ fn bench_eval_gcd(c: &mut Criterion) {
     c.bench_function("gcd/python", |bencher| {
         let rt = PythonRuntime::new(PYTHON_CODE, "gcd", DataType::Int32).unwrap();
         bencher.iter(|| rt.call(&input).unwrap())
+    });
+
+    c.bench_function("gcd/python-wasm", |bencher| {
+        let mut rt =
+            PythonWasmRuntime::new("../arrow-udf-python/target/wasm32-wasi/wasi-deps").unwrap();
+        rt.add_function("gcd", DataType::Int32, PYTHON_CODE);
+        bencher.iter(|| rt.call("gcd", &input).unwrap())
     });
 }
 

@@ -1,8 +1,8 @@
 [package]
-name = "arrow-udf-wasm-runtime"
+name = "arrow-udf-python-wasm"
 version = "0.1.0"
 edition = "2021"
-description = "WebAssembly runtime for Arrow UDFs."
+description = "Python WebAssembly runtime for Arrow UDFs."
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -10,7 +10,6 @@ anyhow = "1"
 arrow-array = "49"
 arrow-ipc = "49"
 arrow-schema = "49"
-base64 = "0.21"
 lazy_static = "1"
 wasmtime = "16"
 wasmtime-wasi = "16"
@@ -18,10 +17,4 @@ wasmtime-wasi = "16"
 [dev-dependencies]
 arrow-arith = "49"
 arrow-cast = { version = "49", features = ["prettyprint"] }
-arrow-udf-python = { path = "../arrow-udf-python" }
-arrow-udf-python-wasm = { path = "../arrow-udf-python-wasm" }
 criterion = "0.5"
-
-[[bench]]
-name = "wasm"
-harness = false

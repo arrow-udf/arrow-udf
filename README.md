@@ -18,4 +18,12 @@ Build the Python WebAssembly module:
 
 ```sh
 PYO3_NO_PYTHON=1 cargo build --release -p arrow-udf-python --target wasm32-wasi
+mkdir arrow-udf-python/target/wasm32-wasi/wasi-deps/bin
+cp target/wasm32-wasi/release/arrow_udf_python.wasm arrow-udf-python/target/wasm32-wasi/wasi-deps/bin/python.wasm
+```
+
+Run the Python WebAssembly example:
+
+```sh
+cargo run --release --example python_wasm
 ```

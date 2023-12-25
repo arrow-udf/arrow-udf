@@ -4,6 +4,7 @@ members = [
     "arrow-udf",
     "arrow-udf-macros",
     "arrow-udf-python",
+    "arrow-udf-python-wasm",
     "arrow-udf-wasm-example",
     "arrow-udf-wasm-runtime",
 ]

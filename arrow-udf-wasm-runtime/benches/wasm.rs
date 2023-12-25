@@ -45,7 +45,7 @@ fn bench_eval_gcd(c: &mut Criterion) {
     .unwrap();
 
     c.bench_function("gcd/wasm", |bencher| {
-        let mut rt = WasmRuntime::new(&binary).unwrap();
+        let rt = WasmRuntime::new(&binary).unwrap();
         bencher.iter(|| rt.call("gcd(int4,int4)->int4", &input).unwrap())
     });
 

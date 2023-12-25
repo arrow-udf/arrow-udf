@@ -6,9 +6,21 @@ use arrow_udf_wasm_runtime::Runtime;
 
 fn main() {
     let filename = std::env::args().nth(1).expect("no filename");
-    let mut runtime = Runtime::new(&std::fs::read(filename).unwrap()).unwrap();
+    let runtime = Runtime::new(&std::fs::read(filename).unwrap()).unwrap();
 
     println!("{runtime:#?}");
+
+    println!("\ncall oom");
+
+    let input = RecordBatch::try_new_with_options(
+        Arc::new(Schema::empty()),
+        vec![],
+        &RecordBatchOptions::default().with_row_count(Some(1)),
+    )
+    .unwrap();
+
+    let output = runtime.call("oom()->void", &input);
+    println!("{}", output.unwrap_err());
 
     println!("\ncall gcd");
 
@@ -59,18 +71,4 @@ fn main() {
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
     arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
-
-    println!("\ncall segfault");
-
-    let input = RecordBatch::try_new_with_options(
-        Arc::new(Schema::empty()),
-        vec![],
-        &RecordBatchOptions::default().with_row_count(Some(1)),
-    )
-    .unwrap();
-
-    let output = runtime.call("segfault()->void", &input);
-    println!("{}", output.unwrap_err());
-
-    println!("\nBye!");
 }

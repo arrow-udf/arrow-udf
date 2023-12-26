@@ -171,6 +171,7 @@ fn nested_struct() -> (i32, (i32, &'static str)) {
 }
 
 #[test]
+#[allow(clippy::bool_assert_comparison)]
 fn test_neg() {
     let sig = neg_int4_int4_sig();
     assert_eq!(sig.name, "neg");

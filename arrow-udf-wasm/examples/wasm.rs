@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch, RecordBatchOptions, StringArray};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_wasm_runtime::Runtime;
+use arrow_udf_wasm::Runtime;
 
 fn main() {
     let filename = std::env::args().nth(1).expect("no filename");

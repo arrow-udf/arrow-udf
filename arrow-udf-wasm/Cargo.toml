@@ -1,5 +1,5 @@
 [package]
-name = "arrow-udf-wasm-runtime"
+name = "arrow-udf-wasm"
 version = "0.1.0"
 edition = "2021"
 description = "WebAssembly runtime for Arrow UDFs."

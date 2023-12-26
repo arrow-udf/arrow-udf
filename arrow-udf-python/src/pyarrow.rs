@@ -14,7 +14,7 @@ macro_rules! get_pyobject {
 }
 
 /// Get array element as a python object.
-pub fn get_pyobject<'a>(py: Python<'a>, array: &dyn Array, i: usize) -> PyObject {
+pub fn get_pyobject(py: Python<'_>, array: &dyn Array, i: usize) -> PyObject {
     if array.is_null(i) {
         return py.None();
     }

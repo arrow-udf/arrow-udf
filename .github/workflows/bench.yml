@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -20,7 +23,12 @@ jobs:
           toolchain: stable
           target: wasm32-wasi
       - name: Build UDF
-        run: cargo build --release -p arrow-udf-wasm-example --target wasm32-wasi
+        run: cargo build --release -p arrow-udf-example --target wasm32-wasi
+      - name: Build Python
+        run: |
+          PYO3_NO_PYTHON=1 cargo build --release -p arrow-udf-python --target wasm32-wasi
+          mkdir arrow-udf-python/target/wasm32-wasi/wasi-deps/bin
+          cp target/wasm32-wasi/release/arrow_udf_python.wasm arrow-udf-python/target/wasm32-wasi/wasi-deps/bin/python.wasm
       - name: Run benchmark
         run: cargo bench --bench wasm -- --output-format bencher | tee output.txt
 

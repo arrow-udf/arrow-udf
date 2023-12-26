@@ -19,7 +19,7 @@ use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_python::Runtime as PythonRuntime;
 use arrow_udf_python_wasm::Runtime as PythonWasmRuntime;
-use arrow_udf_wasm_runtime::Runtime as WasmRuntime;
+use arrow_udf_wasm::Runtime as WasmRuntime;
 use criterion::{criterion_group, criterion_main, Criterion};
 
 fn bench_eval_gcd(c: &mut Criterion) {
@@ -31,7 +31,7 @@ fn bench_eval_gcd(c: &mut Criterion) {
         })
     });
 
-    let filepath = "../target/wasm32-wasi/release/arrow_udf_wasm_example.wasm";
+    let filepath = "../target/wasm32-wasi/release/arrow_udf_example.wasm";
     let binary = std::fs::read(filepath).unwrap();
     let input = RecordBatch::try_new(
         Arc::new(Schema::new(vec![

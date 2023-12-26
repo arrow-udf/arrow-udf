@@ -66,7 +66,7 @@ impl Runtime {
     fn with_config_engine(path: impl AsRef<Path>, config: Config, engine: &Engine) -> Result<Self> {
         let path = path.as_ref().to_path_buf();
         let binary =
-            std::fs::read(&path.join("bin/python.wasm")).context("failed to read wasm binary")?;
+            std::fs::read(path.join("bin/python.wasm")).context("failed to read wasm binary")?;
         let module = Module::from_binary(engine, &binary).context("failed to load wasm binary")?;
         Ok(Self {
             path,
@@ -122,7 +122,7 @@ impl Instance {
         let wasi = WasiCtxBuilder::new()
             .inherit_stdio()
             .preopened_dir(
-                Dir::open_ambient_dir(&rt.path.join("usr"), ambient_authority())?,
+                Dir::open_ambient_dir(rt.path.join("usr"), ambient_authority())?,
                 "/usr",
             )?
             .build();
@@ -136,7 +136,7 @@ impl Instance {
         let mut store = Store::new(engine, (wasi, limits));
         store.limiter(|(_, limiter)| limiter);
 
-        let instance = linker.instantiate(&mut store, &module)?;
+        let instance = linker.instantiate(&mut store, module)?;
         let alloc = instance.get_typed_func(&mut store, "alloc")?;
         let dealloc = instance.get_typed_func(&mut store, "dealloc")?;
         let add_function =

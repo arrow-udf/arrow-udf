@@ -45,7 +45,14 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release -p arrow-udf-wasm-example --target wasm32-wasi
+          args: --release -p arrow-udf-example --target wasm32-wasi
+      - name: Build Python
+        uses: actions-rs/cargo@v1
+        env:
+          PYO3_NO_PYTHON: 1
+        with:
+          command: build
+          args: --release -p arrow-udf-python --target wasm32-wasi
       - name: Build
         uses: actions-rs/cargo@v1
         with:

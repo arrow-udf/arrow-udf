@@ -127,7 +127,7 @@ impl Instance {
         let mut store = Store::new(engine, (wasi, limits));
         store.limiter(|(_, limiter)| limiter);
 
-        let instance = linker.instantiate(&mut store, &module)?;
+        let instance = linker.instantiate(&mut store, module)?;
         let mut functions = HashMap::new();
         for export in module.exports() {
             let Some(encoded) = export.name().strip_prefix("arrowudf_") else {

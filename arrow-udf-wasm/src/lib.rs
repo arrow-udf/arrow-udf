@@ -80,6 +80,11 @@ impl Runtime {
         })
     }
 
+    /// Return available functions.
+    pub fn functions(&self) -> impl Iterator<Item = &str> {
+        self.functions.iter().map(|s| s.as_str())
+    }
+
     /// Call a function.
     pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         if !self.functions.contains(name) {

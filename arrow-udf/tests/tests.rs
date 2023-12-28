@@ -173,30 +173,22 @@ fn nested_struct() -> (i32, (i32, &'static str)) {
 #[test]
 #[allow(clippy::bool_assert_comparison)]
 fn test_neg() {
-    let sig = neg_int4_int4_sig();
-    assert_eq!(sig.name, "neg");
-    assert_eq!(sig.arg_types, vec![DataType::Int32.into()]);
-    assert_eq!(sig.variadic, false);
-    assert_eq!(sig.return_type, DataType::Int32.into());
-
     let schema = Schema::new(vec![Field::new("int32", DataType::Int32, true)]);
     let arg0 = Int32Array::from(vec![Some(1), None]);
     let expected = Int32Array::from(vec![Some(-1), None]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = (sig.function)(&input).unwrap();
+    let output = neg_int4_int4_eval(&input).unwrap();
     assert_eq!(output.as_primitive::<Int32Type>(), &expected);
 }
 
 #[test]
 fn test_key_value() {
-    let sig = key_value_varchar_struct_key_varchar_value_varchar__sig();
-
     let schema = Schema::new(vec![Field::new("x", DataType::Utf8, true)]);
     let arg0 = StringArray::from(vec!["a=b", "??"]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = (sig.function)(&input).unwrap();
+    let output = key_value_varchar_struct_key_varchar_value_varchar_eval(&input).unwrap();
     assert_eq!(
         arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
             .unwrap()
@@ -215,13 +207,11 @@ fn test_key_value() {
 
 #[test]
 fn test_nested_struct() {
-    let sig = nested_struct_struct_a_int4_b_struct_c_int4_d_varchar__sig();
-
     let schema = Schema::new(vec![Field::new("int32", DataType::Int32, true)]);
     let arg0 = Int32Array::from(vec![1]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = (sig.function)(&input).unwrap();
+    let output = nested_struct_struct_a_int4_b_struct_c_int4_d_varchar_eval(&input).unwrap();
     assert_eq!(
         arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
             .unwrap()
@@ -239,13 +229,11 @@ fn test_nested_struct() {
 
 #[test]
 fn test_split() {
-    let sig = split_varchar_varchararray_sig();
-
     let schema = Schema::new(vec![Field::new("x", DataType::Utf8, true)]);
     let arg0 = StringArray::from(vec!["a,b"]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = (sig.function)(&input).unwrap();
+    let output = split_varchar_varchararray_eval(&input).unwrap();
     assert_eq!(
         arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
             .unwrap()
@@ -263,8 +251,6 @@ fn test_split() {
 
 #[test]
 fn test_option_add() {
-    let sig = option_add_int4_int4_int4_sig();
-
     let schema = Schema::new(vec![
         Field::new("x", DataType::Int32, true),
         Field::new("y", DataType::Int32, true),
@@ -274,7 +260,7 @@ fn test_option_add() {
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = (sig.function)(&input).unwrap();
+    let output = option_add_int4_int4_int4_eval(&input).unwrap();
     assert_eq!(
         arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
             .unwrap()
@@ -295,8 +281,6 @@ fn test_option_add() {
 
 #[test]
 fn test_array_sum() {
-    let sig = array_sum_int4array_int4_sig();
-
     let schema = Schema::new(vec![Field::new(
         "x",
         DataType::new_list(DataType::Int32, true),
@@ -310,7 +294,7 @@ fn test_array_sum() {
     ]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = (sig.function)(&input).unwrap();
+    let output = array_sum_int4array_int4_eval(&input).unwrap();
     assert_eq!(
         arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
             .unwrap()
@@ -331,8 +315,6 @@ fn test_array_sum() {
 
 #[test]
 fn test_temporal() {
-    let sig = datetime_date_time_timestamp_sig();
-
     let schema = Schema::new(vec![
         Field::new("date", DataType::Date32, true),
         Field::new("time", DataType::Time64(TimeUnit::Microsecond), true),
@@ -346,7 +328,7 @@ fn test_temporal() {
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = (sig.function)(&input).unwrap();
+    let output = datetime_date_time_timestamp_eval(&input).unwrap();
     assert_eq!(
         arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
             .unwrap()

@@ -110,7 +110,7 @@ impl FunctionAttr {
             Some(output) => format_ident!("{}", output),
             None => format_ident!("{}_eval", self.ident_name()),
         };
-        let ctor_name = format_ident!("{}_sig", self.ident_name());
+        let sig_name = format_ident!("{}_sig", self.ident_name());
         let ffi_name = format_ident!("{}_ffi", self.ident_name());
         let export_name = format!("arrowudf_{}", base64_encode(&self.normalize_signature()));
         let eval_function = self.generate_scalar_function(user_fn, &eval_name)?;
@@ -131,8 +131,11 @@ impl FunctionAttr {
                 }
             }
 
-            fn #ctor_name() -> arrow_udf::FunctionSignature {
-                use arrow_udf::{FunctionSignature, SigDataType, codegen::arrow_schema::{self, TimeUnit, IntervalUnit}};
+            #[cfg(feature = "global_registry")]
+            #[::arrow_udf::codegen::linkme::distributed_slice(::arrow_udf::sig::SIGNATURES)]
+            fn #sig_name() -> ::arrow_udf::sig::FunctionSignature {
+                use ::arrow_udf::sig::{FunctionSignature, SigDataType};
+                use ::arrow_udf::codegen::arrow_schema::{self, TimeUnit, IntervalUnit};
 
                 FunctionSignature {
                     name: #name.into(),

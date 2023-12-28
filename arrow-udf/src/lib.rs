@@ -14,45 +14,13 @@
 
 use arrow_array::{ArrayRef, RecordBatch};
 pub use arrow_schema::ArrowError as Error;
-use arrow_schema::DataType;
 pub use arrow_udf_macros::function;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 mod byte_builder;
-
-/// A function signature.
-pub struct FunctionSignature {
-    /// The name of the function.
-    pub name: String,
-
-    /// The argument types.
-    pub arg_types: Vec<SigDataType>,
-
-    /// Whether the function is variadic.
-    pub variadic: bool,
-
-    /// The return type.
-    pub return_type: SigDataType,
-
-    /// The function
-    pub function: ScalarFunction,
-}
-
-/// An extended data type that can be used to declare a function's argument or result type.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum SigDataType {
-    /// Exact data type
-    Exact(DataType),
-    /// Accepts any data type
-    Any,
-}
-
-impl From<DataType> for SigDataType {
-    fn from(dt: DataType) -> Self {
-        Self::Exact(dt)
-    }
-}
+#[cfg(feature = "global_registry")]
+pub mod sig;
 
 pub type ScalarFunction = fn(input: &RecordBatch) -> Result<ArrayRef>;
 
@@ -65,6 +33,8 @@ pub mod types {
     }
 }
 
+/// Internal APIs used by macros.
+#[doc(hidden)]
 pub mod codegen {
     pub use crate::byte_builder::*;
     pub use arrow_arith;
@@ -72,6 +42,8 @@ pub mod codegen {
     pub use arrow_schema;
     pub use chrono;
     pub use itertools;
+    #[cfg(feature = "global_registry")]
+    pub use linkme;
 
     use crate::{Error, ScalarFunction};
     use arrow_array::RecordBatch;

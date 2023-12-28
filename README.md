@@ -42,6 +42,18 @@ let input: RecordBatch = ...;
 let output = gcd_batch(&input).unwrap();
 ```
 
+Meanwhile, the macro will register each function into a global registry.
+You can then lookup the function by name and types:
+
+```rust
+use arrow_schema::DataType::Int32;
+use arrow_udf::sig::REGISTRY;
+
+// lookup the function from the global registry
+let sig = REGISTRY.get("gcd", &[Int32, Int32], &Int32).expect("gcd function");
+let output = (sig.function)(&input).unwrap();
+```
+
 ### Define Python Functions and Run Locally
 
 ### Define Rust Functions and Run on WebAssembly

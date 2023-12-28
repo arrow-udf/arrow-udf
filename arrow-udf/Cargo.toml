@@ -5,6 +5,10 @@ edition = "2021"
 description = "User-defined function framework for arrow-rs."
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["global_registry"]
+global_registry = ["linkme", "lazy_static"]
+
 [dependencies]
 arrow-arith = "49"
 arrow-array = "49"
@@ -15,6 +19,8 @@ arrow-schema = "49"
 arrow-udf-macros = { version = "0.1.0", path = "../arrow-udf-macros" }
 chrono = { version = "0.4", default-features = false }
 itertools = "0.12"
+lazy_static = { version = "1", optional = true }
+linkme = { version = "0.3", optional = true }
 
 [dev-dependencies]
 arrow-cast = { version = "49", features = ["prettyprint"] }

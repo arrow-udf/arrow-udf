@@ -1,4 +1,56 @@
-# Arrow User-Defined Functions Framework on WebAssembly
+# Arrow User-Defined Functions Framework
+
+Easily create and run user-defined functions (UDF) on Apache Arrow.
+You can define functions in Rust or Python, run natively or on WebAssembly.
+
+## Usage
+
+### Define Rust Functions and Run Locally
+
+You can integrate this library into your Rust project to quickly define and use custom functions.
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+arrow-udf = "0.1"
+```
+
+Define your functions with the `#[function]` macro:
+
+```rust
+use arrow_udf::function;
+
+#[function("gcd(int, int) -> int", output = "gcd_batch")]
+fn gcd(x: i32, y: i32) -> i32 {
+    while y != 0 {
+        let t = y;
+        y = x % y;
+        x = t;
+    }
+    x
+}
+```
+
+The macro will generate a function that takes a `RecordBatch` and returns an `ArrayRef`.
+It can be named with the optional `output` parameter, or if not specified, it will be named arbitrarily.
+
+You can then call the generated function on a `RecordBatch`:
+
+```rust
+let input: RecordBatch = ...;
+let output = gcd_batch(&input).unwrap();
+```
+
+### Define Python Functions and Run Locally
+
+### Define Rust Functions and Run on WebAssembly
+
+### Define Python Functions and Run on WebAssembly
+
+
+
+
 
 ## Example
 

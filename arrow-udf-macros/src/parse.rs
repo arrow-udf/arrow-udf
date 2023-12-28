@@ -77,6 +77,8 @@ impl Parse for FunctionAttr {
                 parsed.type_infer = Some(get_value()?);
             } else if meta.path().is_ident("generic") {
                 parsed.generic = Some(get_value()?);
+            } else if meta.path().is_ident("output") {
+                parsed.output = Some(get_value()?);
             } else if meta.path().is_ident("volatile") {
                 parsed.volatile = true;
             } else if meta.path().is_ident("append_only") {

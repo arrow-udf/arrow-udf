@@ -106,16 +106,21 @@ impl FunctionAttr {
         .collect_vec();
         let ret = sig_data_type(&self.ret);
 
+        let eval_name = match &self.output {
+            Some(output) => format_ident!("{}", output),
+            None => format_ident!("{}_eval", self.ident_name()),
+        };
         let ctor_name = format_ident!("{}_sig", self.ident_name());
         let ffi_name = format_ident!("{}_ffi", self.ident_name());
         let export_name = format!("arrowudf_{}", base64_encode(&self.normalize_signature()));
-        let function = self.generate_scalar_function(user_fn)?;
+        let eval_function = self.generate_scalar_function(user_fn, &eval_name)?;
 
         Ok(quote! {
-            #[doc(hidden)]
+            #eval_function
+
             #[export_name = #export_name]
             unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize) -> u64 {
-                match arrow_udf::codegen::ffi_wrapper(#function, ptr, len) {
+                match arrow_udf::codegen::ffi_wrapper(#eval_name, ptr, len) {
                     Ok(data) => {
                         let ptr = data.as_ptr();
                         let len = data.len();
@@ -134,14 +139,18 @@ impl FunctionAttr {
                     arg_types: vec![#(#args),*],
                     variadic: #variadic,
                     return_type: #ret,
-                    function: #function,
+                    function: #eval_name,
                 }
             }
         })
     }
 
     /// Generate a scalar function.
-    fn generate_scalar_function(&self, user_fn: &UserFunctionAttr) -> Result<TokenStream2> {
+    fn generate_scalar_function(
+        &self,
+        user_fn: &UserFunctionAttr,
+        name: &Ident,
+    ) -> Result<TokenStream2> {
         let variadic = matches!(self.args.last(), Some(t) if t == "...");
         let num_args = self.args.len() - if variadic { 1 } else { 0 };
         let fn_name = format_ident!("{}", user_fn.name);
@@ -384,27 +393,26 @@ impl FunctionAttr {
         };
 
         Ok(quote! {
+            fn #name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
+                -> ::arrow_udf::Result<::arrow_udf::codegen::arrow_array::ArrayRef>
             {
-                use std::sync::Arc;
-                use arrow_udf::{Result, Error};
-                use arrow_udf::codegen::arrow_array::RecordBatch;
-                use arrow_udf::codegen::arrow_array::array::*;
-                use arrow_udf::codegen::arrow_array::builder::*;
-                use arrow_udf::codegen::arrow_schema::{IntervalUnit, TimeUnit};
-                use arrow_udf::codegen::arrow_arith;
-                use arrow_udf::codegen::arrow_schema;
-                use arrow_udf::codegen::chrono;
-                use arrow_udf::codegen::itertools;
+                use ::std::sync::Arc;
+                use ::arrow_udf::{Result, Error};
+                use ::arrow_udf::codegen::arrow_array::RecordBatch;
+                use ::arrow_udf::codegen::arrow_array::array::*;
+                use ::arrow_udf::codegen::arrow_array::builder::*;
+                use ::arrow_udf::codegen::arrow_schema::{IntervalUnit, TimeUnit};
+                use ::arrow_udf::codegen::arrow_arith;
+                use ::arrow_udf::codegen::arrow_schema;
+                use ::arrow_udf::codegen::chrono;
+                use ::arrow_udf::codegen::itertools;
 
-                fn eval(input: &RecordBatch) -> Result<ArrayRef> {
-                    #(
-                        let #arrays: &#arg_arrays = input.column(#children_indices).as_any().downcast_ref()
-                            .ok_or_else(|| Error::CastError(format!("expect {} for the {}-th argument", stringify!(#arg_arrays), #children_indices)))?;
-                    )*
-                    #eval_variadic
-                    #eval
-                }
-                eval
+                #(
+                    let #arrays: &#arg_arrays = input.column(#children_indices).as_any().downcast_ref()
+                        .ok_or_else(|| Error::CastError(format!("expect {} for the {}-th argument", stringify!(#arg_arrays), #children_indices)))?;
+                )*
+                #eval_variadic
+                #eval
             }
         })
     }

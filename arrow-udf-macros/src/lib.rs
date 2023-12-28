@@ -436,6 +436,9 @@ struct FunctionAttr {
     generic: Option<String>,
     /// Whether the function is volatile.
     volatile: bool,
+    /// Generated batch function name.
+    /// If not specified, the macro will not generate batch function.
+    output: Option<String>,
 }
 
 /// Attributes from function signature `fn(..)`

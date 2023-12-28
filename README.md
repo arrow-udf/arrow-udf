@@ -94,47 +94,72 @@ See the [example](./arrow-udf-python/examples/python.rs) for more details.
 
 ### Define Rust Functions and Run on WebAssembly
 
-### Define Python Functions and Run on WebAssembly
+For untrusted user-defined functions, you can compile them into WebAssembly and run them in a sandboxed environment.
 
+First, create a project and define functions as described in [the above section](#define-rust-functions-and-run-locally).
+Then compile the project into WebAssembly:
 
+```sh
+cargo build --release --target wasm32-wasi
+```
 
+You can find the generated WebAssembly module in `target/wasm32-wasi/release/*.wasm`.
 
+Next, add the following lines to your project:
 
-## Example
+```toml
+[dependencies]
+arrow-udf-wasm = "0.1"
+```
 
-Build the WebAssembly module:
+You can then load the WebAssembly module and call the functions:
+
+```rust
+use arrow_udf_wasm::Runtime;
+
+// load the WebAssembly module
+let binary = std::fs::read("udf.wasm").unwrap();
+// create a runtime from the module
+let runtime = Runtime::new(&binary).unwrap();
+// list available functions in the module:
+for name in runtime.functions() {
+    println!("{}", name);
+}
+// call the function with a RecordBatch
+let input: RecordBatch = ...;
+let output = runtime.call("gcd(int4,int4)->int4", &input).unwrap();
+```
+
+The WebAssembly runtime is powered by [wasmtime](https://wasmtime.dev/). 
+Notice that each WebAssembly instance can only run single-threaded, we maintain an instance pool internally to support parallel calls from multiple threads.
+
+See the [example](./arrow-udf-wasm/examples/wasm.rs) for more details. To run the example:
 
 ```sh
 cargo build --release -p arrow-udf-example --target wasm32-wasi
-```
-
-Run the example:
-
-```sh
 cargo run --example wasm -- target/wasm32-wasi/release/arrow_udf_example.wasm
 ```
 
-Run the Python example:
+### Define Python Functions and Run on WebAssembly
+
+Similarly, you can run Python functions on WebAssembly.
+
+We don't have a ready-to-use library yet, but you can refer to the following steps to run a simple example.
 
 ```sh
-cargo run --example python
-```
-
-Build the Python WebAssembly module:
-
-```sh
+# Build the Python WebAssembly module
 PYO3_NO_PYTHON=1 cargo build --release -p arrow-udf-python --target wasm32-wasi
 mkdir -p arrow-udf-python/target/wasm32-wasi/wasi-deps/bin
 cp target/wasm32-wasi/release/arrow_udf_python.wasm arrow-udf-python/target/wasm32-wasi/wasi-deps/bin/python.wasm
-```
 
-Run the Python WebAssembly example:
-
-```sh
+# Run the Python WebAssembly example
 cargo run --release --example python_wasm
 ```
 
-Run microbenchmark:
+## Benchmarks
+
+We have benchmarked the performance of function calls in different environments.
+You can run the benchmarks with the following command:
 
 ```sh
 cargo bench --bench wasm

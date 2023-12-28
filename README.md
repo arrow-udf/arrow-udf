@@ -9,7 +9,7 @@ You can define functions in Rust or Python, run natively or on WebAssembly.
 
 You can integrate this library into your Rust project to quickly define and use custom functions.
 
-Add this to your `Cargo.toml`:
+Add the following lines to your `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -54,7 +54,43 @@ let sig = REGISTRY.get("gcd", &[Int32, Int32], &Int32).expect("gcd function");
 let output = (sig.function)(&input).unwrap();
 ```
 
+See the [example](./arrow-udf/examples/rust.rs) for more details.
+
 ### Define Python Functions and Run Locally
+
+Add the following lines to your `Cargo.toml`:
+
+```toml
+[dependencies]
+arrow-udf-python = "0.1"
+```
+
+Define your Python function in a string and create a `Runtime` for each function:
+
+```rust
+use arrow_udf_python::Runtime;
+
+let python_code = r#"
+def gcd(a: int, b: int) -> int:
+    while b:
+        a, b = b, a % b
+    return a
+"#;
+let return_type = arrow_schema::DataType::Int32;
+let runtime = Runtime::new("gcd", return_type, python_code).unwrap();
+```
+
+You can then call the python function on a `RecordBatch`:
+
+```rust
+let input: RecordBatch = ...;
+let output = runtime.call(&input).unwrap();
+```
+
+The python code will be run in an embedded CPython 3.11 interpreter, powered by [PyO3](pyo3.rs).
+Please note that due to the limitation of GIL, only one Python function can be running in a process at the same time.
+
+See the [example](./arrow-udf-python/examples/python.rs) for more details.
 
 ### Define Rust Functions and Run on WebAssembly
 

@@ -192,7 +192,9 @@ impl FunctionAttr {
         // transform inputs for array arguments
         // e.g. for `int[]`, transform `ArrayRef` -> `&[T]`
         let transformed_inputs = inputs.iter().zip(&self.args).map(|(input, ty)| {
-            if ty == "date" {
+            if ty == "decimal" {
+                return quote! { std::str::from_utf8(#input).unwrap().parse::<rust_decimal::Decimal>().unwrap() };
+            } else if ty == "date" {
                 return quote! { arrow_array::types::Date32Type::to_naive_date(#input) };
             } else if ty == "time" {
                 return quote! { arrow_array::temporal_conversions::as_time::<arrow_array::types::Time64MicrosecondType>(#input).unwrap() };
@@ -283,6 +285,13 @@ impl FunctionAttr {
                     quote! {{
                         #(#append_fields)*
                         builder.append(true);
+                    }}
+                } else if ty == "decimal" {
+                    quote! {{
+                        use std::fmt::Write;
+                        let mut writer = builder.writer();
+                        write!(&mut writer, "{}", v).unwrap();
+                        writer.finish();
                     }}
                 } else if ty == "date" {
                     quote! { builder.append_value(arrow_array::types::Date32Type::from_naive_date(v)) }
@@ -464,6 +473,9 @@ fn builder(ty: &str) -> TokenStream2 {
         }
         "bytea" => {
             quote! { arrow_udf::codegen::BinaryBuilder::with_capacity(input.num_rows(), 1024) }
+        }
+        "decimal" => {
+            quote! { arrow_udf::codegen::LargeBinaryBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
         }
         s if s.ends_with("[]") => {
             let values_builder = builder(ty.strip_suffix("[]").unwrap());

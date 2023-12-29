@@ -27,6 +27,8 @@ use arrow_data::ArrayDataBuilder;
 
 pub type StringBuilder = GenericByteBuilder<GenericStringType<i32>>;
 pub type BinaryBuilder = GenericByteBuilder<GenericBinaryType<i32>>;
+pub type LargeStringBuilder = GenericByteBuilder<GenericStringType<i64>>;
+pub type LargeBinaryBuilder = GenericByteBuilder<GenericBinaryType<i64>>;
 
 /// A specialized byte builder that supports partial writes.
 pub struct GenericByteBuilder<T: ByteArrayType> {

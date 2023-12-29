@@ -25,6 +25,7 @@ const TYPE_MATRIX: &str = "
     int8        y       Int64                   Int64
     float4      y       Float32                 Float32
     float8      y       Float64                 Float64
+    decimal     _       LargeBinary             LargeBinary
     date        _       Date32                  Date32
     time        _       Time64Microsecond       Time64(TimeUnit::Microsecond)
     timestamp   _       TimestampMicrosecond    Timestamp(TimeUnit::Microsecond,None)

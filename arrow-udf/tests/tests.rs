@@ -19,7 +19,8 @@ use arrow_array::cast::AsArray;
 use arrow_array::temporal_conversions::time_to_time64us;
 use arrow_array::types::{Date32Type, Int32Type};
 use arrow_array::{
-    Date32Array, Int32Array, ListArray, RecordBatch, StringArray, Time64MicrosecondArray,
+    Date32Array, Int32Array, LargeBinaryArray, ListArray, RecordBatch, StringArray,
+    Time64MicrosecondArray,
 };
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
 use arrow_udf::function;
@@ -41,6 +42,7 @@ fn zero() -> i32 {
 #[function("neg(int8) -> int8")]
 #[function("neg(float4) -> float4")]
 #[function("neg(float8) -> float8")]
+#[function("neg(decimal) -> decimal")]
 fn neg<T: Neg<Output = T>>(x: T) -> T {
     x.neg()
 }
@@ -62,6 +64,7 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
 #[function("identity(int8) -> int8")]
 #[function("identity(float4) -> float4")]
 #[function("identity(float8) -> float8")]
+#[function("identity(decimal) -> decimal")]
 #[function("identity(date) -> date")]
 #[function("identity(time) -> time")]
 #[function("identity(timestamp) -> timestamp")]
@@ -339,6 +342,28 @@ fn test_temporal() {
 +----------------------------+
 | 2022-04-08T12:34:56.789012 |
 +----------------------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_decimal() {
+    let schema = Schema::new(vec![Field::new("d", DataType::LargeBinary, true)]);
+    let arg0 = LargeBinaryArray::from(vec![&b"0.001"[..]]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = identity_decimal_decimal_eval(&input).unwrap();
+    assert_eq!(
+        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++------------+
+| result     |
++------------+
+| 302e303031 |
++------------+
 "#
         .trim()
     );

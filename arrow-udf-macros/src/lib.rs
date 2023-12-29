@@ -176,6 +176,7 @@ mod utils;
 /// | `bigint`           | `i64`                          | yes        |
 /// | `real`             | `f32`                          | yes        |
 /// | `double precision` | `f64`                          | yes        |
+/// | `numeric`          | [`rust_decimal::Decimal`]      | yes        |
 /// | `date`             | [`chrono::NaiveDate`]          | yes        |
 /// | `time`             | [`chrono::NaiveTime`]          | yes        |
 /// | `timestamp`        | [`chrono::NaiveDateTime`]      | yes        |
@@ -184,6 +185,7 @@ mod utils;
 /// | `bytea`            | `&[u8]`                        | no         |
 ///
 /// [type matrix]: #appendix-type-matrix
+/// [`rust_decimal::Decimal`]: https://docs.rs/rust_decimal/1.33.1/rust_decimal/struct.Decimal.html
 /// [`chrono::NaiveDate`]: https://docs.rs/chrono/0.4.31/chrono/naive/struct.NaiveDate.html
 /// [`chrono::NaiveTime`]: https://docs.rs/chrono/0.4.31/chrono/naive/struct.NaiveTime.html
 /// [`chrono::NaiveDateTime`]: https://docs.rs/chrono/0.4.31/chrono/naive/struct.NaiveDateTime.html

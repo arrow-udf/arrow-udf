@@ -205,6 +205,8 @@ impl FunctionAttr {
                     let (months, days, nanos) = arrow_array::types::IntervalMonthDayNanoType::to_parts(#input);
                     arrow_udf::types::Interval { months, days, nanos }
                 }};
+            } else if ty == "json" {
+                return quote! { #input.parse::<serde_json::Value>().unwrap() };
             } else if let Some(elem_type) = ty.strip_suffix("[]") {
                 if types::is_primitive(elem_type) {
                     let array_type = format_ident!("{}", types::array_type(elem_type));
@@ -286,7 +288,7 @@ impl FunctionAttr {
                         #(#append_fields)*
                         builder.append(true);
                     }}
-                } else if ty == "decimal" {
+                } else if ty == "decimal" || ty == "json" {
                     quote! {{
                         use std::fmt::Write;
                         let mut writer = builder.writer();
@@ -418,6 +420,8 @@ impl FunctionAttr {
                 use ::arrow_udf::codegen::arrow_schema;
                 use ::arrow_udf::codegen::chrono;
                 use ::arrow_udf::codegen::itertools;
+                use ::arrow_udf::codegen::rust_decimal;
+                use ::arrow_udf::codegen::serde_json;
 
                 #(
                     let #arrays: &#arg_arrays = input.column(#children_indices).as_any().downcast_ref()
@@ -476,6 +480,9 @@ fn builder(ty: &str) -> TokenStream2 {
         }
         "decimal" => {
             quote! { arrow_udf::codegen::LargeBinaryBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
+        }
+        "json" => {
+            quote! { arrow_udf::codegen::LargeStringBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
         }
         s if s.ends_with("[]") => {
             let values_builder = builder(ty.strip_suffix("[]").unwrap());

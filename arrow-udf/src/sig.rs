@@ -71,7 +71,7 @@ impl FunctionSignature {
             return false;
         }
         for (target, ty) in self.arg_types.iter().zip(arg_types) {
-            if !target.matches(&ty) {
+            if !target.matches(ty) {
                 return false;
             }
         }

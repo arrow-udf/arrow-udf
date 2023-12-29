@@ -47,6 +47,8 @@ pub mod codegen {
     pub use itertools;
     #[cfg(feature = "global_registry")]
     pub use linkme;
+    pub use rust_decimal;
+    pub use serde_json;
 
     use crate::{Error, ScalarFunction};
     use arrow_array::RecordBatch;

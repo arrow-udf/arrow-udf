@@ -30,6 +30,7 @@ const TYPE_MATRIX: &str = "
     time        _       Time64Microsecond       Time64(TimeUnit::Microsecond)
     timestamp   _       TimestampMicrosecond    Timestamp(TimeUnit::Microsecond,None)
     interval    _       IntervalMonthDayNano    Interval(IntervalUnit::MonthDayNano)
+    json        _       LargeString             LargeUtf8
     varchar     _       String                  Utf8
     bytea       _       Binary                  Binary
     array       _       List                    List

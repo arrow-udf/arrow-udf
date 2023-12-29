@@ -181,6 +181,7 @@ mod utils;
 /// | `time`             | [`chrono::NaiveTime`]          | yes        |
 /// | `timestamp`        | [`chrono::NaiveDateTime`]      | yes        |
 /// | `interval`         | [`arrow_udf::types::Interval`] | yes        |
+/// | `json`             | [`serde_json::Value`]          | no         |
 /// | `varchar`          | `&str`                         | no         |
 /// | `bytea`            | `&[u8]`                        | no         |
 ///
@@ -190,6 +191,7 @@ mod utils;
 /// [`chrono::NaiveTime`]: https://docs.rs/chrono/0.4.31/chrono/naive/struct.NaiveTime.html
 /// [`chrono::NaiveDateTime`]: https://docs.rs/chrono/0.4.31/chrono/naive/struct.NaiveDateTime.html
 /// [`arrow_udf::types::Interval`]: https://docs.rs/arrow_udf/0.1.0/arrow_udf/types/struct.Interval.html
+/// [`serde_json::Value`]: https://docs.rs/serde_json/1.0.108/serde_json/enum.Value.html
 #[proc_macro_attribute]
 pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
     fn inner(attr: TokenStream, item: TokenStream) -> Result<TokenStream2> {

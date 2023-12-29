@@ -70,6 +70,7 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
 #[function("identity(timestamp) -> timestamp")]
 // #[function("identity(timestamptz) -> timestamptz")]
 #[function("identity(interval) -> interval")]
+#[function("identity(json) -> json")]
 #[function("identity(varchar) -> varchar")]
 #[function("identity(bytea) -> bytea")]
 fn identity<T>(x: T) -> T {
@@ -79,6 +80,20 @@ fn identity<T>(x: T) -> T {
 #[function("option_add(int, int) -> int")]
 fn option_add(x: i32, y: Option<i32>) -> i32 {
     x + y.unwrap_or(0)
+}
+
+#[function("to_json(boolean) -> json")]
+#[function("to_json(int2) -> json")]
+#[function("to_json(int4) -> json")]
+#[function("to_json(int8) -> json")]
+#[function("to_json(float4) -> json")]
+#[function("to_json(float8) -> json")]
+#[function("to_json(varchar) -> json")]
+fn to_json(x: Option<impl Into<serde_json::Value>>) -> serde_json::Value {
+    match x {
+        Some(x) => x.into(),
+        None => serde_json::Value::Null,
+    }
 }
 
 #[function("datetime(date, time) -> timestamp")]
@@ -364,6 +379,29 @@ fn test_decimal() {
 +------------+
 | 302e303031 |
 +------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_json() {
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = to_json_int4_json_eval(&input).unwrap();
+    assert_eq!(
+        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++--------+
+| result |
++--------+
+| 1      |
+| null   |
++--------+
 "#
         .trim()
     );

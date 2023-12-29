@@ -23,9 +23,7 @@ use arrow_udf::function;
 #[function("gcd(int, int) -> int", output = "gcd_batch")]
 fn gcd(mut a: i32, mut b: i32) -> i32 {
     while b != 0 {
-        let t = b;
-        b = a % b;
-        a = t;
+        (a, b) = (b, a % b);
     }
     a
 }

@@ -16,14 +16,17 @@ use arrow_array::{ArrayRef, RecordBatch};
 pub use arrow_schema::ArrowError as Error;
 pub use arrow_udf_macros::function;
 
+/// A specialized `Result` type for Arrow UDF operations.
 pub type Result<T> = std::result::Result<T, Error>;
 
 mod byte_builder;
 #[cfg(feature = "global_registry")]
 pub mod sig;
 
+/// A scalar function that operates on a record batch.
 pub type ScalarFunction = fn(input: &RecordBatch) -> Result<ArrayRef>;
 
+/// Types used by the generated code.
 pub mod types {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Interval {
@@ -63,7 +66,7 @@ pub mod codegen {
 
     #[no_mangle]
     #[used]
-    static ARROW_UDF_VERSION: u8 = 1;
+    static ARROWUDF_VERSION: u8 = 1;
 
     /// A wrapper function for calling a scalar function from C.
     ///

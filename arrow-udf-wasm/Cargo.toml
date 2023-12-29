@@ -3,6 +3,10 @@ name = "arrow-udf-wasm"
 version = "0.1.0"
 edition = "2021"
 description = "WebAssembly runtime for Arrow UDFs."
+repository = "https://github.com/risingwavelabs/arrow-udf"
+keywords = ["arrow", "udf", "wasm"]
+categories = ["wasm"]
+license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

@@ -43,6 +43,7 @@ impl Runtime {
         })
     }
 
+    /// Call the Python UDF.
     pub fn call(&self, input: &RecordBatch) -> Result<RecordBatch> {
         // convert each row to python objects and call the function
         let array = Python::with_gil(|py| -> Result<ArrayRef> {

@@ -22,6 +22,7 @@ pub struct Runtime {
     instances: Mutex<Vec<Instance>>,
 }
 
+/// Configurations.
 #[derive(Debug, Default, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Config {

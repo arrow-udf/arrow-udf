@@ -3,10 +3,13 @@ name = "arrow-udf"
 version = "0.1.0"
 edition = "2021"
 description = "User-defined function framework for arrow-rs."
+repository = "https://github.com/risingwavelabs/arrow-udf"
+keywords = ["arrow", "udf"]
+categories = ["wasm"]
+license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["global_registry"]
 global_registry = ["linkme", "lazy_static"]
 
 [dependencies]

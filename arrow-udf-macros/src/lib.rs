@@ -23,26 +23,17 @@ mod parse;
 mod types;
 mod utils;
 
-/// Defining the RisingWave SQL function from a Rust function.
-///
-/// [Online version of this doc.](https://risingwavelabs.github.io/risingwave/risingwave_expr_macro/attr.function.html)
+/// Defining a function on Arrow arrays.
 ///
 /// # Table of Contents
 ///
 /// - [SQL Function Signature](#sql-function-signature)
 ///     - [Multiple Function Definitions](#multiple-function-definitions)
-///     - [Type Expansion](#type-expansion)
-///     - [Automatic Type Inference](#automatic-type-inference)
-///     - [Custom Type Inference Function](#custom-type-inference-function)
 /// - [Rust Function Signature](#rust-function-signature)
 ///     - [Nullable Arguments](#nullable-arguments)
 ///     - [Return Value](#return-value)
-///     - [Variadic Function](#variadic-function)
 ///     - [Optimization](#optimization)
 ///     - [Functions Returning Strings](#functions-returning-strings)
-///     - [Preprocessing Constant Arguments](#preprocessing-constant-arguments)
-///     - [Context](#context)
-///     - [Async Function](#async-function)
 /// - [Table Function](#table-function)
 /// - [Registration and Invocation](#registration-and-invocation)
 /// - [Appendix: Type Matrix](#appendix-type-matrix)
@@ -50,7 +41,7 @@ mod utils;
 /// The following example demonstrates a simple usage:
 ///
 /// ```ignore
-/// #[function("add(int32, int32) -> int32")]
+/// #[function("add(int, int) -> int")]
 /// fn add(x: i32, y: i32) -> i32 {
 ///     x + y
 /// }
@@ -65,8 +56,7 @@ mod utils;
 /// name ( [arg_types],* [...] ) [ -> [setof] return_type ]
 /// ```
 ///
-/// Where `name` is the function name in `snake_case`, which must match the function name defined
-/// in `prost`.
+/// Where `name` is the function name.
 ///
 /// `arg_types` is a comma-separated list of argument types. The allowed data types are listed in
 /// in the `name` column of the appendix's [type matrix]. Wildcards or `auto` can also be used, as
@@ -76,8 +66,7 @@ mod utils;
 /// function (table function), meaning it can return multiple values instead of just one. For more
 /// details, see the section on table functions.
 ///
-/// If no return type is specified, the function returns `void`. However, the void type is not
-/// supported in our type system, so it now returns a null value of type int.
+/// If no return type is specified, the function returns `void`.
 ///
 /// ## Multiple Function Definitions
 ///
@@ -85,95 +74,19 @@ mod utils;
 /// multiple SQL functions of different types. For example:
 ///
 /// ```ignore
-/// #[function("add(int16, int16) -> int16")]
-/// #[function("add(int32, int32) -> int32")]
-/// #[function("add(int64, int64) -> int64")]
+/// #[function("add(int2, int2) -> int2")]
+/// #[function("add(int4, int4) -> int4")]
+/// #[function("add(int8, int8) -> int8")]
 /// fn add<T: Add>(x: T, y: T) -> T {
 ///     x + y
 /// }
 /// ```
 ///
-/// ## Type Expansion
-///
-/// Types can be automatically expanded to multiple types using wildcards. Here are some examples:
-///
-/// - `*`: expands to all types.
-/// - `*int`: expands to int16, int32, int64.
-/// - `*float`: expands to float32, float64.
-///
-/// For instance, `#[function("cast(varchar) -> *int")]` will be expanded to the following three
-/// functions:
-///
-/// ```ignore
-/// #[function("cast(varchar) -> int16")]
-/// #[function("cast(varchar) -> int32")]
-/// #[function("cast(varchar) -> int64")]
-/// ```
-///
-/// Please note the difference between `*` and `any`. `*` will generate a function for each type,
-/// whereas `any` will only generate one function with a dynamic data type `Scalar`.
-///
-/// ## Automatic Type Inference
-///
-/// Correspondingly, the return type can be denoted as `auto` to be automatically inferred based on
-/// the input types. It will be inferred as the smallest type that can accommodate all input types.
-///
-/// For example, `#[function("add(*int, *int) -> auto")]` will be expanded to:
-///
-/// ```ignore
-/// #[function("add(int16, int16) -> int16")]
-/// #[function("add(int16, int32) -> int32")]
-/// #[function("add(int16, int64) -> int64")]
-/// #[function("add(int32, int16) -> int32")]
-/// ...
-/// ```
-///
-/// Especially when there is only one input argument, `auto` will be inferred as the type of that
-/// argument. For example, `#[function("neg(*int) -> auto")]` will be expanded to:
-///
-/// ```ignore
-/// #[function("neg(int16) -> int16")]
-/// #[function("neg(int32) -> int32")]
-/// #[function("neg(int64) -> int64")]
-/// ```
-///
-/// ## Custom Type Inference Function
-///
-/// A few functions might have a return type that dynamically changes based on the input argument
-/// types, such as `unnest`.
-///
-/// In such cases, the `type_infer` option can be used to specify a function to infer the return
-/// type based on the input argument types. Its function signature is
-///
-/// ```ignore
-/// fn(&[DataType]) -> Result<DataType>
-/// ```
-///
-/// For example:
-///
-/// ```ignore
-/// #[function(
-///     "unnest(anyarray) -> setof any",
-///     type_infer = "|args| Ok(args[0].unnest_list())"
-/// )]
-/// ```
-///
-/// This type inference function will be invoked at the frontend.
-///
 /// # Rust Function Signature
 ///
 /// The `#[function]` macro can handle various types of Rust functions.
-///
-/// Each argument corresponds to the *reference type* in the [type matrix].
-///
-/// The return value type can be the *reference type* or *owned type* in the [type matrix].
-///
-/// For instance:
-///
-/// ```ignore
-/// #[function("trim_array(anyarray, int32) -> anyarray")]
-/// fn trim_array(array: ListRef<'_>, n: i32) -> ListValue {...}
-/// ```
+/// Each argument corresponds to the *Rust type* `T` in the [type matrix].
+/// The return value type can be any type that implements `AsRef<T>`.
 ///
 /// ## Nullable Arguments
 ///
@@ -181,12 +94,9 @@ mod utils;
 /// to be considered, the `Option` type can be used:
 ///
 /// ```ignore
-/// #[function("trim_array(anyarray, int32) -> anyarray")]
-/// fn trim_array(array: Option<ListRef<'_>>, n: Option<i32>) -> ListValue {...}
+/// #[function("add(int, int) -> int")]
+/// fn add(x: Option<i32>, y: i32) -> i32 {...}
 /// ```
-///
-/// Note that we currently only support all arguments being either `Option` or non-`Option`. Mixed
-/// cases are not supported.
 ///
 /// ## Return Value
 ///
@@ -204,21 +114,6 @@ mod utils;
 /// generate SIMD vectorized execution code.
 ///
 /// Therefore, try to avoid returning `Option` and `Result` whenever possible.
-///
-/// ## Variadic Function
-///
-/// Variadic functions accept a `impl Row` input to represent tailing arguments.
-/// For example:
-///
-/// ```ignore
-/// #[function("concat_ws(varchar, ...) -> varchar")]
-/// fn concat_ws(sep: &str, vals: impl Row) -> Option<Box<str>> {
-///     let mut string_iter = vals.iter().flatten();
-///     // ...
-/// }
-/// ```
-///
-/// See `risingwave_common::row::Row` for more details.
 ///
 /// ## Functions Returning Strings
 ///
@@ -256,142 +151,43 @@ mod utils;
 /// }
 /// ```
 ///
-/// ## Preprocessing Constant Arguments
-///
-/// When some input arguments of the function are constants, they can be preprocessed to avoid
-/// calculations every time the function is called.
-///
-/// A classic use case is regular expression matching:
-///
-/// ```ignore
-/// #[function(
-///     "regexp_match(varchar, varchar, varchar) -> varchar[]",
-///     prebuild = "RegexpContext::from_pattern_flags($1, $2)?"
-/// )]
-/// fn regexp_match(text: &str, regex: &RegexpContext) -> ListValue {
-///     regex.captures(text).collect()
-/// }
-/// ```
-///
-/// The `prebuild` argument can be specified, and its value is a Rust expression used to construct a
-/// new variable from the input arguments of the function. Here `$1`, `$2` represent the second and
-/// third arguments of the function (indexed from 0), and their types are `&str`. In the Rust
-/// function signature, these positions of parameters will be omitted, replaced by an extra new
-/// variable at the end.
-///
-/// This macro generates two versions of the function. If all the input parameters that `prebuild`
-/// depends on are constants, it will precompute them during the build function. Otherwise, it will
-/// compute them for each input row during evaluation. This way, we support both constant and variable
-/// inputs while optimizing performance for constant inputs.
-///
-/// ## Context
-///
-/// If a function needs to obtain type information at runtime, you can add an `&Context` parameter to
-/// the function signature. For example:
-///
-/// ```ignore
-/// #[function("foo(int32) -> int64")]
-/// fn foo(a: i32, ctx: &Context) -> i64 {
-///    assert_eq!(ctx.arg_types[0], DataType::Int32);
-///    assert_eq!(ctx.return_type, DataType::Int64);
-///    // ...
-/// }
-/// ```
-///
-/// ## Async Function
-///
-/// Functions can be asynchronous.
-///
-/// ```ignore
-/// #[function("pg_sleep(float64)")]
-/// async fn pg_sleep(second: F64) {
-///     tokio::time::sleep(Duration::from_secs_f64(second.0)).await;
-/// }
-/// ```
-///
-/// Asynchronous functions will be evaluated on rows sequentially.
-///
-/// # Table Function
-///
-/// A table function is a special kind of function that can return multiple values instead of just
-/// one. Its function signature must include the `setof` keyword, and the Rust function should
-/// return an iterator of the form `impl Iterator<Item = T>` or its derived types.
-///
-/// For example:
-/// ```ignore
-/// #[function("generate_series(int32, int32) -> setof int32")]
-/// fn generate_series(start: i32, stop: i32) -> impl Iterator<Item = i32> {
-///     start..=stop
-/// }
-/// ```
-///
-/// Likewise, the return value `Iterator` can include `Option` or `Result` either internally or
-/// externally. For instance:
-///
-/// - `impl Iterator<Item = Result<T>>`
-/// - `Result<impl Iterator<Item = T>>`
-/// - `Result<impl Iterator<Item = Result<Option<T>>>>`
-///
-/// Currently, table function arguments do not support the `Option` type. That is, the function will
-/// only be invoked when all arguments are not null.
-///
 /// # Registration and Invocation
 ///
-/// Every function defined by `#[function]` is automatically registered in the global function
-/// table.
+/// Every function defined by `#[function]` is automatically registered in the global function registry.
 ///
-/// You can build expressions through the following functions:
-///
-/// ```ignore
-/// // scalar functions
-/// risingwave_expr::expr::build(...) -> BoxedExpression
-/// risingwave_expr::expr::build_from_prost(...) -> BoxedExpression
-/// // table functions
-/// risingwave_expr::table_function::build(...) -> BoxedTableFunction
-/// risingwave_expr::table_function::build_from_prost(...) -> BoxedTableFunction
-/// ```
-///
-/// Or get their metadata through the following functions:
+/// You can lookup the function by name and types:
 ///
 /// ```ignore
-/// // scalar functions
-/// risingwave_expr::sig::func::FUNC_SIG_MAP::get(...)
-/// // table functions
-/// risingwave_expr::sig::table_function::FUNC_SIG_MAP::get(...)
+/// use arrow_udf::sig::REGISTRY;
+/// use arrow_schema::DataType::Int32;
+///
+/// let sig = REGISTRY.get("add", &[Int32, Int32], &Int32).unwrap();
 /// ```
 ///
 /// # Appendix: Type Matrix
 ///
 /// ## Base Types
 ///
-/// | SQL type           | owned type    | reference type     | primitive? |
-/// | ------------------ | ------------- | ------------------ | ---------- |
-/// | `boolean`          | `bool`        | `bool`             | no         |
-/// | `smallint`         | `i16`         | `i16`              | yes        |
-/// | `integer`          | `i32`         | `i32`              | yes        |
-/// | `bigint`           | `i64`         | `i64`              | yes        |
-/// | `real`             | `f32`         | `F32`              | yes        |
-/// | `double precision` | `f64`         | `F64`              | yes        |
-/// | `numeric`          | `Decimal`     | `Decimal`          | yes        |
-/// | `date`             | `Date`        | `Date`             | yes        |
-/// | `time`             | `Time`        | `Time`             | yes        |
-/// | `timestamp`        | `Timestamp`   | `Timestamp`        | yes        |
-/// | `timestamptz`      | `Timestamptz` | `Timestamptz`      | yes        |
-/// | `interval`         | `Interval`    | `Interval`         | yes        |
-/// | `varchar`          | `String`      | `&str`             | no         |
-/// | `bytea`            | `Box<[u8]>`   | `&[u8]`            | no         |
-///
-/// ## Composite Types
-///
-/// | name                   | SQL type             | owned type    | reference type     |
-/// | ---------------------- | -------------------- | ------------- | ------------------ |
-/// | struct                 | `record`             | `StructValue` | `StructRef<'_>`    |
-/// | T[^1][]                | `T[]`                | `ListValue`   | `ListRef<'_>`      |
-/// | struct<name T[^1], ..> | `struct<name T, ..>` | `(T, ..)`     | `(&T, ..)`         |
-///
-/// [^1]: `T` could be any base type
+/// | SQL type           | Rust type                      | primitive? |
+/// | ------------------ | ------------------------------ | ---------- |
+/// | `boolean`          | `bool`                         | no         |
+/// | `smallint`         | `i16`                          | yes        |
+/// | `integer`          | `i32`                          | yes        |
+/// | `bigint`           | `i64`                          | yes        |
+/// | `real`             | `f32`                          | yes        |
+/// | `double precision` | `f64`                          | yes        |
+/// | `date`             | [`chrono::NaiveDate`]          | yes        |
+/// | `time`             | [`chrono::NaiveTime`]          | yes        |
+/// | `timestamp`        | [`chrono::NaiveDateTime`]      | yes        |
+/// | `interval`         | [`arrow_udf::types::Interval`] | yes        |
+/// | `varchar`          | `&str`                         | no         |
+/// | `bytea`            | `&[u8]`                        | no         |
 ///
 /// [type matrix]: #appendix-type-matrix
+/// [`chrono::NaiveDate`]: https://docs.rs/chrono/0.4.31/chrono/naive/struct.NaiveDate.html
+/// [`chrono::NaiveTime`]: https://docs.rs/chrono/0.4.31/chrono/naive/struct.NaiveTime.html
+/// [`chrono::NaiveDateTime`]: https://docs.rs/chrono/0.4.31/chrono/naive/struct.NaiveDateTime.html
+/// [`arrow_udf::types::Interval`]: https://docs.rs/arrow_udf/0.1.0/arrow_udf/types/struct.Interval.html
 #[proc_macro_attribute]
 pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
     fn inner(attr: TokenStream, item: TokenStream) -> Result<TokenStream2> {

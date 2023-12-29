@@ -2,6 +2,9 @@
 name = "arrow-udf-python"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/risingwavelabs/arrow-udf"
+keywords = ["arrow", "udf", "python"]
+license = "Apache-2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

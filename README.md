@@ -1,5 +1,8 @@
 # Arrow User-Defined Functions Framework
 
+[![Crate](https://img.shields.io/crates/v/arrow-udf.svg)](https://crates.io/crates/arrow-udf)
+[![Docs](https://docs.rs/arrow-udf/badge.svg)](https://docs.rs/arrow-udf)
+
 Easily create and run user-defined functions (UDF) on Apache Arrow.
 You can define functions in Rust or Python, run natively or on WebAssembly.
 

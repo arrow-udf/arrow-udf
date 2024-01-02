@@ -73,17 +73,41 @@ pub mod codegen {
     /// A wrapper function for calling a scalar function from C.
     ///
     /// The input record batch is read from the IPC buffer pointed to by `ptr` and `len`.
-    /// The output record batch is returned as an IPC buffer.
+    /// The output data is written to the IPC buffer pointed to by `out_ptr` and `out_len`.
+    /// The caller is responsible for deallocating the output buffer.
+    /// The return value is 0 on success, -1 on error.
+    /// If successful, the output record batch is written to the IPC buffer.
+    /// If failed, the error message is written to the IPC buffer.
     ///
     /// # Safety
     ///
-    /// `ptr` and `len` must point to a valid buffer.
-    pub unsafe fn ffi_wrapper(
+    /// `ptr`, `len`, `out_ptr` and `out_len` must point to a valid buffer.
+    pub unsafe fn scalar_ffi_wrapper(
         function: ScalarFunction,
         ptr: *const u8,
         len: usize,
-    ) -> Result<Box<[u8]>, Error> {
-        let input_bytes = unsafe { std::slice::from_raw_parts(ptr, len) };
+        out_ptr: *mut *const u8,
+        out_len: *mut usize,
+    ) -> i32 {
+        let input = std::slice::from_raw_parts(ptr, len);
+        match call_scalar(function, input) {
+            Ok(data) => {
+                out_ptr.write(data.as_ptr());
+                out_len.write(data.len());
+                std::mem::forget(data);
+                0
+            }
+            Err(err) => {
+                let msg = err.to_string().into_boxed_str();
+                out_ptr.write(msg.as_ptr() as _);
+                out_len.write(msg.len());
+                std::mem::forget(msg);
+                -1
+            }
+        }
+    }
+
+    fn call_scalar(function: ScalarFunction, input_bytes: &[u8]) -> Result<Box<[u8]>, Error> {
         let mut reader = FileReader::try_new(std::io::Cursor::new(input_bytes), None)?;
         let input_batch = reader.next().unwrap()?;
         let output_array = function(&input_batch)?;

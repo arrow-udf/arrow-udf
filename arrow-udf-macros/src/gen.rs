@@ -119,16 +119,8 @@ impl FunctionAttr {
             #eval_function
 
             #[export_name = #export_name]
-            unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize) -> u64 {
-                match arrow_udf::codegen::ffi_wrapper(#eval_name, ptr, len) {
-                    Ok(data) => {
-                        let ptr = data.as_ptr();
-                        let len = data.len();
-                        std::mem::forget(data);
-                        ((ptr as u64) << 32) | (len as u64)
-                    }
-                    Err(_) => 0,
-                }
+            unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize, out_ptr: *mut *const u8, out_len: *mut usize) -> i32 {
+                arrow_udf::codegen::scalar_ffi_wrapper(#eval_name, ptr, len, out_ptr, out_len)
             }
 
             #[cfg(feature = "global_registry")]
@@ -231,8 +223,12 @@ impl FunctionAttr {
         output = match user_fn.return_type_kind {
             ReturnTypeKind::T => quote! { Some(#output) },
             ReturnTypeKind::Option => output,
-            ReturnTypeKind::Result => quote! { Some(#output?) },
-            ReturnTypeKind::ResultOption => quote! { #output? },
+            ReturnTypeKind::Result => {
+                quote! { Some(#output.map_err(|e| Error::ComputeError(e.to_string()))?) }
+            }
+            ReturnTypeKind::ResultOption => {
+                quote! { #output.map_err(|e| Error::ComputeError(e.to_string()))? }
+            }
         };
         // if user function accepts non-option arguments, we assume the function
         // returns null on null input, so we need to unwrap the inputs before calling.

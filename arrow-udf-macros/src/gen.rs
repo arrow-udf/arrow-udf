@@ -119,8 +119,8 @@ impl FunctionAttr {
             #eval_function
 
             #[export_name = #export_name]
-            unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize, out_ptr: *mut *const u8, out_len: *mut usize) -> i32 {
-                arrow_udf::codegen::scalar_ffi_wrapper(#eval_name, ptr, len, out_ptr, out_len)
+            unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize) -> arrow_udf::codegen::FFIResult {
+                arrow_udf::codegen::scalar_ffi_wrapper(#eval_name, ptr, len)
             }
 
             #[cfg(feature = "global_registry")]
@@ -224,10 +224,16 @@ impl FunctionAttr {
             ReturnTypeKind::T => quote! { Some(#output) },
             ReturnTypeKind::Option => output,
             ReturnTypeKind::Result => {
-                quote! { Some(#output.map_err(|e| Error::ComputeError(e.to_string()))?) }
+                quote! { match #output {
+                    Ok(x) => Some(x),
+                    Err(e) => { errors.push(e.into()); None }
+                } }
             }
             ReturnTypeKind::ResultOption => {
-                quote! { #output.map_err(|e| Error::ComputeError(e.to_string()))? }
+                quote! { match #output {
+                    Ok(x) => x,
+                    Err(e) => { errors.push(e.into()); None }
+                } }
             }
         };
         // if user function accepts non-option arguments, we assume the function
@@ -354,7 +360,7 @@ impl FunctionAttr {
             let fn_name = format_ident!("{}", batch_fn);
             quote! {
                 let c = #fn_name(#(#arrays),*);
-                Ok(Arc::new(c))
+                Arc::new(c)
             }
         } else if types::is_primitive(&self.ret)
             && self.args.iter().all(|ty| types::is_primitive(ty))
@@ -368,15 +374,15 @@ impl FunctionAttr {
                     let c = #ret_array_type::from_iter_values(
                         std::iter::repeat_with(|| #fn_name()).take(input.num_rows())
                     );
-                    Ok(Arc::new(c))
+                    Arc::new(c)
                 },
                 1 => quote! {
                     let c: #ret_array_type = arrow_arith::arity::unary(a0, #fn_name);
-                    Ok(Arc::new(c))
+                    Arc::new(c)
                 },
                 2 => quote! {
                     let c: #ret_array_type = arrow_arith::arity::binary(a0, a1, #fn_name)?;
-                    Ok(Arc::new(c))
+                    Arc::new(c)
                 },
                 n => todo!("SIMD optimization for {n} arguments"),
             }
@@ -398,7 +404,7 @@ impl FunctionAttr {
                     #let_variadic
                     #append_output
                 }
-                Ok(Arc::new(builder.finish()))
+                Arc::new(builder.finish())
             }
         };
 
@@ -407,11 +413,11 @@ impl FunctionAttr {
                 -> ::arrow_udf::Result<::arrow_udf::codegen::arrow_array::ArrayRef>
             {
                 use ::std::sync::Arc;
-                use ::arrow_udf::{Result, Error};
+                use ::arrow_udf::error::{Result, Error, BoxError};
                 use ::arrow_udf::codegen::arrow_array::RecordBatch;
                 use ::arrow_udf::codegen::arrow_array::array::*;
                 use ::arrow_udf::codegen::arrow_array::builder::*;
-                use ::arrow_udf::codegen::arrow_schema::{IntervalUnit, TimeUnit};
+                use ::arrow_udf::codegen::arrow_schema::{IntervalUnit, TimeUnit, ArrowError};
                 use ::arrow_udf::codegen::arrow_arith;
                 use ::arrow_udf::codegen::arrow_schema;
                 use ::arrow_udf::codegen::chrono;
@@ -421,10 +427,16 @@ impl FunctionAttr {
 
                 #(
                     let #arrays: &#arg_arrays = input.column(#children_indices).as_any().downcast_ref()
-                        .ok_or_else(|| Error::CastError(format!("expect {} for the {}-th argument", stringify!(#arg_arrays), #children_indices)))?;
+                        .ok_or_else(|| ArrowError::CastError(format!("expect {} for the {}-th argument", stringify!(#arg_arrays), #children_indices)))?;
                 )*
                 #eval_variadic
-                #eval
+                let mut errors: Vec<BoxError> = vec![];
+                let array = { #eval };
+                if errors.is_empty() {
+                    Ok(array)
+                } else {
+                    Err(Error::Function(array, errors.into()))
+                }
             }
         })
     }

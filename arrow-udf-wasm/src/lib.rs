@@ -28,9 +28,12 @@ pub struct Config {
 }
 
 struct Instance {
-    alloc: TypedFunc<u32, u32>,
-    dealloc: TypedFunc<(u32, u32), ()>,
-    functions: HashMap<String, TypedFunc<(u32, u32, u32, u32), i32>>,
+    // extern "C" fn(len: usize, align: usize) -> *mut u8
+    alloc: TypedFunc<(u32, u32), u32>,
+    // extern "C" fn(ptr: *mut u8, len: usize, align: usize)
+    dealloc: TypedFunc<(u32, u32, u32), ()>,
+    // extern "C" fn(out: *mut FFIResult, ptr: *const u8, len: usize)
+    functions: HashMap<String, TypedFunc<(u32, u32, u32), ()>>,
     memory: Memory,
     store: Store<(WasiCtx, StoreLimits)>,
 }
@@ -140,8 +143,7 @@ impl Instance {
                 continue;
             };
             let name = base64_decode(encoded).context("invalid symbol")?;
-            let func =
-                instance.get_typed_func::<(u32, u32, u32, u32), i32>(&mut store, export.name())?;
+            let func = instance.get_typed_func(&mut store, export.name())?;
             functions.insert(name, func);
         }
         let alloc = instance.get_typed_func(&mut store, "alloc")?;
@@ -175,51 +177,84 @@ impl Instance {
 
         // encode input batch
         let input = encode_record_batch(input)?;
-        let input_len = u32::try_from(input.len()).context("input too large")?;
 
-        // allocate memory
-        let alloc_len = (input.len() + 4 * 2) as u32;
-        let alloc_ptr = self.alloc.call(&mut self.store, alloc_len)?;
-        ensure!(alloc_ptr != 0, "failed to alloc");
-        let output_ptr_ptr = alloc_ptr;
-        let output_len_ptr = alloc_ptr + 4;
-        let input_ptr = alloc_ptr + 8;
+        // allocate memory for input buffer and output struct
+        let alloc_len = u32::try_from(input.len() + 4 * 4).context("input too large")?;
+        let alloc_ptr = self.alloc.call(&mut self.store, (alloc_len, 4))?;
+        ensure!(alloc_ptr != 0, "failed to allocate for input");
+        let in_ptr = alloc_ptr + 4 * 4;
 
         // write input to memory
         self.memory
-            .write(&mut self.store, input_ptr as usize, &input)?;
+            .write(&mut self.store, in_ptr as usize, &input)?;
 
-        // call function
-        let errno = func.call(
-            &mut self.store,
-            (input_ptr, input_len, output_ptr_ptr, output_len_ptr),
-        )?;
-        let mut read_u32 = |ptr| {
+        // call the function
+        // The ABI of this function is:
+        //   extern "C" fn(ptr: *const u8, len: usize) -> FFIResult
+        // where FFIResult is defined as:
+        //   #[repr(C)]
+        //   struct FFIResult {
+        //       out_ptr: *const u8,
+        //       out_len: usize,
+        //       err_ptr: *const u8,
+        //       err_len: usize,
+        //   }
+        // According to the calling convention, the returned struct is written to the address
+        // pointed to by the hidden first argument. So the actual function is:
+        //   extern "C" fn(out: *mut FFIResult, ptr: *const u8, len: usize)
+        func.call(&mut self.store, (alloc_ptr, in_ptr, input.len() as u32))?;
+
+        // get return values
+        let read_u32 = |ptr| {
             u32::from_le_bytes(
-                self.memory.data(&mut self.store)[ptr as usize..(ptr + 4) as usize]
+                self.memory.data(&self.store)[ptr as usize..(ptr + 4) as usize]
                     .try_into()
                     .unwrap(),
             )
         };
-        let output_ptr = read_u32(output_ptr_ptr);
-        let output_len = read_u32(output_len_ptr);
-        let output_range = output_ptr as usize..(output_ptr + output_len) as usize;
-        let output_bytes = self
-            .memory
-            .data(&self.store)
-            .get(output_range)
-            .context("return out of bounds")?;
-        let result = match errno {
-            0 => Ok(decode_record_batch(output_bytes)?),
-            _ => Err(anyhow!("{}", std::str::from_utf8(output_bytes)?)),
+        let out_ptr = read_u32(alloc_ptr);
+        let out_len = read_u32(alloc_ptr + 4);
+        let err_ptr = read_u32(alloc_ptr + 8);
+        let err_len = read_u32(alloc_ptr + 12);
+
+        // read output and error from memory
+        let output = if out_ptr != 0 {
+            let bytes = self
+                .memory
+                .data(&self.store)
+                .get(out_ptr as usize..(out_ptr + out_len) as usize)
+                .context("output slice out of bounds")?;
+            Some(decode_record_batch(bytes)?)
+        } else {
+            None
+        };
+        let error = if err_ptr != 0 {
+            let bytes = self
+                .memory
+                .data(&self.store)
+                .get(err_ptr as usize..(err_ptr + err_len) as usize)
+                .context("error slice out of bounds")?;
+            Some(anyhow!("{}", std::str::from_utf8(bytes)?))
+        } else {
+            None
         };
 
         // deallocate memory
-        self.dealloc.call(&mut self.store, (alloc_ptr, alloc_len))?;
         self.dealloc
-            .call(&mut self.store, (output_ptr, output_len))?;
+            .call(&mut self.store, (alloc_ptr, alloc_len, 4))?;
+        if out_ptr != 0 {
+            self.dealloc.call(&mut self.store, (out_ptr, out_len, 1))?;
+        }
+        if err_ptr != 0 {
+            self.dealloc.call(&mut self.store, (err_ptr, err_len, 1))?;
+        }
 
-        result
+        // TODO: support partial output
+        if let Some(error) = error {
+            Err(error)
+        } else {
+            Ok(output.unwrap())
+        }
     }
 }
 

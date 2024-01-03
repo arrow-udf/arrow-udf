@@ -15,6 +15,7 @@
 use std::iter::Sum;
 use std::{ops::Neg, sync::Arc};
 
+use anyhow::{bail, Result};
 use arrow_array::cast::AsArray;
 use arrow_array::temporal_conversions::time_to_time64us;
 use arrow_array::types::{Date32Type, Int32Type};
@@ -83,9 +84,9 @@ fn option_add(x: i32, y: Option<i32>) -> i32 {
 }
 
 #[function("error(int) -> int")]
-fn error(x: i32) -> Result<i32, String> {
+fn error(x: i32) -> Result<i32> {
     if x < 0 {
-        return Err(format!("error: {x}"));
+        bail!("error: {x}");
     }
     Ok(x)
 }

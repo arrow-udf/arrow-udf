@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Error types.
+
 use std::fmt::Display;
 
 use arrow_array::ArrayRef;
-pub use arrow_schema::ArrowError;
+use arrow_schema::ArrowError;
 use thiserror::Error;
 
 /// A specialized `Result` type for Arrow UDF operations.

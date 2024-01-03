@@ -119,8 +119,8 @@ impl FunctionAttr {
             #eval_function
 
             #[export_name = #export_name]
-            unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize) -> arrow_udf::codegen::FFIResult {
-                arrow_udf::codegen::scalar_ffi_wrapper(#eval_name, ptr, len)
+            unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize) -> arrow_udf::ffi::FFIResult {
+                arrow_udf::ffi::scalar_wrapper(#eval_name, ptr, len)
             }
 
             #[cfg(feature = "global_registry")]

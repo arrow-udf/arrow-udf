@@ -67,6 +67,13 @@ impl Runtime {
     fn with_config_engine(binary: &[u8], config: Config, engine: &Engine) -> Result<Self> {
         let module = Module::from_binary(engine, binary).context("failed to load wasm binary")?;
 
+        // check abi version
+        let version = module
+            .exports()
+            .find_map(|e| e.name().strip_prefix("ARROWUDF_VERSION_"))
+            .context("version not found")?;
+        ensure!(version == "1", "unsupported abi version: {version}");
+
         let mut functions = HashSet::new();
         for export in module.exports() {
             let Some(encoded) = export.name().strip_prefix("arrowudf_") else {

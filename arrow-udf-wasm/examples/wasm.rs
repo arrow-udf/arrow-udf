@@ -79,7 +79,7 @@ fn print(input: &RecordBatch, output: &RecordBatch) {
             .cloned()
             .collect::<Fields>(),
     ));
-    let columns = (input.columns().into_iter())
+    let columns = (input.columns().iter())
         .chain(output.columns())
         .cloned()
         .collect();

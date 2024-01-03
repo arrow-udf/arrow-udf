@@ -432,7 +432,7 @@ impl FunctionAttr {
                 ]));
             }
             let opts = RecordBatchOptions::new().with_row_count(Some(input.num_rows()));
-            Ok(RecordBatch::try_new_with_options(SCHEMA.clone(), vec![array], &opts)?)
+            RecordBatch::try_new_with_options(SCHEMA.clone(), vec![array], &opts)
         };
         if user_fn.return_type_kind.is_result() {
             return_record_batch = quote! {
@@ -448,7 +448,7 @@ impl FunctionAttr {
                     }
                     let errors = Arc::new(errors.finish());
                     let opts = RecordBatchOptions::new().with_row_count(Some(input.num_rows()));
-                    Ok(RecordBatch::try_new_with_options(SCHEMA.clone(), vec![array, errors], &opts)?)
+                    RecordBatch::try_new_with_options(SCHEMA.clone(), vec![array, errors], &opts)
                 } else {
                     #return_record_batch
                 }

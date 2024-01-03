@@ -23,12 +23,20 @@ use arrow_ipc::{reader::FileReader, writer::FileWriter};
 pub static ARROWUDF_VERSION_1: () = ();
 
 /// Allocate memory.
+///
+/// # Safety
+///
+/// See [`std::alloc::GlobalAlloc::alloc`].
 #[no_mangle]
 pub unsafe extern "C" fn alloc(len: usize, align: usize) -> *mut u8 {
     std::alloc::alloc(std::alloc::Layout::from_size_align_unchecked(len, align))
 }
 
 /// Deallocate memory.
+///
+/// # Safety
+///
+/// See [`std::alloc::GlobalAlloc::dealloc`].
 #[no_mangle]
 pub unsafe extern "C" fn dealloc(ptr: *mut u8, len: usize, align: usize) {
     std::alloc::dealloc(

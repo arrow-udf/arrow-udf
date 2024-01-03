@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1703850429851,
+  "lastUpdate": 1704275734390,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -425,6 +425,54 @@ window.BENCHMARK_DATA = {
             "name": "gcd/python-wasm",
             "value": 2129289,
             "range": "± 4054645",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "1312c59176af1cdbd69c8a67f134c48a9c7ce0e1",
+          "message": "add ffi module and check abi version\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-01-03T17:41:57+08:00",
+          "tree_id": "f53e40349a06c8b5b2398505c4954ba3c7844c8b",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/1312c59176af1cdbd69c8a67f134c48a9c7ce0e1"
+        },
+        "date": 1704275733926,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3889,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 26572,
+            "range": "± 1666",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 201357,
+            "range": "± 1143",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python-wasm",
+            "value": 2111687,
+            "range": "± 4366866",
             "unit": "ns/iter"
           }
         ]

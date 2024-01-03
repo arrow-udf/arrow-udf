@@ -12,6 +12,8 @@ You can define functions in Rust or Python, run natively or on WebAssembly.
 
 You can integrate this library into your Rust project to quickly define and use custom functions.
 
+#### Basic Usage
+
 Add the following lines to your `Cargo.toml`:
 
 ```toml
@@ -24,35 +26,77 @@ Define your functions with the `#[function]` macro:
 ```rust
 use arrow_udf::function;
 
-#[function("gcd(int, int) -> int", output = "gcd_batch")]
-fn gcd(x: i32, y: i32) -> i32 {
-    while y != 0 {
-        let t = y;
-        y = x % y;
-        x = t;
+#[function("gcd(int, int) -> int", output = "eval_gcd")]
+fn gcd(mut a: i32, mut b: i32) -> i32 {
+    while b != 0 {
+        (a, b) = (b, a % b);
     }
-    x
+    a
 }
 ```
 
-The macro will generate a function that takes a `RecordBatch` and returns an `ArrayRef`.
-It can be named with the optional `output` parameter, or if not specified, it will be named arbitrarily.
+The macro will generate a function that takes a `RecordBatch` as input and returns a `RecordBatch` as output.
+The function can be named with the optional `output` parameter.
+If not specified, it will be named arbitrarily like `gcd_int4_int4_int4_eval`.
 
 You can then call the generated function on a `RecordBatch`:
 
 ```rust
 let input: RecordBatch = ...;
-let output = gcd_batch(&input).unwrap();
+let output: RecordBatch = eval_gcd(&input).unwrap();
 ```
 
-Meanwhile, the macro will register each function into a global registry.
-You can then lookup the function by name and types:
+If you print the input and output batch, it will be like this:
+
+```text
+ input     output
++----+----+-----+
+| a  | b  | gcd |
++----+----+-----+
+| 15 | 25 | 5   |
+|    | 1  |     |
++----+----+-----+
+```
+
+#### Fallible Functions
+
+If your function returns a `Result`:
+
+```rust
+#[function("div(int, int) -> int", output = "eval_div")]
+fn div(x: i32, y: i32) -> Result<i32, &'static str> {
+    x.checked_div(y).ok_or("division by zero")
+}
+```
+
+The output batch will contain a column of errors if any, and the error rows will be filled with NULL:
+
+```text
+ input     output
++----+----+-----+------------------+
+| a  | b  | div | error            |
++----+----+-----+------------------+
+| 15 | 25 | 0   |                  |
+| 5  | 0  |     | division by zero |
++----+----+-----+------------------+
+```
+
+#### Function Registry
+
+If you want to lookup functions by signature, you can enable the `global_registry` feature:
+
+```toml
+[dependencies]
+arrow-udf = { version = "0.1", features = ["global_registry"] }
+```
+
+Each function will be registered in a global registry when it is defined.
+Then you can lookup functions from the `REGISTRY`:
 
 ```rust
 use arrow_schema::DataType::Int32;
 use arrow_udf::sig::REGISTRY;
 
-// lookup the function from the global registry
 let sig = REGISTRY.get("gcd", &[Int32, Int32], &Int32).expect("gcd function");
 let output = (sig.function)(&input).unwrap();
 ```

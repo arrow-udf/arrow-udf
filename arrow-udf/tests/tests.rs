@@ -52,9 +52,7 @@ fn neg<T: Neg<Output = T>>(x: T) -> T {
 #[function("gcd(int, int) -> int")]
 fn gcd(mut a: i32, mut b: i32) -> i32 {
     while b != 0 {
-        let t = b;
-        b = a % b;
-        a = t;
+        (a, b) = (b, a % b);
     }
     a
 }
@@ -85,10 +83,7 @@ fn option_add(x: i32, y: Option<i32>) -> i32 {
 
 #[function("div(int, int) -> int")]
 fn div(x: i32, y: i32) -> Result<i32, &'static str> {
-    if y == 0 {
-        return Err("division by zero");
-    }
-    Ok(x / y)
+    x.checked_div(y).ok_or("division by zero")
 }
 
 #[function("to_json(boolean) -> json")]

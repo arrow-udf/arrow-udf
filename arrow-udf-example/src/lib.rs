@@ -10,6 +10,14 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
     a
 }
 
+#[function("div(int, int) -> int")]
+fn div(x: i32, y: i32) -> Result<i32, &'static str> {
+    if y == 0 {
+        return Err("division by zero");
+    }
+    Ok(x / y)
+}
+
 #[function("segfault()")]
 fn segfault() {
     unsafe { (usize::MAX as *const i32).read_volatile() };

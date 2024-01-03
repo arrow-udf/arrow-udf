@@ -119,8 +119,8 @@ impl FunctionAttr {
             #eval_function
 
             #[export_name = #export_name]
-            unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize) -> arrow_udf::ffi::FFIResult {
-                arrow_udf::ffi::scalar_wrapper(#eval_name, ptr, len)
+            unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize, out: *mut arrow_udf::ffi::CSlice) -> i32 {
+                arrow_udf::ffi::scalar_wrapper(#eval_name, ptr, len, out)
             }
 
             #[cfg(feature = "global_registry")]
@@ -144,11 +144,12 @@ impl FunctionAttr {
     fn generate_scalar_function(
         &self,
         user_fn: &UserFunctionAttr,
-        name: &Ident,
+        eval_fn_name: &Ident,
     ) -> Result<TokenStream2> {
         let variadic = matches!(self.args.last(), Some(t) if t == "...");
         let num_args = self.args.len() - if variadic { 1 } else { 0 };
-        let fn_name = format_ident!("{}", user_fn.name);
+        let user_fn_name = format_ident!("{}", user_fn.name);
+        let fn_name = &self.name;
 
         let children_indices = (0..num_args).collect_vec();
 
@@ -165,6 +166,7 @@ impl FunctionAttr {
             .iter()
             .map(|i| format_ident!("{}", types::array_type(&self.args[*i])));
         let ret_array_type = format_ident!("{}", types::array_type(&self.ret));
+        let ret_data_type = data_type(&self.ret);
 
         // evaluate variadic arguments in `eval`
         let eval_variadic = variadic.then(|| {
@@ -174,6 +176,20 @@ impl FunctionAttr {
                     columns.push(child.eval(input).await?);
                 }
                 let variadic_input = DataChunk::new(columns, input.visibility().clone());
+            }
+        });
+
+        // prepare error builder if the function returns `Result`
+        let error_builder = user_fn.return_type_kind.is_result().then(|| {
+            quote! {
+                let mut errors: Option<StringBuilder> = None;
+                let mut set_error = |i: usize, e: &dyn std::fmt::Display| {
+                    let builder = errors.get_or_insert_with(|| StringBuilder::with_capacity(input.num_rows(), input.num_rows() * 16));
+                    for _ in builder.len()..i {
+                        builder.append_null();
+                    }
+                    builder.append_value(e.to_string());
+                };
             }
         });
 
@@ -212,7 +228,7 @@ impl FunctionAttr {
         });
         // call the user defined function
         // inputs: [ Option<impl ScalarRef> ]
-        let mut output = quote! { #fn_name(
+        let mut output = quote! { #user_fn_name(
             #(#transformed_inputs,)*
             #variadic_args
             #context
@@ -226,13 +242,13 @@ impl FunctionAttr {
             ReturnTypeKind::Result => {
                 quote! { match #output {
                     Ok(x) => Some(x),
-                    Err(e) => { errors.push(e.into()); None }
+                    Err(e) => { set_error(i, &e); None }
                 } }
             }
             ReturnTypeKind::ResultOption => {
                 quote! { match #output {
                     Ok(x) => x,
-                    Err(e) => { errors.push(e.into()); None }
+                    Err(e) => { set_error(i, &e); None }
                 } }
             }
         };
@@ -372,16 +388,16 @@ impl FunctionAttr {
             match self.args.len() {
                 0 => quote! {
                     let c = #ret_array_type::from_iter_values(
-                        std::iter::repeat_with(|| #fn_name()).take(input.num_rows())
+                        std::iter::repeat_with(|| #user_fn_name()).take(input.num_rows())
                     );
                     Arc::new(c)
                 },
                 1 => quote! {
-                    let c: #ret_array_type = arrow_arith::arity::unary(a0, #fn_name);
+                    let c: #ret_array_type = arrow_arith::arity::unary(a0, #user_fn_name);
                     Arc::new(c)
                 },
                 2 => quote! {
-                    let c: #ret_array_type = arrow_arith::arity::binary(a0, a1, #fn_name)?;
+                    let c: #ret_array_type = arrow_arith::arity::binary(a0, a1, #user_fn_name)?;
                     Arc::new(c)
                 },
                 n => todo!("SIMD optimization for {n} arguments"),
@@ -408,19 +424,51 @@ impl FunctionAttr {
             }
         };
 
+        // build a record batch from output array and optional error array
+        let mut return_record_batch = quote! {
+            lazy_static! {
+                static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![
+                    Field::new(#fn_name, #ret_data_type, true),
+                ]));
+            }
+            let opts = RecordBatchOptions::new().with_row_count(Some(input.num_rows()));
+            Ok(RecordBatch::try_new_with_options(SCHEMA.clone(), vec![array], &opts)?)
+        };
+        if user_fn.return_type_kind.is_result() {
+            return_record_batch = quote! {
+                if let Some(mut errors) = errors {
+                    lazy_static! {
+                        static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![
+                            Field::new(#fn_name, #ret_data_type, true),
+                            Field::new("error", DataType::Utf8, true),
+                        ]));
+                    }
+                    for _ in errors.len()..input.num_rows() {
+                        errors.append_null();
+                    }
+                    let errors = Arc::new(errors.finish());
+                    let opts = RecordBatchOptions::new().with_row_count(Some(input.num_rows()));
+                    Ok(RecordBatch::try_new_with_options(SCHEMA.clone(), vec![array, errors], &opts)?)
+                } else {
+                    #return_record_batch
+                }
+            };
+        }
+
         Ok(quote! {
-            fn #name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
-                -> ::arrow_udf::Result<::arrow_udf::codegen::arrow_array::ArrayRef>
+            fn #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
+                -> ::arrow_udf::Result<::arrow_udf::codegen::arrow_array::RecordBatch>
             {
                 use ::std::sync::Arc;
-                use ::arrow_udf::error::{Result, Error, BoxError};
-                use ::arrow_udf::codegen::arrow_array::RecordBatch;
+                use ::arrow_udf::{Result, Error};
+                use ::arrow_udf::codegen::arrow_array::{RecordBatch, RecordBatchOptions};
                 use ::arrow_udf::codegen::arrow_array::array::*;
                 use ::arrow_udf::codegen::arrow_array::builder::*;
-                use ::arrow_udf::codegen::arrow_schema::{IntervalUnit, TimeUnit, ArrowError};
+                use ::arrow_udf::codegen::arrow_schema::{Schema, SchemaRef, Field, DataType, IntervalUnit, TimeUnit, ArrowError};
                 use ::arrow_udf::codegen::arrow_arith;
                 use ::arrow_udf::codegen::arrow_schema;
                 use ::arrow_udf::codegen::chrono;
+                use ::arrow_udf::codegen::lazy_static::lazy_static;
                 use ::arrow_udf::codegen::itertools;
                 use ::arrow_udf::codegen::rust_decimal;
                 use ::arrow_udf::codegen::serde_json;
@@ -430,13 +478,9 @@ impl FunctionAttr {
                         .ok_or_else(|| ArrowError::CastError(format!("expect {} for the {}-th argument", stringify!(#arg_arrays), #children_indices)))?;
                 )*
                 #eval_variadic
-                let mut errors: Vec<BoxError> = vec![];
+                #error_builder
                 let array = { #eval };
-                if errors.is_empty() {
-                    Ok(array)
-                } else {
-                    Err(Error::Function(array, errors.into()))
-                }
+                #return_record_batch
             }
         })
     }

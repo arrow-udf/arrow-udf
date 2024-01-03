@@ -14,11 +14,8 @@
 
 //! FFI interfaces.
 
-use crate::{error::MultiError, Error, ScalarFunction};
-use arrow_array::RecordBatch;
+use crate::{Error, ScalarFunction};
 use arrow_ipc::{reader::FileReader, writer::FileWriter};
-use arrow_schema::{Field, Schema};
-use std::{mem::ManuallyDrop, sync::Arc};
 
 /// A symbol indicating the ABI version.
 #[no_mangle]
@@ -40,80 +37,68 @@ pub unsafe extern "C" fn dealloc(ptr: *mut u8, len: usize, align: usize) {
     );
 }
 
-/// The return value of a scalar function.
+/// A FFI-safe slice.
 #[repr(C)]
 #[derive(Debug)]
-pub struct FFIResult {
-    /// Pointer to the record batch buffer. May be null.
-    pub out_ptr: *const u8,
-    /// Length of the record batch buffer.
-    pub out_len: usize,
-    /// Pointer to the error message. May be null.
-    pub err_ptr: *const u8,
-    /// Length of the error message.
-    pub err_len: usize,
+pub struct CSlice {
+    pub ptr: *const u8,
+    pub len: usize,
 }
 
 /// A wrapper function for calling a scalar function from C.
 ///
 /// The input record batch is read from the IPC buffer pointed to by `ptr` and `len`.
-/// The output record batch is written to the IPC buffer pointed to by `out_ptr` and `out_len`.
-/// The error message is written to the buffer pointed to by `err_ptr` and `err_len`.
-/// If there is no batch / error, `out_ptr` / `err_ptr` is set to null.
-/// The caller is responsible for deallocating the output buffer if it is not null.
+///
+/// The output data is written to the buffer pointed to by `out_slice`.
+/// The caller is responsible for deallocating the output buffer.
+///
+/// The return value is 0 on success, -1 on error.
+/// If successful, the record batch is written to the buffer.
+/// If failed, the error message is written to the buffer.
 ///
 /// # Safety
 ///
-/// `ptr`, `len` must point to a valid buffer.
-pub unsafe fn scalar_wrapper(function: ScalarFunction, ptr: *const u8, len: usize) -> FFIResult {
+/// `ptr`, `len`, `out_slice` must point to a valid buffer.
+pub unsafe fn scalar_wrapper(
+    function: ScalarFunction,
+    ptr: *const u8,
+    len: usize,
+    out_slice: *mut CSlice,
+) -> i32 {
     let input = std::slice::from_raw_parts(ptr, len);
     match call_scalar(function, input) {
-        Ok((data, err)) => {
-            let mut msg = ManuallyDrop::new(err.map(|e| e.to_string().into_boxed_str()));
-            FFIResult {
-                out_ptr: data.as_ptr(),
-                out_len: data.len(),
-                err_ptr: msg.as_mut().map_or(std::ptr::null(), |s| s.as_ptr()) as _,
-                err_len: msg.as_mut().map_or(0, |s| s.len()),
-            }
+        Ok(data) => {
+            out_slice.write(CSlice {
+                ptr: data.as_ptr(),
+                len: data.len(),
+            });
+            std::mem::forget(data);
+            0
         }
         Err(err) => {
-            let msg = ManuallyDrop::new(err.to_string().into_boxed_str());
-            FFIResult {
-                out_ptr: std::ptr::null(),
-                out_len: 0,
-                err_ptr: msg.as_ptr() as _,
-                err_len: msg.len(),
-            }
+            let msg = err.to_string().into_boxed_str();
+            out_slice.write(CSlice {
+                ptr: msg.as_ptr(),
+                len: msg.len(),
+            });
+            std::mem::forget(msg);
+            -1
         }
     }
 }
 
-fn call_scalar(
-    function: ScalarFunction,
-    input_bytes: &[u8],
-) -> Result<(Box<[u8]>, Option<MultiError>), Error> {
+fn call_scalar(function: ScalarFunction, input_bytes: &[u8]) -> Result<Box<[u8]>, Error> {
     let mut reader = FileReader::try_new(std::io::Cursor::new(input_bytes), None)?;
     let input_batch = reader.next().unwrap()?;
 
-    let (output_array, errors) = match function(&input_batch) {
-        Ok(array) => (array, None),
-        Err(Error::Function(array, err)) => (array, Some(err)),
-        Err(err) => return Err(err),
-    };
+    let output_batch = function(&input_batch)?;
 
-    let mut buf = vec![];
     // Write data to IPC buffer
-    let schema = Schema::new(vec![Field::new(
-        "result",
-        output_array.data_type().clone(),
-        true,
-    )]);
-    let mut writer = FileWriter::try_new(&mut buf, &schema)?;
-    let batch = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(output_array)])?;
-    writer.write(&batch)?;
+    let mut buf = vec![];
+    let mut writer = FileWriter::try_new(&mut buf, &output_batch.schema())?;
+    writer.write(&output_batch)?;
     writer.finish()?;
     drop(writer);
 
-    Ok((buf.into(), errors))
+    Ok(buf.into())
 }

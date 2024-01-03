@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch, RecordBatchOptions, StringArray};
-use arrow_schema::{DataType, Field, Schema};
+use arrow_schema::{DataType, Field, Fields, Schema};
 use arrow_udf_wasm::Runtime;
 
 fn main() {
@@ -30,16 +30,18 @@ fn main() {
             Field::new("b", DataType::Int32, true),
         ])),
         vec![
-            Arc::new(Int32Array::from(vec![Some(15), None])),
-            Arc::new(Int32Array::from(vec![25, 2])),
+            Arc::new(Int32Array::from(vec![Some(15), Some(5), None])),
+            Arc::new(Int32Array::from(vec![25, 0, 1])),
         ],
     )
     .unwrap();
 
     let output = runtime.call("gcd(int4,int4)->int4", &input).unwrap();
+    print(&input, &output);
 
-    arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
-    arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
+    println!("\ncall div");
+    let output = runtime.call("div(int4,int4)->int4", &input).unwrap();
+    print(&input, &output);
 
     println!("\ncall length");
 
@@ -50,9 +52,7 @@ fn main() {
     .unwrap();
 
     let output = runtime.call("length(varchar)->int4", &input).unwrap();
-
-    arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
-    arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
+    print(&input, &output);
 
     println!("\ncall key_value");
 
@@ -68,7 +68,21 @@ fn main() {
             &input,
         )
         .unwrap();
+    print(&input, &output);
+}
 
-    arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
-    arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
+/// Concatenate two record batches and print them.
+fn print(input: &RecordBatch, output: &RecordBatch) {
+    let schema = Arc::new(Schema::new(
+        (input.schema().fields().into_iter())
+            .chain(output.schema().fields())
+            .cloned()
+            .collect::<Fields>(),
+    ));
+    let columns = (input.columns().into_iter())
+        .chain(output.columns())
+        .cloned()
+        .collect();
+    let merged = RecordBatch::try_new(schema, columns).unwrap();
+    arrow_cast::pretty::print_batches(std::slice::from_ref(&merged)).unwrap();
 }

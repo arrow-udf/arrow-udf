@@ -279,6 +279,13 @@ enum ReturnTypeKind {
     ResultOption,
 }
 
+impl ReturnTypeKind {
+    /// Returns true if the type is `Result<..>`.
+    const fn is_result(&self) -> bool {
+        matches!(self, ReturnTypeKind::Result | ReturnTypeKind::ResultOption)
+    }
+}
+
 impl FunctionAttr {
     /// Return a unique name that can be used as an identifier.
     fn ident_name(&self) -> String {

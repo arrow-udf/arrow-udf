@@ -12,18 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use arrow_array::{ArrayRef, RecordBatch};
+use arrow_array::RecordBatch;
+pub use arrow_schema::ArrowError as Error;
 pub use arrow_udf_macros::function;
-pub use error::{Error, Result};
+
+/// A specialized `Result` type for Arrow UDF operations.
+pub type Result<T> = std::result::Result<T, Error>;
 
 mod byte_builder;
-pub mod error;
 pub mod ffi;
 #[cfg(feature = "global_registry")]
 pub mod sig;
 
 /// A scalar function that operates on a record batch.
-pub type ScalarFunction = fn(input: &RecordBatch) -> Result<ArrayRef>;
+pub type ScalarFunction = fn(input: &RecordBatch) -> Result<RecordBatch>;
 
 /// Types used by the generated code.
 pub mod types {
@@ -44,6 +46,7 @@ pub mod codegen {
     pub use arrow_schema;
     pub use chrono;
     pub use itertools;
+    pub use lazy_static;
     #[cfg(feature = "global_registry")]
     pub use linkme;
     pub use rust_decimal;

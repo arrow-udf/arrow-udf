@@ -32,8 +32,8 @@ struct Instance {
     alloc: TypedFunc<(u32, u32), u32>,
     // extern "C" fn(ptr: *mut u8, len: usize, align: usize)
     dealloc: TypedFunc<(u32, u32, u32), ()>,
-    // extern "C" fn(out: *mut FFIResult, ptr: *const u8, len: usize)
-    functions: HashMap<String, TypedFunc<(u32, u32, u32), ()>>,
+    // extern "C" fn(ptr: *const u8, len: usize, out: *mut CSlice) -> i32
+    functions: HashMap<String, TypedFunc<(u32, u32, u32), i32>>,
     memory: Memory,
     store: Store<(WasiCtx, StoreLimits)>,
 }
@@ -186,30 +186,17 @@ impl Instance {
         let input = encode_record_batch(input)?;
 
         // allocate memory for input buffer and output struct
-        let alloc_len = u32::try_from(input.len() + 4 * 4).context("input too large")?;
+        let alloc_len = u32::try_from(input.len() + 4 * 2).context("input too large")?;
         let alloc_ptr = self.alloc.call(&mut self.store, (alloc_len, 4))?;
         ensure!(alloc_ptr != 0, "failed to allocate for input");
-        let in_ptr = alloc_ptr + 4 * 4;
+        let in_ptr = alloc_ptr + 4 * 2;
 
         // write input to memory
         self.memory
             .write(&mut self.store, in_ptr as usize, &input)?;
 
         // call the function
-        // The ABI of this function is:
-        //   extern "C" fn(ptr: *const u8, len: usize) -> FFIResult
-        // where FFIResult is defined as:
-        //   #[repr(C)]
-        //   struct FFIResult {
-        //       out_ptr: *const u8,
-        //       out_len: usize,
-        //       err_ptr: *const u8,
-        //       err_len: usize,
-        //   }
-        // According to the calling convention, the returned struct is written to the address
-        // pointed to by the hidden first argument. So the actual function is:
-        //   extern "C" fn(out: *mut FFIResult, ptr: *const u8, len: usize)
-        func.call(&mut self.store, (alloc_ptr, in_ptr, input.len() as u32))?;
+        let errno = func.call(&mut self.store, (in_ptr, input.len() as u32, alloc_ptr))?;
 
         // get return values
         let read_u32 = |ptr| {
@@ -221,47 +208,24 @@ impl Instance {
         };
         let out_ptr = read_u32(alloc_ptr);
         let out_len = read_u32(alloc_ptr + 4);
-        let err_ptr = read_u32(alloc_ptr + 8);
-        let err_len = read_u32(alloc_ptr + 12);
 
-        // read output and error from memory
-        let output = if out_ptr != 0 {
-            let bytes = self
-                .memory
-                .data(&self.store)
-                .get(out_ptr as usize..(out_ptr + out_len) as usize)
-                .context("output slice out of bounds")?;
-            Some(decode_record_batch(bytes)?)
-        } else {
-            None
-        };
-        let error = if err_ptr != 0 {
-            let bytes = self
-                .memory
-                .data(&self.store)
-                .get(err_ptr as usize..(err_ptr + err_len) as usize)
-                .context("error slice out of bounds")?;
-            Some(anyhow!("{}", std::str::from_utf8(bytes)?))
-        } else {
-            None
+        // read output from memory
+        let out_bytes = self
+            .memory
+            .data(&self.store)
+            .get(out_ptr as usize..(out_ptr + out_len) as usize)
+            .context("output slice out of bounds")?;
+        let result = match errno {
+            0 => Ok(decode_record_batch(out_bytes)?),
+            _ => Err(anyhow!("{}", std::str::from_utf8(out_bytes)?)),
         };
 
         // deallocate memory
         self.dealloc
             .call(&mut self.store, (alloc_ptr, alloc_len, 4))?;
-        if out_ptr != 0 {
-            self.dealloc.call(&mut self.store, (out_ptr, out_len, 1))?;
-        }
-        if err_ptr != 0 {
-            self.dealloc.call(&mut self.store, (err_ptr, err_len, 1))?;
-        }
+        self.dealloc.call(&mut self.store, (out_ptr, out_len, 1))?;
 
-        // TODO: support partial output
-        if let Some(error) = error {
-            Err(error)
-        } else {
-            Ok(output.unwrap())
-        }
+        result
     }
 }
 

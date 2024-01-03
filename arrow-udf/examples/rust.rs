@@ -51,5 +51,5 @@ fn main() {
     }
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
-    arrow_cast::pretty::print_columns("gcd", std::slice::from_ref(&output)).unwrap();
+    arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
 }

@@ -15,7 +15,6 @@
 use std::iter::Sum;
 use std::{ops::Neg, sync::Arc};
 
-use anyhow::{bail, Result};
 use arrow_array::cast::AsArray;
 use arrow_array::temporal_conversions::time_to_time64us;
 use arrow_array::types::{Date32Type, Int32Type};
@@ -23,6 +22,7 @@ use arrow_array::{
     Date32Array, Int32Array, LargeBinaryArray, ListArray, RecordBatch, StringArray,
     Time64MicrosecondArray,
 };
+use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
 use arrow_udf::function;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
@@ -83,12 +83,12 @@ fn option_add(x: i32, y: Option<i32>) -> i32 {
     x + y.unwrap_or(0)
 }
 
-#[function("error(int) -> int")]
-fn error(x: i32) -> Result<i32> {
-    if x < 0 {
-        bail!("error: {x}");
+#[function("div(int, int) -> int")]
+fn div(x: i32, y: i32) -> Result<i32, &'static str> {
+    if y == 0 {
+        return Err("division by zero");
     }
-    Ok(x)
+    Ok(x / y)
 }
 
 #[function("to_json(boolean) -> json")]
@@ -202,21 +202,51 @@ fn nested_struct() -> (i32, (i32, &'static str)) {
 fn test_neg() {
     let schema = Schema::new(vec![Field::new("int32", DataType::Int32, true)]);
     let arg0 = Int32Array::from(vec![Some(1), None]);
-    let expected = Int32Array::from(vec![Some(-1), None]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = neg_int4_int4_eval(&input).unwrap();
-    assert_eq!(output.as_primitive::<Int32Type>(), &expected);
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-----+
+| neg |
++-----+
+| -1  |
+|     |
++-----+
+"#
+        .trim()
+    );
 }
 
 #[test]
-fn test_error() {
-    let schema = Schema::new(vec![Field::new("int32", DataType::Int32, true)]);
-    let arg0 = Int32Array::from(vec![Some(1), None, Some(-1)]);
-    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+fn test_div() {
+    let schema = Schema::new(vec![
+        Field::new("x", DataType::Int32, true),
+        Field::new("y", DataType::Int32, true),
+    ]);
+    let arg0 = Int32Array::from(vec![1, -1]);
+    let arg1 = Int32Array::from(vec![0, -1]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let err = error_int4_int4_eval(&input).unwrap_err();
-    assert!(err.to_string().contains("error: -1"));
+    let output = div_int4_int4_int4_eval(&input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-----+------------------+
+| div | error            |
++-----+------------------+
+|     | division by zero |
+| 1   |                  |
++-----+------------------+
+"#
+        .trim()
+    );
 }
 
 #[test]
@@ -227,12 +257,12 @@ fn test_key_value() {
 
     let output = key_value_varchar_struct_key_varchar_value_varchar_eval(&input).unwrap();
     assert_eq!(
-        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+        pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()
             .to_string(),
         r#"
 +--------------------+
-| result             |
+| key_value          |
 +--------------------+
 | {key: a, value: b} |
 |                    |
@@ -250,12 +280,12 @@ fn test_nested_struct() {
 
     let output = nested_struct_struct_a_int4_b_struct_c_int4_d_varchar_eval(&input).unwrap();
     assert_eq!(
-        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+        pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()
             .to_string(),
         r#"
 +-------------------------+
-| result                  |
+| nested_struct           |
 +-------------------------+
 | {a: 1, b: {c: 2, d: g}} |
 +-------------------------+
@@ -272,12 +302,12 @@ fn test_split() {
 
     let output = split_varchar_varchararray_eval(&input).unwrap();
     assert_eq!(
-        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+        pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()
             .to_string(),
         r#"
 +--------+
-| result |
+| split  |
 +--------+
 | [a, b] |
 +--------+
@@ -299,18 +329,18 @@ fn test_option_add() {
 
     let output = option_add_int4_int4_int4_eval(&input).unwrap();
     assert_eq!(
-        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+        pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()
             .to_string(),
         r#"
-+--------+
-| result |
-+--------+
-| 2      |
-| 1      |
-|        |
-|        |
-+--------+
++------------+
+| option_add |
++------------+
+| 2          |
+| 1          |
+|            |
+|            |
++------------+
 "#
         .trim()
     );
@@ -333,18 +363,18 @@ fn test_array_sum() {
 
     let output = array_sum_int4array_int4_eval(&input).unwrap();
     assert_eq!(
-        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+        pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()
             .to_string(),
         r#"
-+--------+
-| result |
-+--------+
-| 3      |
-|        |
-| 8      |
-| 13     |
-+--------+
++-----------+
+| array_sum |
++-----------+
+| 3         |
+|           |
+| 8         |
+| 13        |
++-----------+
 "#
         .trim()
     );
@@ -367,12 +397,12 @@ fn test_temporal() {
 
     let output = datetime_date_time_timestamp_eval(&input).unwrap();
     assert_eq!(
-        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+        pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()
             .to_string(),
         r#"
 +----------------------------+
-| result                     |
+| datetime                   |
 +----------------------------+
 | 2022-04-08T12:34:56.789012 |
 +----------------------------+
@@ -389,12 +419,12 @@ fn test_decimal() {
 
     let output = identity_decimal_decimal_eval(&input).unwrap();
     assert_eq!(
-        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+        pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()
             .to_string(),
         r#"
 +------------+
-| result     |
+| identity   |
 +------------+
 | 302e303031 |
 +------------+
@@ -411,16 +441,16 @@ fn test_json() {
 
     let output = to_json_int4_json_eval(&input).unwrap();
     assert_eq!(
-        arrow_cast::pretty::pretty_format_columns("result", std::slice::from_ref(&output))
+        pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()
             .to_string(),
         r#"
-+--------+
-| result |
-+--------+
-| 1      |
-| null   |
-+--------+
++---------+
+| to_json |
++---------+
+| 1       |
+| null    |
++---------+
 "#
         .trim()
     );

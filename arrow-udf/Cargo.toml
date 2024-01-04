@@ -21,6 +21,7 @@ arrow-ipc = "49"
 arrow-schema = "49"
 arrow-udf-macros = { version = "0.1.0", path = "../arrow-udf-macros" }
 chrono = { version = "0.4", default-features = false }
+genawaiter = "0.99"
 itertools = "0.12"
 lazy_static = "1"
 linkme = { version = "0.3", optional = true }

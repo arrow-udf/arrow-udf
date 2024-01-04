@@ -27,6 +27,10 @@ pub mod sig;
 /// A scalar function that operates on a record batch.
 pub type ScalarFunction = fn(input: &RecordBatch) -> Result<RecordBatch>;
 
+/// A table function that operates on a record batch and returns an iterator of record batches.
+pub type TableFunction =
+    for<'a> fn(input: &'a RecordBatch) -> Result<Box<dyn Iterator<Item = RecordBatch> + 'a>>;
+
 /// Types used by the generated code.
 pub mod types {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -45,6 +49,7 @@ pub mod codegen {
     pub use arrow_array;
     pub use arrow_schema;
     pub use chrono;
+    pub use genawaiter;
     pub use itertools;
     pub use lazy_static;
     #[cfg(feature = "global_registry")]

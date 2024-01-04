@@ -47,7 +47,7 @@ fn main() {
         let sig = arrow_udf::sig::REGISTRY
             .get("gcd", &[DataType::Int32, DataType::Int32], &DataType::Int32)
             .expect("gcd function");
-        let _output = (sig.function)(&input).unwrap();
+        let _output = sig.function.as_scalar().unwrap()(&input).unwrap();
     }
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();

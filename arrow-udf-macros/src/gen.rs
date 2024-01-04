@@ -92,9 +92,6 @@ impl FunctionAttr {
     ///
     /// The types of arguments and return value should not contain wildcard.
     pub fn generate_function_descriptor(&self, user_fn: &UserFunctionAttr) -> Result<TokenStream2> {
-        // if self.is_table_function {
-        //     return self.generate_table_function_descriptor(user_fn);
-        // }
         let name = self.name.clone();
         let variadic = matches!(self.args.last(), Some(t) if t == "...");
         let args = match variadic {
@@ -113,20 +110,30 @@ impl FunctionAttr {
         let sig_name = format_ident!("{}_sig", self.ident_name());
         let ffi_name = format_ident!("{}_ffi", self.ident_name());
         let export_name = format!("arrowudf_{}", base64_encode(&self.normalize_signature()));
-        let eval_function = self.generate_scalar_function(user_fn, &eval_name)?;
+        let eval_function = self.generate_function(user_fn, &eval_name)?;
+        let kind = match self.is_table_function {
+            true => quote! { Table },
+            false => quote! { Scalar },
+        };
+        let ffi = match self.is_table_function {
+            true => quote! {}, // TODO: add ffi for table functions
+            false => quote! {
+                #[export_name = #export_name]
+                unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize, out: *mut arrow_udf::ffi::CSlice) -> i32 {
+                    arrow_udf::ffi::scalar_wrapper(#eval_name, ptr, len, out)
+                }
+            },
+        };
 
         Ok(quote! {
             #eval_function
 
-            #[export_name = #export_name]
-            unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize, out: *mut arrow_udf::ffi::CSlice) -> i32 {
-                arrow_udf::ffi::scalar_wrapper(#eval_name, ptr, len, out)
-            }
+            #ffi
 
             #[cfg(feature = "global_registry")]
             #[::arrow_udf::codegen::linkme::distributed_slice(::arrow_udf::sig::SIGNATURES)]
             fn #sig_name() -> ::arrow_udf::sig::FunctionSignature {
-                use ::arrow_udf::sig::{FunctionSignature, SigDataType};
+                use ::arrow_udf::sig::{FunctionSignature, FunctionKind, SigDataType};
                 use ::arrow_udf::codegen::arrow_schema::{self, TimeUnit, IntervalUnit};
 
                 FunctionSignature {
@@ -134,14 +141,14 @@ impl FunctionAttr {
                     arg_types: vec![#(#args),*],
                     variadic: #variadic,
                     return_type: #ret,
-                    function: #eval_name,
+                    function: FunctionKind::#kind(#eval_name),
                 }
             }
         })
     }
 
-    /// Generate a scalar function.
-    fn generate_scalar_function(
+    /// Generate a scalar or table function.
+    fn generate_function(
         &self,
         user_fn: &UserFunctionAttr,
         eval_fn_name: &Ident,
@@ -168,66 +175,17 @@ impl FunctionAttr {
         let ret_array_type = format_ident!("{}", types::array_type(&self.ret));
         let ret_data_type = data_type(&self.ret);
 
-        // evaluate variadic arguments in `eval`
-        let eval_variadic = variadic.then(|| {
-            quote! {
-                let mut columns = Vec::with_capacity(self.children.len() - #num_args);
-                for child in &self.children[#num_args..] {
-                    columns.push(child.eval(input).await?);
-                }
-                let variadic_input = DataChunk::new(columns, input.visibility().clone());
-            }
-        });
-
-        // prepare error builder if the function returns `Result`
-        let error_builder = user_fn.return_type_kind.is_result().then(|| {
-            quote! {
-                let mut errors: Option<StringBuilder> = None;
-                let mut set_error = |i: usize, e: &dyn std::fmt::Display| {
-                    let builder = errors.get_or_insert_with(|| StringBuilder::with_capacity(input.num_rows(), input.num_rows() * 16));
-                    for _ in builder.len()..i {
-                        builder.append_null();
-                    }
-                    builder.append_value(e.to_string());
-                };
-            }
-        });
-
         let variadic_args = variadic.then(|| quote! { variadic_row, });
         let context = user_fn.context.then(|| quote! { &self.context, });
         let writer = user_fn.write.then(|| quote! { &mut writer, });
         let await_ = user_fn.async_.then(|| quote! { .await });
         // transform inputs for array arguments
         // e.g. for `int[]`, transform `ArrayRef` -> `&[T]`
-        let transformed_inputs = inputs.iter().zip(&self.args).map(|(input, ty)| {
-            if ty == "decimal" {
-                return quote! { std::str::from_utf8(#input).unwrap().parse::<rust_decimal::Decimal>().unwrap() };
-            } else if ty == "date" {
-                return quote! { arrow_array::types::Date32Type::to_naive_date(#input) };
-            } else if ty == "time" {
-                return quote! { arrow_array::temporal_conversions::as_time::<arrow_array::types::Time64MicrosecondType>(#input).unwrap() };
-            } else if ty == "timestamp" {
-                return quote! { arrow_array::temporal_conversions::as_datetime::<arrow_array::types::TimestampMicrosecondType>(#input).unwrap() };
-            } else if ty == "interval" {
-                return quote! {{
-                    let (months, days, nanos) = arrow_array::types::IntervalMonthDayNanoType::to_parts(#input);
-                    arrow_udf::types::Interval { months, days, nanos }
-                }};
-            } else if ty == "json" {
-                return quote! { #input.parse::<serde_json::Value>().unwrap() };
-            } else if let Some(elem_type) = ty.strip_suffix("[]") {
-                if types::is_primitive(elem_type) {
-                    let array_type = format_ident!("{}", types::array_type(elem_type));
-                    return quote! {{
-                        let primitive_array: &#array_type = #input.as_primitive();
-                        primitive_array.values().as_ref()
-                    }};
-                }
-            }
-            quote! { #input }
-        });
+        let transformed_inputs = inputs
+            .iter()
+            .zip(&self.args)
+            .map(|(input, ty)| transform_input(input, ty));
         // call the user defined function
-        // inputs: [ Option<impl ScalarRef> ]
         let mut output = quote! { #user_fn_name(
             #(#transformed_inputs,)*
             #variadic_args
@@ -236,20 +194,49 @@ impl FunctionAttr {
         ) #await_ };
         // handle error if the function returns `Result`
         // wrap a `Some` if the function doesn't return `Option`
-        output = match user_fn.return_type_kind {
-            ReturnTypeKind::T => quote! { Some(#output) },
-            ReturnTypeKind::Option => output,
-            ReturnTypeKind::Result => {
-                quote! { match #output {
-                    Ok(x) => Some(x),
-                    Err(e) => { set_error(i, &e); None }
-                } }
+        output = if self.is_table_function {
+            match user_fn.return_type_kind {
+                ReturnTypeKind::T => quote! { Some(#output) },
+                ReturnTypeKind::Option => output,
+                ReturnTypeKind::Result => {
+                    quote! { match #output {
+                        Ok(x) => Some(x),
+                        Err(e) => {
+                            index_builder.append_value(i as i32);
+                            builder.append_null();
+                            error_builder.append_value(e.to_string());
+                            None
+                        }
+                    } }
+                }
+                ReturnTypeKind::ResultOption => {
+                    quote! { match #output {
+                        Ok(x) => x,
+                        Err(e) => {
+                            index_builder.append_value(i as i32);
+                            builder.append_null();
+                            error_builder.append_value(e.to_string());
+                            None
+                        }
+                    } }
+                }
             }
-            ReturnTypeKind::ResultOption => {
-                quote! { match #output {
-                    Ok(x) => x,
-                    Err(e) => { set_error(i, &e); None }
-                } }
+        } else {
+            match user_fn.return_type_kind {
+                ReturnTypeKind::T => quote! { Some(#output) },
+                ReturnTypeKind::Option => output,
+                ReturnTypeKind::Result => {
+                    quote! { match #output {
+                        Ok(x)  => { error_builder.append_null(); Some(x) },
+                        Err(e) => { error_builder.append_value(e.to_string()); None }
+                    } }
+                }
+                ReturnTypeKind::ResultOption => {
+                    quote! { match #output {
+                        Ok(x)  => { error_builder.append_null(); x },
+                        Err(e) => { error_builder.append_value(e.to_string()); None }
+                    } }
+                }
             }
         };
         // if user function accepts non-option arguments, we assume the function
@@ -270,113 +257,88 @@ impl FunctionAttr {
                 _ => None,
             }
         };
-        // append the `output` to the `builder`
-        // now the `output` is: Option<impl AsRef<T>>
-        let append_output = if user_fn.write {
-            if self.ret != "varchar" && self.ret != "bytea" {
-                return Err(Error::new(
-                    Span::call_site(),
-                    "`&mut Write` can only be used for returning `varchar` or `bytea`",
-                ));
-            }
+
+        let eval = if self.is_table_function {
+            let array_zip = match children_indices.len() {
+                0 => quote! { std::iter::repeat(()).take(input.num_rows()) },
+                _ => quote! { itertools::multizip((#(#arrays.iter(),)*)) },
+            };
+            let builder = builder(&self.ret);
+            let append_output = gen_append(&self.ret);
+            let error_append_null = user_fn
+                .has_error()
+                .then(|| quote! { error_builder.append_null(); });
+            let element = match user_fn.iterator_item_kind.clone().unwrap() {
+                ReturnTypeKind::T => quote! {{ #error_append_null; Some(v) }},
+                ReturnTypeKind::Option => quote! {{ #error_append_null; v }},
+                ReturnTypeKind::Result => {
+                    quote! { match v {
+                        Ok(x) => { error_builder.append_null(); Some(x) },
+                        Err(e) => { error_builder.append_value(e.to_string()); None }
+                    } }
+                }
+                ReturnTypeKind::ResultOption => {
+                    quote! { match v {
+                        Ok(x) => { error_builder.append_null(); x },
+                        Err(e) => { error_builder.append_value(e.to_string()); None }
+                    } }
+                }
+            };
+
+            let error_field = user_fn.has_error().then(|| {
+                quote! { Field::new("error", DataType::Utf8, true), }
+            });
+            let let_error_builder = user_fn.has_error().then(|| {
+                quote! { let mut error_builder = StringBuilder::with_capacity(input.num_rows(), input.num_rows() * 16); }
+            });
+            let error_array = user_fn.has_error().then(|| {
+                quote! { Arc::new(error_builder.finish()) }
+            });
+            let yield_batch = quote! {
+                let index_array = Arc::new(index_builder.finish());
+                let value_array = Arc::new(builder.finish());
+                yield_!(RecordBatch::try_new(SCHEMA.clone(), vec![index_array, value_array, #error_array]).unwrap());
+            };
             quote! {{
-                let mut writer = builder.writer();
-                if #output.is_some() {
-                    writer.finish();
-                } else {
-                    drop(writer);
-                    builder.append_null();
+                lazy_static! {
+                    static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![
+                        Field::new("row", DataType::Int32, true),
+                        Field::new(#fn_name, #ret_data_type, true),
+                        #error_field
+                    ]));
+                }
+                let mut index_builder = Int32Builder::with_capacity(input.num_rows());
+                let mut builder = #builder;
+                #let_error_builder
+                for (i, (#(#inputs,)*)) in #array_zip.enumerate() {
+                    let Some(iter) = (#output) else {
+                        continue;
+                    };
+                    for v in iter {
+                        index_builder.append_value(i as i32);
+                        let v = #element;
+                        #append_output
+                        if index_builder.len() == BATCH_SIZE {
+                            #yield_batch
+                        }
+                    }
+                }
+                if index_builder.len() > 0 {
+                    #yield_batch
                 }
             }}
-        } else {
-            /// Generate code to append the `v` to the `builder`.
-            fn gen_append_value(ty: &str) -> TokenStream2 {
-                if ty.starts_with("struct") {
-                    let append_fields = types::iter_fields(ty).enumerate().map(|(i, (_, ty))| {
-                        let index = syn::Index::from(i);
-                        let builder_type = format_ident!("{}", types::array_builder_type(ty));
-                        let append = gen_append_value(ty);
-                        quote! {{
-                            let builder = builder.field_builder::<#builder_type>(#i).unwrap();
-                            let v = v.#index;
-                            #append
-                        }}
-                    });
-                    quote! {{
-                        #(#append_fields)*
-                        builder.append(true);
-                    }}
-                } else if ty == "decimal" || ty == "json" {
-                    quote! {{
-                        use std::fmt::Write;
-                        let mut writer = builder.writer();
-                        write!(&mut writer, "{}", v).unwrap();
-                        writer.finish();
-                    }}
-                } else if ty == "date" {
-                    quote! { builder.append_value(arrow_array::types::Date32Type::from_naive_date(v)) }
-                } else if ty == "time" {
-                    quote! { builder.append_value(arrow_array::temporal_conversions::time_to_time64us(v)) }
-                } else if ty == "timestamp" {
-                    quote! { builder.append_value(v.timestamp_micros()) }
-                } else if ty == "interval" {
-                    quote! { builder.append_value({
-                        let v: arrow_udf::types::Interval = v.into();
-                        arrow_array::types::IntervalMonthDayNanoType::make_value(v.months, v.days, v.nanos)
-                    }) }
-                } else if ty == "void" {
-                    quote! { builder.append_empty_value() }
-                } else {
-                    quote! { builder.append_value(v) }
-                }
+        } else if let Some(batch_fn) = &self.batch_fn {
+            if variadic {
+                return Err(Error::new(
+                    Span::call_site(),
+                    "customized batch function is not supported for variadic functions",
+                ));
             }
-            /// Generate code to append null to the `builder`.
-            fn gen_append_null(ty: &str) -> TokenStream2 {
-                if ty.starts_with("struct") {
-                    let append_fields = types::iter_fields(ty).enumerate().map(|(i, (_, ty))| {
-                        let append = gen_append_null(ty);
-                        let builder_type = format_ident!("{}", types::array_builder_type(ty));
-                        quote! {{
-                            let builder = builder.field_builder::<#builder_type>(#i).unwrap();
-                            #append
-                        }}
-                    });
-                    quote! {{
-                        #(#append_fields)*
-                        builder.append(false);
-                    }}
-                } else {
-                    quote! { builder.append_null() }
-                }
-            }
-            let mut append_value = gen_append_value(&self.ret);
-            if user_fn.iterator_item_kind == Some(ReturnTypeKind::T) {
-                // the user function returns an iterator of `T`
-                // we need to wrap the item with `Some`
-                append_value = quote! {{
-                    let v = v.map(Some);
-                    #append_value
-                }};
-            }
-            let append_null = gen_append_null(&self.ret);
-            quote! {
-                match #output {
-                    Some(v) => #append_value,
-                    None => #append_null,
-                }
-            }
-        };
-        // the main body in `eval`
-        let eval = if let Some(batch_fn) = &self.batch_fn {
-            assert!(
-                !variadic,
-                "customized batch function is not supported for variadic functions"
-            );
             // user defined batch function
             let fn_name = format_ident!("{}", batch_fn);
             quote! {
                 let c = #fn_name(#(#arrays),*);
-                Arc::new(c)
+                let array = Arc::new(c);
             }
         } else if types::is_primitive(&self.ret)
             && self.args.iter().all(|ty| types::is_primitive(ty))
@@ -390,15 +352,15 @@ impl FunctionAttr {
                     let c = #ret_array_type::from_iter_values(
                         std::iter::repeat_with(|| #user_fn_name()).take(input.num_rows())
                     );
-                    Arc::new(c)
+                    let array = Arc::new(c);
                 },
                 1 => quote! {
                     let c: #ret_array_type = arrow_arith::arity::unary(a0, #user_fn_name);
-                    Arc::new(c)
+                    let array = Arc::new(c);
                 },
                 2 => quote! {
                     let c: #ret_array_type = arrow_arith::arity::binary(a0, a1, #user_fn_name)?;
-                    Arc::new(c)
+                    let array = Arc::new(c);
                 },
                 n => todo!("SIMD optimization for {n} arguments"),
             }
@@ -408,79 +370,117 @@ impl FunctionAttr {
                 0 => quote! { std::iter::repeat(()).take(input.num_rows()) },
                 _ => quote! { itertools::multizip((#(#arrays.iter(),)*)) },
             };
-            let let_variadic = variadic.then(|| {
-                quote! {
-                    let variadic_row = variadic_input.row_at_unchecked_vis(i);
-                }
-            });
             let builder = builder(&self.ret);
+            // append the `output` to the `builder`
+            let append_output = if user_fn.write {
+                if self.ret != "varchar" && self.ret != "bytea" {
+                    return Err(Error::new(
+                        Span::call_site(),
+                        "`&mut Write` can only be used for functions that return `varchar` or `bytea`",
+                    ));
+                }
+                quote! {{
+                    let mut writer = builder.writer();
+                    if #output.is_some() {
+                        writer.finish();
+                    } else {
+                        drop(writer);
+                        builder.append_null();
+                    }
+                }}
+            } else {
+                let append = gen_append(&self.ret);
+                quote! {{
+                    let v = #output;
+                    #append
+                }}
+            };
             quote! {
                 let mut builder = #builder;
                 for (i, (#(#inputs,)*)) in #array_zip.enumerate() {
-                    #let_variadic
                     #append_output
                 }
-                Arc::new(builder.finish())
+                let array = Arc::new(builder.finish());
             }
         };
 
-        // build a record batch from output array and optional error array
-        let mut return_record_batch = quote! {
-            lazy_static! {
-                static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![
-                    Field::new(#fn_name, #ret_data_type, true),
-                ]));
+        let eval_and_return = if self.is_table_function {
+            quote! {
+                #eval
             }
-            let opts = RecordBatchOptions::new().with_row_count(Some(input.num_rows()));
-            RecordBatch::try_new_with_options(SCHEMA.clone(), vec![array], &opts)
-        };
-        if user_fn.return_type_kind.is_result() {
-            return_record_batch = quote! {
-                if let Some(mut errors) = errors {
-                    lazy_static! {
-                        static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![
-                            Field::new(#fn_name, #ret_data_type, true),
-                            Field::new("error", DataType::Utf8, true),
-                        ]));
-                    }
-                    for _ in errors.len()..input.num_rows() {
-                        errors.append_null();
-                    }
-                    let errors = Arc::new(errors.finish());
-                    let opts = RecordBatchOptions::new().with_row_count(Some(input.num_rows()));
-                    RecordBatch::try_new_with_options(SCHEMA.clone(), vec![array, errors], &opts)
-                } else {
-                    #return_record_batch
+        } else {
+            let error_field = user_fn.has_error().then(|| {
+                quote! { Field::new("error", DataType::Utf8, true), }
+            });
+            let let_error_builder = user_fn.has_error().then(|| {
+                quote! { let mut error_builder = StringBuilder::with_capacity(input.num_rows(), input.num_rows() * 16); }
+            });
+            let error_array = user_fn.has_error().then(|| {
+                quote! { Arc::new(error_builder.finish()) }
+            });
+            quote! {
+                #let_error_builder
+                #eval
+
+                lazy_static! {
+                    static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![
+                        Field::new(#fn_name, #ret_data_type, true),
+                        #error_field
+                    ]));
                 }
-            };
-        }
+                let opts = RecordBatchOptions::new().with_row_count(Some(input.num_rows()));
+                Ok(RecordBatch::try_new_with_options(SCHEMA.clone(), vec![array, #error_array], &opts).unwrap())
+            }
+        };
 
-        Ok(quote! {
-            fn #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
-                -> ::arrow_udf::Result<::arrow_udf::codegen::arrow_array::RecordBatch>
-            {
-                use ::std::sync::Arc;
-                use ::arrow_udf::{Result, Error};
-                use ::arrow_udf::codegen::arrow_array::{RecordBatch, RecordBatchOptions};
-                use ::arrow_udf::codegen::arrow_array::array::*;
-                use ::arrow_udf::codegen::arrow_array::builder::*;
-                use ::arrow_udf::codegen::arrow_schema::{Schema, SchemaRef, Field, DataType, IntervalUnit, TimeUnit, ArrowError};
-                use ::arrow_udf::codegen::arrow_arith;
-                use ::arrow_udf::codegen::arrow_schema;
-                use ::arrow_udf::codegen::chrono;
-                use ::arrow_udf::codegen::lazy_static::lazy_static;
-                use ::arrow_udf::codegen::itertools;
-                use ::arrow_udf::codegen::rust_decimal;
-                use ::arrow_udf::codegen::serde_json;
+        // downcast input arrays
+        let downcast_arrays = quote! {
+            #(
+                let #arrays: &#arg_arrays = input.column(#children_indices).as_any().downcast_ref()
+                    .ok_or_else(|| ::arrow_udf::codegen::arrow_schema::ArrowError::CastError(
+                        format!("expect {} for the {}-th argument", stringify!(#arg_arrays), #children_indices)
+                    ))?;
+            )*
+        };
 
-                #(
-                    let #arrays: &#arg_arrays = input.column(#children_indices).as_any().downcast_ref()
-                        .ok_or_else(|| ArrowError::CastError(format!("expect {} for the {}-th argument", stringify!(#arg_arrays), #children_indices)))?;
-                )*
-                #eval_variadic
-                #error_builder
-                let array = { #eval };
-                #return_record_batch
+        // the function body
+        let body = quote! {
+            use ::std::sync::Arc;
+            use ::arrow_udf::{Result, Error};
+            use ::arrow_udf::codegen::arrow_array::{RecordBatch, RecordBatchOptions};
+            use ::arrow_udf::codegen::arrow_array::array::*;
+            use ::arrow_udf::codegen::arrow_array::builder::*;
+            use ::arrow_udf::codegen::arrow_schema::{Schema, SchemaRef, Field, DataType, IntervalUnit, TimeUnit};
+            use ::arrow_udf::codegen::arrow_arith;
+            use ::arrow_udf::codegen::arrow_schema;
+            use ::arrow_udf::codegen::chrono;
+            use ::arrow_udf::codegen::lazy_static::lazy_static;
+            use ::arrow_udf::codegen::itertools;
+            use ::arrow_udf::codegen::rust_decimal;
+            use ::arrow_udf::codegen::serde_json;
+
+            #eval_and_return
+        };
+
+        Ok(if self.is_table_function {
+            quote! {
+                fn #eval_fn_name<'a>(input: &'a ::arrow_udf::codegen::arrow_array::RecordBatch)
+                    -> ::arrow_udf::Result<Box<dyn Iterator<Item = ::arrow_udf::codegen::arrow_array::RecordBatch> + 'a>>
+                {
+                    const BATCH_SIZE: usize = 1024;
+                    use ::arrow_udf::codegen::genawaiter::{rc::gen, yield_};
+                    #downcast_arrays
+                    Ok(Box::new(gen!({ #body }).into_iter()))
+                }
+            }
+        } else {
+            quote! {
+                fn #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
+                    -> ::arrow_udf::Result<::arrow_udf::codegen::arrow_array::RecordBatch>
+                {
+                    #downcast_arrays
+                    #body
+                }
             }
         })
     }
@@ -549,6 +549,131 @@ fn builder(ty: &str) -> TokenStream2 {
             quote! { #builder_type::with_capacity(input.num_rows()) }
         }
     }
+}
+
+/// Generate code to append the `v: Option<T>` to the `builder`.
+fn gen_append(ty: &str) -> TokenStream2 {
+    let mut append_value = gen_append_value(ty);
+    if ty.ends_with("[]") {
+        // the user function returns an iterator of `T`
+        // we need to wrap the item with `Some`
+        append_value = quote! {{
+            let v = v.map(Some);
+            #append_value
+        }};
+    }
+    let append_null = gen_append_null(ty);
+    quote! {
+        match v {
+            Some(v) => #append_value,
+            None => #append_null,
+        }
+    }
+}
+
+/// Generate code to append the `v: T` to the `builder`.
+fn gen_append_value(ty: &str) -> TokenStream2 {
+    if ty.starts_with("struct") {
+        let append_fields = types::iter_fields(ty).enumerate().map(|(i, (_, ty))| {
+            let index = syn::Index::from(i);
+            let builder_type = format_ident!("{}", types::array_builder_type(ty));
+            let append = gen_append_value(ty);
+            quote! {{
+                let builder = builder.field_builder::<#builder_type>(#i).unwrap();
+                let v = v.#index;
+                #append
+            }}
+        });
+        quote! {{
+            #(#append_fields)*
+            builder.append(true);
+        }}
+    } else if ty == "decimal" || ty == "json" {
+        quote! {{
+            use std::fmt::Write;
+            let mut writer = builder.writer();
+            write!(&mut writer, "{}", v).unwrap();
+            writer.finish();
+        }}
+    } else if ty == "date" {
+        quote! { builder.append_value(arrow_array::types::Date32Type::from_naive_date(v)) }
+    } else if ty == "time" {
+        quote! { builder.append_value(arrow_array::temporal_conversions::time_to_time64us(v)) }
+    } else if ty == "timestamp" {
+        quote! { builder.append_value(v.timestamp_micros()) }
+    } else if ty == "interval" {
+        quote! { builder.append_value({
+            let v: arrow_udf::types::Interval = v.into();
+            arrow_array::types::IntervalMonthDayNanoType::make_value(v.months, v.days, v.nanos)
+        }) }
+    } else if ty == "void" {
+        quote! { builder.append_empty_value() }
+    } else {
+        quote! { builder.append_value(v) }
+    }
+}
+
+/// Generate code to append null to the `builder`.
+fn gen_append_null(ty: &str) -> TokenStream2 {
+    if ty.starts_with("struct") {
+        let append_fields = types::iter_fields(ty).enumerate().map(|(i, (_, ty))| {
+            let append = gen_append_null(ty);
+            let builder_type = format_ident!("{}", types::array_builder_type(ty));
+            quote! {{
+                let builder = builder.field_builder::<#builder_type>(#i).unwrap();
+                #append
+            }}
+        });
+        quote! {{
+            #(#append_fields)*
+            builder.append(false);
+        }}
+    } else {
+        quote! { builder.append_null() }
+    }
+}
+
+/// Generate code to transform the input from the type got from arrow array to the type in the user function.
+///
+/// | Data Type   | Arrow Value Type | User Function Type           |
+/// | ----------- | ---------------- | ---------------------------- |
+/// | `date`      | `i32`            | `chrono::NaiveDate`          |
+/// | `time`      | `i64`            | `chrono::NaiveTime`          |
+/// | `timestamp` | `i64`            | `chrono::NaiveDateTime`      |
+/// | `interval`  | `i128`           | `arrow_udf::types::Interval` |
+/// | `decimal`   | `&str`           | `rust_decimal::Decimal`      |
+/// | `json`      | `&str`           | `serde_json::Value`          |
+/// | `smallint[]`| `ArrayRef`       | `&[i16]`                     |
+/// | `int[]`     | `ArrayRef`       | `&[i32]`                     |
+/// | `bigint[]`  | `ArrayRef`       | `&[i64]`                     |
+/// | `real[]`    | `ArrayRef`       | `&[f32]`                     |
+/// | `float[]`   | `ArrayRef`       | `&[f64]`                     |
+fn transform_input(input: &Ident, ty: &str) -> TokenStream2 {
+    if ty == "decimal" {
+        return quote! { std::str::from_utf8(#input).unwrap().parse::<rust_decimal::Decimal>().unwrap() };
+    } else if ty == "date" {
+        return quote! { arrow_array::types::Date32Type::to_naive_date(#input) };
+    } else if ty == "time" {
+        return quote! { arrow_array::temporal_conversions::as_time::<arrow_array::types::Time64MicrosecondType>(#input).unwrap() };
+    } else if ty == "timestamp" {
+        return quote! { arrow_array::temporal_conversions::as_datetime::<arrow_array::types::TimestampMicrosecondType>(#input).unwrap() };
+    } else if ty == "interval" {
+        return quote! {{
+            let (months, days, nanos) = arrow_array::types::IntervalMonthDayNanoType::to_parts(#input);
+            arrow_udf::types::Interval { months, days, nanos }
+        }};
+    } else if ty == "json" {
+        return quote! { #input.parse::<serde_json::Value>().unwrap() };
+    } else if let Some(elem_type) = ty.strip_suffix("[]") {
+        if types::is_primitive(elem_type) {
+            let array_type = format_ident!("{}", types::array_type(elem_type));
+            return quote! {{
+                let primitive_array: &#array_type = #input.as_primitive();
+                primitive_array.values().as_ref()
+            }};
+        }
+    }
+    quote! { #input }
 }
 
 /// Encode a string to a symbol name using customized base64.

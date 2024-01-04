@@ -19,8 +19,8 @@ use arrow_array::cast::AsArray;
 use arrow_array::temporal_conversions::time_to_time64us;
 use arrow_array::types::{Date32Type, Int32Type};
 use arrow_array::{
-    Date32Array, Int32Array, LargeBinaryArray, ListArray, RecordBatch, StringArray,
-    Time64MicrosecondArray,
+    Date32Array, Int32Array, LargeBinaryArray, LargeStringArray, ListArray, RecordBatch,
+    StringArray, Time64MicrosecondArray,
 };
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
@@ -190,6 +190,21 @@ fn key_value(kv: &str) -> Option<(&str, &str)> {
 #[function("nested_struct() -> struct<a:int, b:struct<c:int, d:varchar>>")]
 fn nested_struct() -> (i32, (i32, &'static str)) {
     (1, (2, "g"))
+}
+
+#[function("range(int) -> setof int")]
+fn range(x: i32) -> impl Iterator<Item = i32> {
+    0..x
+}
+
+#[function("json_array_elements(json) -> setof json")]
+fn json_array_elements(
+    x: serde_json::Value,
+) -> Result<impl Iterator<Item = serde_json::Value>, &'static str> {
+    match x {
+        serde_json::Value::Array(x) => Ok(x.into_iter()),
+        _ => Err("not an array"),
+    }
 }
 
 #[test]
@@ -446,6 +461,77 @@ fn test_json() {
 | 1       |
 | null    |
 +---------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_range() {
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = range_int4_int4_eval(&input).unwrap().next().unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-----+-------+
+| row | range |
++-----+-------+
+| 0   | 0     |
+| 2   | 0     |
+| 2   | 1     |
+| 2   | 2     |
++-----+-------+
+"#
+        .trim()
+    );
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![1000000]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    // for large set, the output is split into multiple batches
+    let mut i = 0;
+    for output in range_int4_int4_eval(&input).unwrap() {
+        let array = output
+            .column(1)
+            .as_any()
+            .downcast_ref::<Int32Array>()
+            .unwrap();
+        for x in array {
+            assert_eq!(x, Some(i));
+            i += 1;
+        }
+    }
+}
+
+#[test]
+fn test_json_array_elements() {
+    let schema = Schema::new(vec![Field::new("d", DataType::LargeUtf8, true)]);
+    let arg0 = LargeStringArray::from(vec![r#"[null,1,""]"#, "1"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = json_array_elements_json_json_eval(&input)
+        .unwrap()
+        .next()
+        .unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-----+---------------------+--------------+
+| row | json_array_elements | error        |
++-----+---------------------+--------------+
+| 0   | null                |              |
+| 0   | 1                   |              |
+| 0   | ""                  |              |
+| 1   |                     | not an array |
++-----+---------------------+--------------+
 "#
         .trim()
     );

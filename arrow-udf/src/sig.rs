@@ -30,7 +30,7 @@
 //! let sig = REGISTRY.get("add", &[Int32, Int32], &Int32).unwrap();
 //! ```
 
-use super::ScalarFunction;
+use super::{ScalarFunction, TableFunction};
 use arrow_schema::DataType;
 use std::collections::HashMap;
 
@@ -49,7 +49,41 @@ pub struct FunctionSignature {
     pub return_type: SigDataType,
 
     /// The function
-    pub function: ScalarFunction,
+    pub function: FunctionKind,
+}
+
+/// Function pointer.
+pub enum FunctionKind {
+    Scalar(ScalarFunction),
+    Table(TableFunction),
+}
+
+impl FunctionKind {
+    /// Check if the function is a scalar function.
+    pub fn is_scalar(&self) -> bool {
+        matches!(self, Self::Scalar(_))
+    }
+
+    /// Check if the function is a table function.
+    pub fn is_table(&self) -> bool {
+        matches!(self, Self::Table(_))
+    }
+
+    /// Convert to a scalar function.
+    pub fn as_scalar(&self) -> Option<ScalarFunction> {
+        match self {
+            Self::Scalar(f) => Some(*f),
+            _ => None,
+        }
+    }
+
+    /// Convert to a table function.
+    pub fn as_table(&self) -> Option<TableFunction> {
+        match self {
+            Self::Table(f) => Some(*f),
+            _ => None,
+        }
+    }
 }
 
 /// An extended data type that can be used to declare a function's argument or result type.

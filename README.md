@@ -69,7 +69,8 @@ fn div(x: i32, y: i32) -> Result<i32, &'static str> {
 }
 ```
 
-The output batch will contain a column of errors if any, and the error rows will be filled with NULL:
+The output batch will contain a column of errors. Error rows will be filled with NULL in the output column,
+and the error message will be stored in the error column.
 
 ```text
  input     output
@@ -98,7 +99,7 @@ use arrow_schema::DataType::Int32;
 use arrow_udf::sig::REGISTRY;
 
 let sig = REGISTRY.get("gcd", &[Int32, Int32], &Int32).expect("gcd function");
-let output = (sig.function)(&input).unwrap();
+let output = sig.function.as_scalar().unwrap()(&input).unwrap();
 ```
 
 See the [example](./arrow-udf/examples/rust.rs) for more details.

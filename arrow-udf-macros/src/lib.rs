@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::vec;
-
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use syn::{Error, Result};
@@ -299,7 +297,13 @@ impl FunctionAttr {
 
     /// Return a unique signature of the function.
     fn normalize_signature(&self) -> String {
-        format!("{}({})->{}", self.name, self.args.join(","), self.ret)
+        format!(
+            "{}({})->{}{}",
+            self.name,
+            self.args.join(","),
+            if self.is_table_function { "setof " } else { "" },
+            self.ret
+        )
     }
 }
 
@@ -311,5 +315,11 @@ impl UserFunctionAttr {
             && !self.context
             && self.args_option.iter().all(|b| !b)
             && self.return_type_kind == ReturnTypeKind::T
+    }
+
+    /// Returns true if the function may return error.
+    fn has_error(&self) -> bool {
+        self.return_type_kind.is_result()
+            || matches!(&self.iterator_item_kind, Some(k) if k.is_result())
     }
 }

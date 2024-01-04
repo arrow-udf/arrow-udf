@@ -298,10 +298,10 @@ impl FunctionAttr {
     /// Return a unique signature of the function.
     fn normalize_signature(&self) -> String {
         format!(
-            "{}({})->{}{}",
+            "{}({}){}{}",
             self.name,
             self.args.join(","),
-            if self.is_table_function { "setof " } else { "" },
+            if self.is_table_function { "->>" } else { "->" },
             self.ret
         )
     }

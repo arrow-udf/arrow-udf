@@ -115,20 +115,18 @@ impl FunctionAttr {
             true => quote! { Table },
             false => quote! { Scalar },
         };
-        let ffi = match self.is_table_function {
-            true => quote! {}, // TODO: add ffi for table functions
-            false => quote! {
-                #[export_name = #export_name]
-                unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize, out: *mut arrow_udf::ffi::CSlice) -> i32 {
-                    arrow_udf::ffi::scalar_wrapper(#eval_name, ptr, len, out)
-                }
-            },
+        let ffi_wrapper = match self.is_table_function {
+            true => quote! { table_wrapper },
+            false => quote! { scalar_wrapper },
         };
 
         Ok(quote! {
             #eval_function
 
-            #ffi
+            #[export_name = #export_name]
+            unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize, out: *mut arrow_udf::ffi::CSlice) -> i32 {
+                arrow_udf::ffi::#ffi_wrapper(#eval_name, ptr, len, out)
+            }
 
             #[cfg(feature = "global_registry")]
             #[::arrow_udf::codegen::linkme::distributed_slice(::arrow_udf::sig::SIGNATURES)]

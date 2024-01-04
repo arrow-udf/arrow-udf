@@ -62,3 +62,8 @@ fn length(s: impl AsRef<[u8]>) -> i32 {
 fn key_value(kv: &str) -> Option<(&str, &str)> {
     kv.split_once('=')
 }
+
+#[function("range(int) -> setof int")]
+fn range(x: i32) -> impl Iterator<Item = i32> {
+    0..x
+}

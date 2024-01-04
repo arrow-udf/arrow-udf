@@ -83,6 +83,22 @@ fn main() {
         )
         .unwrap();
     print(&input, &output);
+
+    println!("\ncall range");
+
+    let input = RecordBatch::try_new(
+        Arc::new(Schema::new(vec![Field::new("x", DataType::Int32, true)])),
+        vec![Arc::new(Int32Array::from(vec![Some(1), None, Some(3)]))],
+    )
+    .unwrap();
+
+    let iter = runtime
+        .call_table_function("range(int4)->>int4", &input)
+        .unwrap();
+    for output in iter {
+        let output = output.unwrap();
+        arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
+    }
 }
 
 /// Concatenate two record batches and print them.

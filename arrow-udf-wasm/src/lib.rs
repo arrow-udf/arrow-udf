@@ -46,6 +46,10 @@ struct Instance {
     alloc: TypedFunc<(u32, u32), u32>,
     // extern "C" fn(ptr: *mut u8, len: usize, align: usize)
     dealloc: TypedFunc<(u32, u32, u32), ()>,
+    // extern "C" fn(iter: *mut RecordBatchIter, out: *mut CSlice)
+    record_batch_iterator_next: TypedFunc<(u32, u32), ()>,
+    // extern "C" fn(iter: *mut RecordBatchIter)
+    record_batch_iterator_drop: TypedFunc<u32, ()>,
     // extern "C" fn(ptr: *const u8, len: usize, out: *mut CSlice) -> i32
     functions: HashMap<String, TypedFunc<(u32, u32, u32), i32>>,
     memory: Memory,
@@ -124,7 +128,7 @@ impl Runtime {
         };
 
         // call the function
-        let output = instance.call(name, input);
+        let output = instance.call_scalar_function(name, input);
 
         // put the instance back to the pool
         if output.is_ok() {
@@ -132,6 +136,42 @@ impl Runtime {
         }
 
         output
+    }
+
+    /// Call a table function.
+    pub fn call_table_function<'a>(
+        &'a self,
+        name: &'a str,
+        input: &'a RecordBatch,
+    ) -> Result<impl Iterator<Item = Result<RecordBatch>> + 'a> {
+        use genawaiter::{rc::gen, yield_};
+        if !self.functions.contains(name) {
+            bail!("function not found: {name}");
+        }
+
+        // get an instance from the pool, or create a new one if the pool is empty
+        let mut instance = if let Some(instance) = self.instances.lock().unwrap().pop() {
+            instance
+        } else {
+            Instance::new(self)?
+        };
+
+        Ok(gen!({
+            // call the function
+            let iter = match instance.call_table_function(name, input) {
+                Ok(iter) => iter,
+                Err(e) => {
+                    yield_!(Err(e));
+                    return;
+                }
+            };
+            for output in iter {
+                yield_!(output);
+            }
+            // put the instance back to the pool
+            self.instances.lock().unwrap().push(instance);
+        })
+        .into_iter())
     }
 }
 
@@ -146,7 +186,7 @@ impl Instance {
         // Create a WASI context and put it in a Store; all instances in the store
         // share this context. `WasiCtxBuilder` provides a number of ways to
         // configure what the target program will have access to.
-        let wasi = WasiCtxBuilder::new().build();
+        let wasi = WasiCtxBuilder::new().inherit_stdio().build();
         let limits = {
             let mut builder = StoreLimitsBuilder::new();
             if let Some(limit) = rt.config.memory_size_limit {
@@ -169,6 +209,10 @@ impl Instance {
         }
         let alloc = instance.get_typed_func(&mut store, "alloc")?;
         let dealloc = instance.get_typed_func(&mut store, "dealloc")?;
+        let record_batch_iterator_next =
+            instance.get_typed_func(&mut store, "record_batch_iterator_next")?;
+        let record_batch_iterator_drop =
+            instance.get_typed_func(&mut store, "record_batch_iterator_drop")?;
         let memory = instance
             .get_memory(&mut store, "memory")
             .context("no memory")?;
@@ -176,14 +220,16 @@ impl Instance {
         Ok(Instance {
             alloc,
             dealloc,
+            record_batch_iterator_next,
+            record_batch_iterator_drop,
             memory,
             store,
             functions,
         })
     }
 
-    /// Call a function.
-    pub fn call(&mut self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
+    /// Call a scalar function.
+    fn call_scalar_function(&mut self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         // TODO: optimize data transfer
         // currently there are 3 copies in input path:
         //      host record batch -> host encoding -> wasm memory -> wasm record batch
@@ -213,15 +259,8 @@ impl Instance {
         let errno = func.call(&mut self.store, (in_ptr, input.len() as u32, alloc_ptr))?;
 
         // get return values
-        let read_u32 = |ptr| {
-            u32::from_le_bytes(
-                self.memory.data(&self.store)[ptr as usize..(ptr + 4) as usize]
-                    .try_into()
-                    .unwrap(),
-            )
-        };
-        let out_ptr = read_u32(alloc_ptr);
-        let out_len = read_u32(alloc_ptr + 4);
+        let out_ptr = self.read_u32(alloc_ptr)?;
+        let out_len = self.read_u32(alloc_ptr + 4)?;
 
         // read output from memory
         let out_bytes = self
@@ -240,6 +279,142 @@ impl Instance {
         self.dealloc.call(&mut self.store, (out_ptr, out_len, 1))?;
 
         result
+    }
+
+    /// Call a table function.
+    fn call_table_function<'a>(
+        &'a mut self,
+        name: &str,
+        input: &RecordBatch,
+    ) -> Result<impl Iterator<Item = Result<RecordBatch>> + 'a> {
+        // TODO: optimize data transfer
+        // currently there are 3 copies in input path:
+        //      host record batch -> host encoding -> wasm memory -> wasm record batch
+        // and 2 copies in output path:
+        //      wasm record batch -> wasm memory -> host record batch
+
+        // get function
+        let func = self
+            .functions
+            .get(name)
+            .with_context(|| format!("function not found: {name}"))?;
+
+        // encode input batch
+        let input = encode_record_batch(input)?;
+
+        // allocate memory for input buffer and output struct
+        let alloc_len = u32::try_from(input.len() + 4 * 2).context("input too large")?;
+        let alloc_ptr = self.alloc.call(&mut self.store, (alloc_len, 4))?;
+        ensure!(alloc_ptr != 0, "failed to allocate for input");
+        let in_ptr = alloc_ptr + 4 * 2;
+
+        // write input to memory
+        self.memory
+            .write(&mut self.store, in_ptr as usize, &input)?;
+
+        // call the function
+        let errno = func.call(&mut self.store, (in_ptr, input.len() as u32, alloc_ptr))?;
+
+        // get return values
+        let out_ptr = self.read_u32(alloc_ptr)?;
+        let out_len = self.read_u32(alloc_ptr + 4)?;
+
+        // read output from memory
+        let out_bytes = self
+            .memory
+            .data(&self.store)
+            .get(out_ptr as usize..(out_ptr + out_len) as usize)
+            .context("output slice out of bounds")?;
+
+        let ptr = match errno {
+            0 => out_ptr,
+            _ => {
+                let err = anyhow!("{}", std::str::from_utf8(out_bytes)?);
+                // deallocate memory
+                self.dealloc
+                    .call(&mut self.store, (alloc_ptr, alloc_len, 4))?;
+                self.dealloc.call(&mut self.store, (out_ptr, out_len, 1))?;
+
+                return Err(err);
+            }
+        };
+
+        struct RecordBatchIter<'a> {
+            instance: &'a mut Instance,
+            ptr: u32,
+            alloc_ptr: u32,
+            alloc_len: u32,
+        }
+
+        impl RecordBatchIter<'_> {
+            /// Get the next record batch.
+            fn next(&mut self) -> Result<Option<RecordBatch>> {
+                self.instance
+                    .record_batch_iterator_next
+                    .call(&mut self.instance.store, (self.ptr, self.alloc_ptr))?;
+                // get return values
+                let out_ptr = self.instance.read_u32(self.alloc_ptr)?;
+                let out_len = self.instance.read_u32(self.alloc_ptr + 4)?;
+
+                if out_ptr == 0 {
+                    // end of iteration
+                    return Ok(None);
+                }
+
+                // read output from memory
+                let out_bytes = self
+                    .instance
+                    .memory
+                    .data(&self.instance.store)
+                    .get(out_ptr as usize..(out_ptr + out_len) as usize)
+                    .context("output slice out of bounds")?;
+                let batch = decode_record_batch(out_bytes)?;
+
+                // dealloc output
+                self.instance
+                    .dealloc
+                    .call(&mut self.instance.store, (out_ptr, out_len, 1))?;
+
+                Ok(Some(batch))
+            }
+        }
+
+        impl Iterator for RecordBatchIter<'_> {
+            type Item = Result<RecordBatch>;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                self.next().transpose()
+            }
+        }
+
+        impl Drop for RecordBatchIter<'_> {
+            fn drop(&mut self) {
+                _ = self.instance.dealloc.call(
+                    &mut self.instance.store,
+                    (self.alloc_ptr, self.alloc_len, 4),
+                );
+                _ = self
+                    .instance
+                    .record_batch_iterator_drop
+                    .call(&mut self.instance.store, self.ptr);
+            }
+        }
+
+        Ok(RecordBatchIter {
+            instance: self,
+            ptr,
+            alloc_ptr,
+            alloc_len,
+        })
+    }
+
+    /// Read a `u32` from memory.
+    fn read_u32(&mut self, ptr: u32) -> Result<u32> {
+        Ok(u32::from_le_bytes(
+            self.memory.data(&self.store)[ptr as usize..(ptr + 4) as usize]
+                .try_into()
+                .unwrap(),
+        ))
     }
 }
 

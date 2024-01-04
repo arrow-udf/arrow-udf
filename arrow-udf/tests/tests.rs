@@ -237,8 +237,8 @@ fn test_div() {
         Field::new("x", DataType::Int32, true),
         Field::new("y", DataType::Int32, true),
     ]);
-    let arg0 = Int32Array::from(vec![1, -1]);
-    let arg1 = Int32Array::from(vec![0, -1]);
+    let arg0 = Int32Array::from(vec![Some(1), Some(-1), None]);
+    let arg1 = Int32Array::from(vec![Some(0), Some(-1), None]);
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
@@ -253,6 +253,7 @@ fn test_div() {
 +-----+------------------+
 |     | division by zero |
 | 1   |                  |
+|     |                  |
 +-----+------------------+
 "#
         .trim()

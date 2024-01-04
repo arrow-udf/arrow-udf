@@ -251,12 +251,21 @@ impl FunctionAttr {
                     quote! { Some(#input) }
                 }
             });
-        output = quote! {
-            match (#(#inputs,)*) {
-                (#(#some_inputs,)*) => #output,
-                _ => None,
-            }
-        };
+        if !self.is_table_function && user_fn.has_error() {
+            output = quote! {
+                match (#(#inputs,)*) {
+                    (#(#some_inputs,)*) => #output,
+                    _ => { error_builder.append_null(); None },
+                }
+            };
+        } else {
+            output = quote! {
+                match (#(#inputs,)*) {
+                    (#(#some_inputs,)*) => #output,
+                    _ => None,
+                }
+            };
+        }
 
         let eval = if self.is_table_function {
             let array_zip = match children_indices.len() {
@@ -428,8 +437,7 @@ impl FunctionAttr {
                         #error_field
                     ]));
                 }
-                let opts = RecordBatchOptions::new().with_row_count(Some(input.num_rows()));
-                Ok(RecordBatch::try_new_with_options(SCHEMA.clone(), vec![array, #error_array], &opts).unwrap())
+                Ok(RecordBatch::try_new(SCHEMA.clone(), vec![array, #error_array]).unwrap())
             }
         };
 
@@ -447,7 +455,7 @@ impl FunctionAttr {
         let body = quote! {
             use ::std::sync::Arc;
             use ::arrow_udf::{Result, Error};
-            use ::arrow_udf::codegen::arrow_array::{RecordBatch, RecordBatchOptions};
+            use ::arrow_udf::codegen::arrow_array::RecordBatch;
             use ::arrow_udf::codegen::arrow_array::array::*;
             use ::arrow_udf::codegen::arrow_array::builder::*;
             use ::arrow_udf::codegen::arrow_schema::{Schema, SchemaRef, Field, DataType, IntervalUnit, TimeUnit};
@@ -469,6 +477,7 @@ impl FunctionAttr {
                 {
                     const BATCH_SIZE: usize = 1024;
                     use ::arrow_udf::codegen::genawaiter::{rc::gen, yield_};
+                    use ::arrow_udf::codegen::arrow_array::array::*;
                     #downcast_arrays
                     Ok(Box::new(gen!({ #body }).into_iter()))
                 }

@@ -90,7 +90,8 @@ impl Runtime {
             .exports()
             .find_map(|e| e.name().strip_prefix("ARROWUDF_VERSION_"))
             .context("version not found")?;
-        ensure!(version == "1", "unsupported abi version: {version}");
+        let (major, minor) = version.split_once('_').context("invalid version")?;
+        ensure!(major == "1", "unsupported abi version: {major}.{minor}");
 
         let mut functions = HashSet::new();
         for export in module.exports() {

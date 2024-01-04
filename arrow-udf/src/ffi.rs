@@ -19,9 +19,13 @@ use arrow_array::RecordBatch;
 use arrow_ipc::{reader::FileReader, writer::FileWriter};
 
 /// A symbol indicating the ABI version.
+///
+/// The version follows semantic versioning `MAJOR.MINOR`.
+/// - The major version is incremented when incompatible API changes are made.
+/// - The minor version is incremented when new functionality are added in a backward compatible manner.
 #[no_mangle]
 #[used]
-pub static ARROWUDF_VERSION_1: () = ();
+pub static ARROWUDF_VERSION_1_0: () = ();
 
 /// Allocate memory.
 ///

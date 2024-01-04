@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704289404056,
+  "lastUpdate": 1704386331029,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -569,6 +569,54 @@ window.BENCHMARK_DATA = {
             "name": "gcd/python-wasm",
             "value": 2137050,
             "range": "± 4106744",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "1d286a86eadae91c0f6b4ec7a33d73f978bd3005",
+          "message": "support calling table function from wasm\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-01-05T00:24:56+08:00",
+          "tree_id": "ce1426f46f0ed418d36f889f0b5ecc214688a8ef",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/1d286a86eadae91c0f6b4ec7a33d73f978bd3005"
+        },
+        "date": 1704386330086,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3887,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 26041,
+            "range": "± 1542",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 196156,
+            "range": "± 1624",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python-wasm",
+            "value": 2122919,
+            "range": "± 4116645",
             "unit": "ns/iter"
           }
         ]

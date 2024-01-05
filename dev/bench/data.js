@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704440225438,
+  "lastUpdate": 1704480708840,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -665,6 +665,54 @@ window.BENCHMARK_DATA = {
             "name": "gcd/python-wasm",
             "value": 2131629,
             "range": "± 4516882",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "76205e0f302523a7cfc6ce6acc16a0fad5843197",
+          "message": "add js demo\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-01-06T02:38:09+08:00",
+          "tree_id": "3f098163d2748ca5919651579f4e9ce9d248ff33",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/76205e0f302523a7cfc6ce6acc16a0fad5843197"
+        },
+        "date": 1704480708456,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3886,
+            "range": "± 24",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 25668,
+            "range": "± 1503",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 198438,
+            "range": "± 1357",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python-wasm",
+            "value": 2114192,
+            "range": "± 4309229",
             "unit": "ns/iter"
           }
         ]

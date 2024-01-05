@@ -187,6 +187,10 @@ fn call_table(function: TableFunction, input_bytes: &[u8]) -> Result<Box<RecordB
 ///
 /// The output record batch is written to the buffer pointed to by `out`.
 /// The caller is responsible for deallocating the output buffer.
+///
+/// # Safety
+///
+/// `iter` and `out` must be valid pointers.
 #[no_mangle]
 pub unsafe extern "C" fn record_batch_iterator_next(iter: *mut RecordBatchIter, out: *mut CSlice) {
     let iter = iter.as_mut().expect("null pointer");
@@ -212,6 +216,10 @@ pub unsafe extern "C" fn record_batch_iterator_next(iter: *mut RecordBatchIter, 
 }
 
 /// Drop the iterator.
+///
+/// # Safety
+///
+/// `iter` must be valid pointers.
 #[no_mangle]
 pub unsafe extern "C" fn record_batch_iterator_drop(iter: *mut RecordBatchIter) {
     drop(Box::from_raw(iter));

@@ -7,4 +7,5 @@ members = [
     "arrow-udf-python-wasm",
     "arrow-udf-example",
     "arrow-udf-wasm",
+    "arrow-udf-js",
 ]

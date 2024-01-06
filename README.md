@@ -4,7 +4,7 @@
 [![Docs](https://docs.rs/arrow-udf/badge.svg)](https://docs.rs/arrow-udf)
 
 Easily create and run user-defined functions (UDF) on Apache Arrow.
-You can define functions in Rust or Python, run natively or on WebAssembly.
+You can define functions in Rust, Python or JavaScript, run natively or on WebAssembly.
 
 ## Usage
 
@@ -140,6 +140,48 @@ Please note that due to the limitation of GIL, only one Python function can be r
 
 See the [example](./arrow-udf-python/examples/python.rs) for more details.
 
+### Define JavaScript Functions and Run Locally
+
+Add the following lines to your `Cargo.toml`:
+
+```toml
+[dependencies]
+arrow-udf-js = "0.1"
+```
+
+Define your JS function in a string and create a `Runtime` for each function.
+Note that the function must be exported.
+
+```rust
+use arrow_udf_js::Runtime;
+
+let js_code = r#"
+export function gcd(a, b) {
+    if (a == null || b == null) 
+        return null;
+    while (b != 0) {
+        let t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
+"#;
+let return_type = arrow_schema::DataType::Int32;
+let runtime = Runtime::new("gcd", return_type, js_code).unwrap();
+```
+
+You can then call the JS function on a `RecordBatch`:
+
+```rust
+let input: RecordBatch = ...;
+let output = runtime.call(&input).unwrap();
+```
+
+The JS code will be run in an embedded QuickJS interpreter.
+
+See the [example](./arrow-udf-js/examples/js.rs) for more details.
+
 ### Define Rust Functions and Run on WebAssembly
 
 For untrusted user-defined functions, you can compile them into WebAssembly and run them in a sandboxed environment.
@@ -216,8 +258,9 @@ cargo bench --bench wasm
 Performance comparison of calling `gcd` on a chunk of 1024 rows:
 
 ```
-gcd/native          1.4020 µs   x1
-gcd/wasm            18.352 µs   x13
-gcd/python          126.22 µs   x90
-gcd/python-wasm     3.9261 ms   x2800
+gcd/native          1.4476 µs   x1
+gcd/wasm            16.006 µs   x11
+gcd/js              92.086 µs   x63
+gcd/python          122.52 µs   x85
+gcd/python-wasm     2.2475 ms   x1553
 ```

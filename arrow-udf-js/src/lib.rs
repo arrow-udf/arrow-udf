@@ -27,6 +27,7 @@ pub struct Runtime {
     function: Persistent<Function<'static>>,
     _runtime: rquickjs::Runtime,
     context: Context,
+    function_name: String,
     return_type: DataType,
 }
 
@@ -50,6 +51,7 @@ impl Runtime {
             _runtime: runtime,
             context,
             function,
+            function_name: function_name.into(),
             return_type,
         })
     }
@@ -72,7 +74,11 @@ impl Runtime {
                 results.push(result);
             }
             let array = jsarrow::build_array(&self.return_type, &ctx, results)?;
-            let schema = Schema::new(vec![Field::new("result", array.data_type().clone(), true)]);
+            let schema = Schema::new(vec![Field::new(
+                &self.function_name,
+                array.data_type().clone(),
+                true,
+            )]);
             Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
         })
     }

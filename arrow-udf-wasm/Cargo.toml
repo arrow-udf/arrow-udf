@@ -23,6 +23,7 @@ wasmtime-wasi = "16"
 [dev-dependencies]
 arrow-arith = "49"
 arrow-cast = { version = "49", features = ["prettyprint"] }
+arrow-udf-js = { path = "../arrow-udf-js" }
 arrow-udf-python = { path = "../arrow-udf-python" }
 arrow-udf-python-wasm = { path = "../arrow-udf-python-wasm" }
 criterion = "0.5"

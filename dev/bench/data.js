@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704480708840,
+  "lastUpdate": 1704521966379,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -713,6 +713,60 @@ window.BENCHMARK_DATA = {
             "name": "gcd/python-wasm",
             "value": 2114192,
             "range": "± 4309229",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "21bd008644c65a4a73f1bbeb56334e0186a438fb",
+          "message": "add docs, test and bench for js\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-01-06T14:04:59+08:00",
+          "tree_id": "20caa411ce69d885b804896eb3eab6c99c2715f1",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/21bd008644c65a4a73f1bbeb56334e0186a438fb"
+        },
+        "date": 1704521965782,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3890,
+            "range": "± 21",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 25792,
+            "range": "± 1463",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 196279,
+            "range": "± 1412",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 201492,
+            "range": "± 1718",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python-wasm",
+            "value": 3244076,
+            "range": "± 4020001",
             "unit": "ns/iter"
           }
         ]

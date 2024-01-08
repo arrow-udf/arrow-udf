@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704522026960,
+  "lastUpdate": 1704709865841,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -821,6 +821,60 @@ window.BENCHMARK_DATA = {
             "name": "gcd/python-wasm",
             "value": 2127600,
             "range": "± 4085164",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "f9a9e0d41d1a4ae26a6d90ac8aebf2e38a0c8a55",
+          "message": "use sync generator\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-01-08T18:17:06+08:00",
+          "tree_id": "472c4807cb64f8999a1e95758a284c96f1a7f80c",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/f9a9e0d41d1a4ae26a6d90ac8aebf2e38a0c8a55"
+        },
+        "date": 1704709865381,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3889,
+            "range": "± 18",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 26076,
+            "range": "± 1385",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 196429,
+            "range": "± 490",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 201211,
+            "range": "± 1467",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python-wasm",
+            "value": 2121522,
+            "range": "± 4073709",
             "unit": "ns/iter"
           }
         ]

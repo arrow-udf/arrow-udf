@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704709865841,
+  "lastUpdate": 1704860054380,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -875,6 +875,60 @@ window.BENCHMARK_DATA = {
             "name": "gcd/python-wasm",
             "value": 2121522,
             "range": "± 4073709",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "ca61e5ee07dceca1950333bed79c9eba8ded89e8",
+          "message": "add docs for table function\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-01-10T12:00:11+08:00",
+          "tree_id": "357509b01c22fada485a319e6788f62bb51a58ee",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/ca61e5ee07dceca1950333bed79c9eba8ded89e8"
+        },
+        "date": 1704860053953,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3887,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 26584,
+            "range": "± 1440",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 193408,
+            "range": "± 569",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 194555,
+            "range": "± 1198",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python-wasm",
+            "value": 2108584,
+            "range": "± 4078040",
             "unit": "ns/iter"
           }
         ]

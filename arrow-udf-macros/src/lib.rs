@@ -149,6 +149,27 @@ mod utils;
 /// }
 /// ```
 ///
+/// # Table Function
+///
+/// A table function is a special kind of function that can return multiple values instead of just
+/// one. Its function signature must include the `setof` keyword, and the Rust function should
+/// return an iterator of the form `impl Iterator<Item = T>` or its derived types.
+///
+/// For example:
+/// ```ignore
+/// #[function("generate_series(int32, int32) -> setof int32")]
+/// fn generate_series(start: i32, stop: i32) -> impl Iterator<Item = i32> {
+///     start..=stop
+/// }
+/// ```
+///
+/// Likewise, the return value `Iterator` can include `Option` or `Result` either internally or
+/// externally. For instance:
+///
+/// - `impl Iterator<Item = Result<T>>`
+/// - `Result<impl Iterator<Item = T>>`
+/// - `Result<impl Iterator<Item = Result<Option<T>>>>`
+///
 /// # Registration and Invocation
 ///
 /// Every function defined by `#[function]` is automatically registered in the global function registry.

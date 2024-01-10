@@ -170,6 +170,7 @@ impl Runtime {
                 yield_!(output);
             }
             // put the instance back to the pool
+            // FIXME: if the iterator is not consumed, the instance will be dropped
             self.instances.lock().unwrap().push(instance);
         })
         .into_iter())

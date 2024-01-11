@@ -52,8 +52,9 @@ fn bench_eval_gcd(c: &mut Criterion) {
     });
 
     c.bench_function("gcd/js", |bencher| {
-        let rt = JsRuntime::new("gcd", DataType::Int32, JS_CODE).unwrap();
-        bencher.iter(|| rt.call(&input).unwrap())
+        let mut rt = JsRuntime::new().unwrap();
+        rt.add_function("gcd", DataType::Int32, JS_CODE).unwrap();
+        bencher.iter(|| rt.call("gcd", &input).unwrap())
     });
 
     c.bench_function("gcd/python", |bencher| {

@@ -21,6 +21,8 @@ use arrow_udf_js::Runtime;
 
 #[test]
 fn test_gcd() {
+    let mut runtime = Runtime::new().unwrap();
+
     let js_code = r#"
         export function gcd(a, b) {
             if (a == null || b == null) 
@@ -33,8 +35,9 @@ fn test_gcd() {
             return a;
         }
     "#;
-    let return_type = arrow_schema::DataType::Int32;
-    let runtime = Runtime::new("gcd", return_type, js_code).unwrap();
+    runtime
+        .add_function("gcd", arrow_schema::DataType::Int32, js_code)
+        .unwrap();
 
     let schema = Schema::new(vec![
         Field::new("x", DataType::Int32, true),
@@ -45,7 +48,7 @@ fn test_gcd() {
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = runtime.call(&input).unwrap();
+    let output = runtime.call("gcd", &input).unwrap();
     assert_eq!(
         pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()

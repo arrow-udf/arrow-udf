@@ -19,10 +19,8 @@ use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js::Runtime;
 
 fn main() {
-    let runtime = Runtime::new(
-        "gcd",
-        DataType::Int32,
-        r#"
+    let mut runtime = Runtime::new().unwrap();
+    let code = r#"
         export function gcd(a, b) {
             if (a == null || b == null) 
                 return null;
@@ -33,11 +31,10 @@ fn main() {
             }
             return a;
         }
-"#,
-    )
-    .unwrap();
-    println!("call gcd");
+"#;
+    runtime.add_function("gcd", DataType::Int32, code).unwrap();
 
+    println!("call gcd");
     let input = RecordBatch::try_new(
         Arc::new(Schema::new(vec![
             Field::new("a", DataType::Int32, true),
@@ -50,7 +47,7 @@ fn main() {
     )
     .unwrap();
 
-    let output = runtime.call(&input).unwrap();
+    let output = runtime.call("gcd", &input).unwrap();
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
     arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();

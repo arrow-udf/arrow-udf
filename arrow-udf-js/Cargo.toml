@@ -8,7 +8,7 @@ edition = "2021"
 anyhow = "1"
 arrow-array = "49"
 arrow-schema = "49"
-rquickjs = "0.4"
+rquickjs = { version = "0.4", features = ["parallel"] }
 
 [dev-dependencies]
 arrow-cast = { version = "49", features = ["prettyprint"] }

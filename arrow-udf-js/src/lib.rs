@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
+use std::fmt::Debug;
+use std::sync::Arc;
 
 use anyhow::{anyhow, Context as _, Result};
 use arrow_array::{Array, RecordBatch};
@@ -33,12 +35,24 @@ pub struct Runtime {
     context: Context,
 }
 
+impl Debug for Runtime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Runtime")
+            .field("functions", &self.functions.keys())
+            .finish()
+    }
+}
+
 /// A registered function.
 struct Function {
     function: Persistent<rquickjs::Function<'static>>,
     return_type: DataType,
     mode: CallMode,
 }
+
+// XXX: to make `Runtime` Send and Sync. not sure if this is safe.
+unsafe impl Send for Function {}
+unsafe impl Sync for Function {}
 
 /// Whether the function will be called when some of its arguments are null.
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]

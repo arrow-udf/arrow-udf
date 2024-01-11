@@ -16,23 +16,43 @@ use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_js::Runtime;
+use arrow_udf_js::{CallMode, Runtime};
 
 fn main() {
     let mut runtime = Runtime::new().unwrap();
-    let code = r#"
-        export function gcd(a, b) {
-            if (a == null || b == null) 
-                return null;
-            while (b != 0) {
-                let t = b;
-                b = a % b;
-                a = t;
+
+    runtime
+        .add_function(
+            "gcd",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function gcd(a, b) {
+                while (b != 0) {
+                    let t = b;
+                    b = a % b;
+                    a = t;
+                }
+                return a;
             }
-            return a;
-        }
-"#;
-    runtime.add_function("gcd", DataType::Int32, code).unwrap();
+            "#,
+        )
+        .unwrap();
+
+    runtime
+        .add_function(
+            "fib",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function fib(x) {
+                if (x <= 1) 
+                    return x;
+                return fib(x - 1) + fib(x - 2);
+            }
+            "#,
+        )
+        .unwrap();
 
     println!("call gcd");
     let input = RecordBatch::try_new(
@@ -48,6 +68,18 @@ fn main() {
     .unwrap();
 
     let output = runtime.call("gcd", &input).unwrap();
+
+    arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
+    arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
+
+    println!("call fib");
+    let input = RecordBatch::try_new(
+        Arc::new(Schema::new(vec![Field::new("a", DataType::Int32, true)])),
+        vec![Arc::new(Int32Array::from(vec![10]))],
+    )
+    .unwrap();
+
+    let output = runtime.call("fib", &input).unwrap();
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
     arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();

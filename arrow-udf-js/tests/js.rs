@@ -17,7 +17,7 @@ use std::sync::Arc;
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_js::Runtime;
+use arrow_udf_js::{CallMode, Runtime};
 
 #[test]
 fn test_gcd() {
@@ -25,8 +25,6 @@ fn test_gcd() {
 
     let js_code = r#"
         export function gcd(a, b) {
-            if (a == null || b == null) 
-                return null;
             while (b != 0) {
                 let t = b;
                 b = a % b;
@@ -36,7 +34,12 @@ fn test_gcd() {
         }
     "#;
     runtime
-        .add_function("gcd", arrow_schema::DataType::Int32, js_code)
+        .add_function(
+            "gcd",
+            arrow_schema::DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            js_code,
+        )
         .unwrap();
 
     let schema = Schema::new(vec![
@@ -60,6 +63,48 @@ fn test_gcd() {
 | 5   |
 |     |
 +-----+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_to_string() {
+    let mut runtime = Runtime::new().unwrap();
+
+    let js_code = r#"
+        export function to_string(a) {
+            if (a == null) {
+                return "null";
+            }
+            return a.toString();
+        }
+    "#;
+    runtime
+        .add_function(
+            "to_string",
+            arrow_schema::DataType::Utf8,
+            CallMode::CalledOnNullInput,
+            js_code,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(5), None]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("to_string", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-----------+
+| to_string |
++-----------+
+| 5         |
+| null      |
++-----------+
 "#
         .trim()
     );

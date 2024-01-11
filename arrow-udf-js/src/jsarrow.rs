@@ -30,10 +30,10 @@ macro_rules! get_jsvalue {
 /// Get array element as a JS Value.
 pub fn get_jsvalue<'a>(ctx: &Ctx<'a>, array: &dyn Array, i: usize) -> Result<Value<'a>, Error> {
     if array.is_null(i) {
-        return ().into_js(ctx);
+        return Ok(Value::new_null(ctx.clone()));
     }
     match array.data_type() {
-        DataType::Null => ().into_js(ctx),
+        DataType::Null => Ok(Value::new_null(ctx.clone())),
         DataType::Boolean => get_jsvalue!(BooleanArray, ctx, array, i),
         DataType::Int16 => get_jsvalue!(Int16Array, ctx, array, i),
         DataType::Int32 => get_jsvalue!(Int32Array, ctx, array, i),

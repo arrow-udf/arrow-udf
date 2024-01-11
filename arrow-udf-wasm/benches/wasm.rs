@@ -17,7 +17,7 @@ use std::sync::Arc;
 use arrow_arith::arity::binary;
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_js::Runtime as JsRuntime;
+use arrow_udf_js::{CallMode, Runtime as JsRuntime};
 use arrow_udf_python::Runtime as PythonRuntime;
 use arrow_udf_python_wasm::Runtime as PythonWasmRuntime;
 use arrow_udf_wasm::Runtime as WasmRuntime;
@@ -53,7 +53,13 @@ fn bench_eval_gcd(c: &mut Criterion) {
 
     c.bench_function("gcd/js", |bencher| {
         let mut rt = JsRuntime::new().unwrap();
-        rt.add_function("gcd", DataType::Int32, JS_CODE).unwrap();
+        rt.add_function(
+            "gcd",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            JS_CODE,
+        )
+        .unwrap();
         bencher.iter(|| rt.call("gcd", &input).unwrap())
     });
 
@@ -81,9 +87,6 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
 
 const JS_CODE: &str = r#"
 export function gcd(a, b) {
-    if (a === null || b === null) {
-        return null;
-    }
     while (b) {
         let t = b;
         b = a % b;

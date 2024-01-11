@@ -20,7 +20,7 @@ use arrow_schema::{DataType, Field, Schema};
 use rquickjs::{
     context::intrinsic::{BaseObjects, Eval},
     function::Args,
-    Context, Ctx, Persistent,
+    Context, Ctx, Persistent, Value,
 };
 
 mod jsarrow;
@@ -37,6 +37,21 @@ pub struct Runtime {
 struct Function {
     function: Persistent<rquickjs::Function<'static>>,
     return_type: DataType,
+    mode: CallMode,
+}
+
+/// Whether the function will be called when some of its arguments are null.
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CallMode {
+    /// The function will be called normally when some of its arguments are null.
+    /// It is then the function author's responsibility to check for null values if necessary and respond appropriately.
+    #[default]
+    CalledOnNullInput,
+
+    /// The function always returns null whenever any of its arguments are null.
+    /// If this parameter is specified, the function is not executed when there are null arguments;
+    /// instead a null result is assumed automatically.
+    ReturnNullOnNullInput,
 }
 
 impl Runtime {
@@ -54,7 +69,13 @@ impl Runtime {
     }
 
     /// Add a JS function.
-    pub fn add_function(&mut self, name: &str, return_type: DataType, code: &str) -> Result<()> {
+    pub fn add_function(
+        &mut self,
+        name: &str,
+        return_type: DataType,
+        mode: CallMode,
+        code: &str,
+    ) -> Result<()> {
         let function = self.context.with(|ctx| {
             let module = ctx
                 .clone()
@@ -69,6 +90,7 @@ impl Runtime {
         let function = Function {
             function,
             return_type,
+            mode,
         };
         self.functions.insert(name.to_string(), function);
         Ok(())
@@ -87,6 +109,12 @@ impl Runtime {
                     let val = jsarrow::get_jsvalue(&ctx, column, i)
                         .context("failed to get jsvalue from arrow array")?;
                     row.push(val);
+                }
+                if function.mode == CallMode::ReturnNullOnNullInput
+                    && row.iter().any(|v| v.is_null())
+                {
+                    results.push(Value::new_null(ctx.clone()));
+                    continue;
                 }
                 let mut args = Args::new(ctx.clone(), row.len());
                 args.push_args(row.drain(..))?;

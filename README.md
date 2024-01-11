@@ -106,145 +106,19 @@ See the [example](./arrow-udf/examples/rust.rs) for more details.
 
 ### Define Python Functions and Run Locally
 
-Add the following lines to your `Cargo.toml`:
-
-```toml
-[dependencies]
-arrow-udf-python = "0.1"
-```
-
-Define your Python function in a string and create a `Runtime` for each function:
-
-```rust
-use arrow_udf_python::Runtime;
-
-let python_code = r#"
-def gcd(a: int, b: int) -> int:
-    while b:
-        a, b = b, a % b
-    return a
-"#;
-let return_type = arrow_schema::DataType::Int32;
-let runtime = Runtime::new("gcd", return_type, python_code).unwrap();
-```
-
-You can then call the python function on a `RecordBatch`:
-
-```rust
-let input: RecordBatch = ...;
-let output = runtime.call(&input).unwrap();
-```
-
-The python code will be run in an embedded CPython 3.11 interpreter, powered by [PyO3](pyo3.rs).
-Please note that due to the limitation of GIL, only one Python function can be running in a process at the same time.
-
-See the [example](./arrow-udf-python/examples/python.rs) for more details.
+See [documents](./arrow-udf-python/README.md) in `arrow-udf-python`.
 
 ### Define JavaScript Functions and Run Locally
 
-Add the following lines to your `Cargo.toml`:
-
-```toml
-[dependencies]
-arrow-udf-js = "0.1"
-```
-
-Define your JS function in a string and create a `Runtime` for each function.
-Note that the function must be exported.
-
-```rust
-use arrow_udf_js::Runtime;
-
-let js_code = r#"
-export function gcd(a, b) {
-    if (a == null || b == null) 
-        return null;
-    while (b != 0) {
-        let t = b;
-        b = a % b;
-        a = t;
-    }
-    return a;
-}
-"#;
-let return_type = arrow_schema::DataType::Int32;
-let runtime = Runtime::new("gcd", return_type, js_code).unwrap();
-```
-
-You can then call the JS function on a `RecordBatch`:
-
-```rust
-let input: RecordBatch = ...;
-let output = runtime.call(&input).unwrap();
-```
-
-The JS code will be run in an embedded QuickJS interpreter.
-
-See the [example](./arrow-udf-js/examples/js.rs) for more details.
+See [documents](./arrow-udf-js/README.md) in `arrow-udf-js`.
 
 ### Define Rust Functions and Run on WebAssembly
 
-For untrusted user-defined functions, you can compile them into WebAssembly and run them in a sandboxed environment.
-
-First, create a project and define functions as described in [the above section](#define-rust-functions-and-run-locally).
-Then compile the project into WebAssembly:
-
-```sh
-cargo build --release --target wasm32-wasi
-```
-
-You can find the generated WebAssembly module in `target/wasm32-wasi/release/*.wasm`.
-
-Next, add the following lines to your project:
-
-```toml
-[dependencies]
-arrow-udf-wasm = "0.1"
-```
-
-You can then load the WebAssembly module and call the functions:
-
-```rust
-use arrow_udf_wasm::Runtime;
-
-// load the WebAssembly module
-let binary = std::fs::read("udf.wasm").unwrap();
-// create a runtime from the module
-let runtime = Runtime::new(&binary).unwrap();
-// list available functions in the module:
-for name in runtime.functions() {
-    println!("{}", name);
-}
-// call the function with a RecordBatch
-let input: RecordBatch = ...;
-let output = runtime.call("gcd(int4,int4)->int4", &input).unwrap();
-```
-
-The WebAssembly runtime is powered by [wasmtime](https://wasmtime.dev/). 
-Notice that each WebAssembly instance can only run single-threaded, we maintain an instance pool internally to support parallel calls from multiple threads.
-
-See the [example](./arrow-udf-wasm/examples/wasm.rs) for more details. To run the example:
-
-```sh
-cargo build --release -p arrow-udf-example --target wasm32-wasi
-cargo run --example wasm -- target/wasm32-wasi/release/arrow_udf_example.wasm
-```
+See [documents](./arrow-udf-wasm/README.md) in `arrow-udf-wasm`.
 
 ### Define Python Functions and Run on WebAssembly
 
-Similarly, you can run Python functions on WebAssembly.
-
-We don't have a ready-to-use library yet, but you can refer to the following steps to run a simple example.
-
-```sh
-# Build the Python WebAssembly module
-PYO3_NO_PYTHON=1 cargo build --release -p arrow-udf-python --target wasm32-wasi
-mkdir -p arrow-udf-python/target/wasm32-wasi/wasi-deps/bin
-cp target/wasm32-wasi/release/arrow_udf_python.wasm arrow-udf-python/target/wasm32-wasi/wasi-deps/bin/python.wasm
-
-# Run the Python WebAssembly example
-cargo run --release --example python_wasm
-```
+See [documents](./arrow-udf-python-wasm/README.md) in `arrow-udf-python-wasm`.
 
 ## Benchmarks
 

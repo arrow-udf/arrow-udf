@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704960909104,
+  "lastUpdate": 1704961286322,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -1091,6 +1091,60 @@ window.BENCHMARK_DATA = {
             "name": "gcd/python-wasm",
             "value": 2113709,
             "range": "± 4155876",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "f4a69574d38c230b8e7e5bf911090463e8bc92af",
+          "message": "enable \"parallel\" feature of rquickjs and make runtime sync\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-01-11T16:06:46+08:00",
+          "tree_id": "3464c5f45db4321ea5f9920a3f54a5b9873f7961",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/f4a69574d38c230b8e7e5bf911090463e8bc92af"
+        },
+        "date": 1704961285892,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3887,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 26011,
+            "range": "± 1950",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 177404,
+            "range": "± 1028",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 201165,
+            "range": "± 1836",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python-wasm",
+            "value": 2127903,
+            "range": "± 4174075",
             "unit": "ns/iter"
           }
         ]

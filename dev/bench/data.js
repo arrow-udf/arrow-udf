@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1705130397439,
+  "lastUpdate": 1705130560151,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -1307,6 +1307,60 @@ window.BENCHMARK_DATA = {
             "name": "gcd/python-wasm",
             "value": 2131826,
             "range": "± 4234552",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "f02b0ee45c65a9322e077e2bd690489647020181",
+          "message": "update arrow to v50 and publish v0.1.0\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-01-13T15:08:16+08:00",
+          "tree_id": "a3ee368046b578f5235df27e14a89254ed81fa91",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/f02b0ee45c65a9322e077e2bd690489647020181"
+        },
+        "date": 1705130559769,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3887,
+            "range": "± 65",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24458,
+            "range": "± 1440",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 174418,
+            "range": "± 2817",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 281016,
+            "range": "± 4128",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python-wasm",
+            "value": 2158164,
+            "range": "± 4069300",
             "unit": "ns/iter"
           }
         ]

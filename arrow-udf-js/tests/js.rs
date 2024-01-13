@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use arrow_array::{BinaryArray, Int32Array, RecordBatch};
+use arrow_array::{BinaryArray, Int32Array, LargeStringArray, RecordBatch};
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js::{CallMode, Runtime};
@@ -147,6 +147,48 @@ fn test_concat() {
 +----------------------+
 | 68656c6c6f776f726c64 |
 +----------------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_json_array_access() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "json_array_access",
+            arrow_schema::DataType::LargeUtf8,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function json_array_access(array, i) {
+                return array[i];
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("array", DataType::LargeUtf8, true),
+        Field::new("i", DataType::Int32, true),
+    ]);
+    let arg0 = LargeStringArray::from(vec![r#"[1, null, ""]"#]);
+    let arg1 = Int32Array::from(vec![0]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let output = runtime.call("json_array_access", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-------------------+
+| json_array_access |
++-------------------+
+| 1                 |
++-------------------+
 "#
         .trim()
     );

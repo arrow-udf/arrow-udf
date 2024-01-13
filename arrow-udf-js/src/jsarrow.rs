@@ -47,6 +47,11 @@ pub fn get_jsvalue<'a>(ctx: &Ctx<'a>, array: &dyn Array, i: usize) -> Result<Val
         DataType::Float64 => get_jsvalue!(Float64Array, ctx, array, i),
         DataType::Utf8 => get_jsvalue!(StringArray, ctx, array, i),
         DataType::Binary => get_jsvalue!(BinaryArray, ctx, array, i),
+        // json type
+        DataType::LargeUtf8 => {
+            let array = array.as_any().downcast_ref::<LargeStringArray>().unwrap();
+            ctx.json_parse(array.value(i))
+        }
         _ => todo!(),
     }
 }
@@ -110,6 +115,19 @@ pub fn build_array<'a>(
         DataType::Float64 => build_array!(Float64Builder, ctx, values),
         DataType::Utf8 => build_array!(StringBuilder, String, ctx, values),
         DataType::Binary => build_array!(BinaryBuilder, Vec::<u8>, ctx, values),
+        DataType::LargeUtf8 => {
+            let mut builder = LargeStringBuilder::with_capacity(values.len(), 1024);
+            for val in values {
+                if val.is_null() {
+                    builder.append_null();
+                } else if let Some(s) = ctx.json_stringify(val)? {
+                    builder.append_value(s.to_string()?);
+                } else {
+                    builder.append_null();
+                }
+            }
+            Ok(Arc::new(builder.finish()))
+        }
         _ => todo!(),
     }
 }

@@ -17,8 +17,8 @@ use std::sync::Arc;
 use arrow_arith::arity::binary;
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_js::{CallMode, Runtime as JsRuntime};
-use arrow_udf_python::Runtime as PythonRuntime;
+use arrow_udf_js::Runtime as JsRuntime;
+use arrow_udf_python::Function as PythonRuntime;
 use arrow_udf_python_wasm::Runtime as PythonWasmRuntime;
 use arrow_udf_wasm::Runtime as WasmRuntime;
 use criterion::{criterion_group, criterion_main, Criterion};
@@ -56,7 +56,7 @@ fn bench_eval_gcd(c: &mut Criterion) {
         rt.add_function(
             "gcd",
             DataType::Int32,
-            CallMode::ReturnNullOnNullInput,
+            arrow_udf_js::CallMode::ReturnNullOnNullInput,
             JS_CODE,
         )
         .unwrap();
@@ -64,7 +64,13 @@ fn bench_eval_gcd(c: &mut Criterion) {
     });
 
     c.bench_function("gcd/python", |bencher| {
-        let rt = PythonRuntime::new("gcd", DataType::Int32, PYTHON_CODE).unwrap();
+        let rt = PythonRuntime::new(
+            "gcd",
+            DataType::Int32,
+            arrow_udf_python::CallMode::ReturnNullOnNullInput,
+            PYTHON_CODE,
+        )
+        .unwrap();
         bencher.iter(|| rt.call(&input).unwrap())
     });
 
@@ -78,9 +84,7 @@ fn bench_eval_gcd(c: &mut Criterion) {
 
 fn gcd(mut a: i32, mut b: i32) -> i32 {
     while b != 0 {
-        let t = b;
-        b = a % b;
-        a = t;
+        (a, b) = (b, a % b);
     }
     a
 }
@@ -98,8 +102,6 @@ export function gcd(a, b) {
 
 const PYTHON_CODE: &str = r#"
 def gcd(a: int, b: int) -> int:
-    if a is None or b is None:
-        return None
     while b:
         a, b = b, a % b
     return a

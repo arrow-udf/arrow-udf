@@ -15,11 +15,13 @@
 use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch};
+use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_python::{CallMode, Function};
 
-fn main() {
-    let runtime = Function::new(
+#[test]
+fn test_gcd() {
+    let function = Function::new(
         "gcd",
         DataType::Int32,
         CallMode::ReturnNullOnNullInput,
@@ -31,22 +33,29 @@ def gcd(a: int, b: int) -> int:
 "#,
     )
     .unwrap();
-    println!("\ncall gcd");
 
-    let input = RecordBatch::try_new(
-        Arc::new(Schema::new(vec![
-            Field::new("a", DataType::Int32, true),
-            Field::new("b", DataType::Int32, true),
-        ])),
-        vec![
-            Arc::new(Int32Array::from(vec![Some(15), None])),
-            Arc::new(Int32Array::from(vec![25, 2])),
-        ],
-    )
-    .unwrap();
+    let schema = Schema::new(vec![
+        Field::new("x", DataType::Int32, true),
+        Field::new("y", DataType::Int32, true),
+    ]);
+    let arg0 = Int32Array::from(vec![Some(25), None]);
+    let arg1 = Int32Array::from(vec![Some(15), None]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = runtime.call(&input).unwrap();
-
-    arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
-    arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
+    let output = function.call(&input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-----+
+| gcd |
++-----+
+| 5   |
+|     |
++-----+
+"#
+        .trim()
+    );
 }

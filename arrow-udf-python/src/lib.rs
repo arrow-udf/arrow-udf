@@ -22,24 +22,26 @@ use std::sync::Arc;
 mod ffi;
 mod pyarrow;
 
-/// The Python UDF runtime.
-pub struct Runtime {
+/// A Python UDF.
+pub struct Function {
+    name: String,
     function: PyObject,
     return_type: DataType,
+    mode: CallMode,
 }
 
-impl Runtime {
+impl Function {
     /// Create a new Python UDF runtime from a Python code.
-    pub fn new(function_name: &str, return_type: DataType, code: &str) -> Result<Self> {
+    pub fn new(name: &str, return_type: DataType, mode: CallMode, code: &str) -> Result<Self> {
         pyo3::prepare_freethreaded_python();
         let function = Python::with_gil(|py| -> PyResult<PyObject> {
-            Ok(PyModule::from_code(py, code, "", "")?
-                .getattr(function_name)?
-                .into())
+            Ok(PyModule::from_code(py, code, "", "")?.getattr(name)?.into())
         })?;
         Ok(Self {
+            name: name.into(),
             function,
             return_type,
+            mode,
         })
     }
 
@@ -54,6 +56,11 @@ impl Runtime {
                     let pyobj = pyarrow::get_pyobject(py, column, i);
                     row.push(pyobj);
                 }
+                if self.mode == CallMode::ReturnNullOnNullInput && row.iter().any(|v| v.is_none(py))
+                {
+                    results.push(py.None());
+                    continue;
+                }
                 let args = PyTuple::new(py, row.drain(..));
                 let result = self.function.call1(py, args)?;
                 results.push(result);
@@ -61,7 +68,25 @@ impl Runtime {
             let result = pyarrow::build_array(&self.return_type, py, &results)?;
             Ok(result)
         })?;
-        let schema = Schema::new(vec![Field::new("result", array.data_type().clone(), true)]);
+        let schema = Schema::new(vec![Field::new(
+            &self.name,
+            array.data_type().clone(),
+            true,
+        )]);
         Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
     }
+}
+
+/// Whether the function will be called when some of its arguments are null.
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CallMode {
+    /// The function will be called normally when some of its arguments are null.
+    /// It is then the function author's responsibility to check for null values if necessary and respond appropriately.
+    #[default]
+    CalledOnNullInput,
+
+    /// The function always returns null whenever any of its arguments are null.
+    /// If this parameter is specified, the function is not executed when there are null arguments;
+    /// instead a null result is assumed automatically.
+    ReturnNullOnNullInput,
 }

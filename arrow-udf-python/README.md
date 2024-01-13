@@ -13,7 +13,7 @@ arrow-udf-python = "0.1"
 Define your Python function in a string and create a `Runtime` for each function:
 
 ```rust
-use arrow_udf_python::Runtime;
+use arrow_udf_python::{CallMode, Function};
 
 let python_code = r#"
 def gcd(a: int, b: int) -> int:
@@ -22,14 +22,15 @@ def gcd(a: int, b: int) -> int:
     return a
 "#;
 let return_type = arrow_schema::DataType::Int32;
-let runtime = Runtime::new("gcd", return_type, python_code).unwrap();
+let mode = CallMode::ReturnNullOnNullInput;
+let function = Function::new("gcd", return_type, mode, python_code).unwrap();
 ```
 
 You can then call the python function on a `RecordBatch`:
 
 ```rust
 let input: RecordBatch = ...;
-let output = runtime.call(&input).unwrap();
+let output: RecordBatch = function.call(&input).unwrap();
 ```
 
 The python code will be run in an embedded CPython 3.11 interpreter, powered by [PyO3](pyo3.rs).

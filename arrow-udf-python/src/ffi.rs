@@ -23,7 +23,7 @@ use arrow_ipc::reader::FileReader;
 use arrow_ipc::writer::FileWriter;
 use std::ffi::CStr;
 
-use crate::Runtime;
+use crate::{CallMode, Function};
 
 #[no_mangle]
 unsafe extern "C" fn alloc(len: usize) -> *mut u8 {
@@ -51,7 +51,8 @@ unsafe extern "C" fn add_function(
             FileReader::try_new(std::io::Cursor::new(bytes), None).expect("invalid schema");
         reader.schema().field(0).data_type().clone()
     };
-    let runtime = Runtime::new(name, return_type, code).expect("failed to initialize runtime");
+    let runtime = Function::new(name, return_type, CallMode::CalledOnNullInput, code)
+        .expect("failed to initialize runtime");
     RUNTIMES.push((name.to_string(), runtime));
     0
 }
@@ -72,7 +73,7 @@ unsafe extern "C" fn call(name: *const i8, ptr: *const u8, len: usize) -> u64 {
     }
 }
 
-static mut RUNTIMES: Vec<(String, Runtime)> = vec![];
+static mut RUNTIMES: Vec<(String, Function)> = vec![];
 
 fn call_internal(name: &str, input: &[u8]) -> Result<Box<[u8]>> {
     let mut reader = FileReader::try_new(std::io::Cursor::new(input), None)?;

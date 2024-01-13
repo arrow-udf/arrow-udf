@@ -1,4 +1,4 @@
-# Rust UDF on WebAssembly for Apache Arrow
+# WebAssembly UDF for Apache Arrow
 
 [![Crate](https://img.shields.io/crates/v/arrow-udf-wasm.svg)](https://crates.io/crates/arrow-udf-wasm)
 [![Docs](https://docs.rs/arrow-udf-wasm/badge.svg)](https://docs.rs/arrow-udf-wasm)

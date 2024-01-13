@@ -1,18 +1,23 @@
 # Arrow User-Defined Functions Framework
 
-[![Crate](https://img.shields.io/crates/v/arrow-udf.svg)](https://crates.io/crates/arrow-udf)
-[![Docs](https://docs.rs/arrow-udf/badge.svg)](https://docs.rs/arrow-udf)
-
 Easily create and run user-defined functions (UDF) on Apache Arrow.
 You can define functions in Rust, Python or JavaScript, run natively or on WebAssembly.
 
+| Language   | Native             | WebAssembly             |
+| ---------- | ------------------ | ----------------------- |
+| Rust       | [arrow-udf]        | [arrow-udf-wasm]        |
+| Python     | [arrow-udf-python] | [arrow-udf-python-wasm] |
+| JavaScript | [arrow-udf-js]     | N/A                     |
+
+[arrow-udf]: ./arrow-udf
+[arrow-udf-python]: ./arrow-udf-python
+[arrow-udf-js]: ./arrow-udf-js
+[arrow-udf-wasm]: ./arrow-udf-wasm
+[arrow-udf-python-wasm]: ./arrow-udf-python-wasm
+
 ## Usage
 
-### Define Rust Functions and Run Locally
-
 You can integrate this library into your Rust project to quickly define and use custom functions.
-
-#### Basic Usage
 
 Add the following lines to your `Cargo.toml`:
 
@@ -58,67 +63,7 @@ If you print the input and output batch, it will be like this:
 +----+----+-----+
 ```
 
-#### Fallible Functions
-
-If your function returns a `Result`:
-
-```rust
-#[function("div(int, int) -> int", output = "eval_div")]
-fn div(x: i32, y: i32) -> Result<i32, &'static str> {
-    x.checked_div(y).ok_or("division by zero")
-}
-```
-
-The output batch will contain a column of errors. Error rows will be filled with NULL in the output column,
-and the error message will be stored in the error column.
-
-```text
- input     output
-+----+----+-----+------------------+
-| a  | b  | div | error            |
-+----+----+-----+------------------+
-| 15 | 25 | 0   |                  |
-| 5  | 0  |     | division by zero |
-+----+----+-----+------------------+
-```
-
-#### Function Registry
-
-If you want to lookup functions by signature, you can enable the `global_registry` feature:
-
-```toml
-[dependencies]
-arrow-udf = { version = "0.1", features = ["global_registry"] }
-```
-
-Each function will be registered in a global registry when it is defined.
-Then you can lookup functions from the `REGISTRY`:
-
-```rust
-use arrow_schema::DataType::Int32;
-use arrow_udf::sig::REGISTRY;
-
-let sig = REGISTRY.get("gcd", &[Int32, Int32], &Int32).expect("gcd function");
-let output = sig.function.as_scalar().unwrap()(&input).unwrap();
-```
-
-See the [example](./arrow-udf/examples/rust.rs) for more details.
-
-### Define Python Functions and Run Locally
-
-See [documents](./arrow-udf-python/README.md) in `arrow-udf-python`.
-
-### Define JavaScript Functions and Run Locally
-
-See [documents](./arrow-udf-js/README.md) in `arrow-udf-js`.
-
-### Define Rust Functions and Run on WebAssembly
-
-See [documents](./arrow-udf-wasm/README.md) in `arrow-udf-wasm`.
-
-### Define Python Functions and Run on WebAssembly
-
-See [documents](./arrow-udf-python-wasm/README.md) in `arrow-udf-python-wasm`.
+See [`arrow-udf`](./arrow-udf/README.md) for more details.
 
 ## Benchmarks
 

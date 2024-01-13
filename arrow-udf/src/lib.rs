@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![doc = include_str!("../README.md")]
+
 use arrow_array::RecordBatch;
 pub use arrow_schema::ArrowError as Error;
 pub use arrow_udf_macros::function;

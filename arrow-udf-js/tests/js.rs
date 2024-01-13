@@ -193,3 +193,49 @@ fn test_json_array_access() {
         .trim()
     );
 }
+
+#[test]
+fn test_range() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "range",
+            arrow_schema::DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function* range(n) {
+                for (let i = 0; i < n; i++) {
+                    yield i;
+                }
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let mut outputs = runtime.call_table_function("range", &input, 2).unwrap();
+    let o1 = outputs.next().unwrap().unwrap();
+    let o2 = outputs.next().unwrap().unwrap();
+    assert_eq!(o1.num_rows(), 2);
+    assert_eq!(o2.num_rows(), 2);
+    assert!(outputs.next().is_none());
+
+    assert_eq!(
+        pretty_format_batches(&[o1, o2]).unwrap().to_string(),
+        r#"
++-----+-------+
+| row | range |
++-----+-------+
+| 0   | 0     |
+| 2   | 0     |
+| 2   | 1     |
+| 2   | 2     |
++-----+-------+
+"#
+        .trim()
+    );
+}

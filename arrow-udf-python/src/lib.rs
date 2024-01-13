@@ -52,6 +52,7 @@ impl Function {
             let mut results = Vec::with_capacity(input.num_rows());
             let mut row = Vec::with_capacity(input.num_columns());
             for i in 0..input.num_rows() {
+                row.clear();
                 for column in input.columns() {
                     let pyobj = pyarrow::get_pyobject(py, column, i);
                     row.push(pyobj);

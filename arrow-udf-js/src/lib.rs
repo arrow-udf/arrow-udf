@@ -20,7 +20,7 @@ use anyhow::{anyhow, Context as _, Result};
 use arrow_array::{builder::Int32Builder, Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
 use rquickjs::{
-    context::intrinsic::{BaseObjects, Eval},
+    context::intrinsic::{BaseObjects, Eval, Json},
     function::Args,
     Context, Ctx, Object, Persistent, Value,
 };
@@ -73,7 +73,7 @@ impl Runtime {
     pub fn new() -> Result<Self> {
         let runtime = rquickjs::Runtime::new().context("failed to create quickjs runtime")?;
         // `Eval` is required to compile JS code.
-        let context = rquickjs::Context::custom::<(BaseObjects, Eval)>(&runtime)
+        let context = rquickjs::Context::custom::<(BaseObjects, Eval, Json)>(&runtime)
             .context("failed to create quickjs context")?;
         Ok(Self {
             functions: HashMap::new(),

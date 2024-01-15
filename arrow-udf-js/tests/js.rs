@@ -195,6 +195,43 @@ fn test_json_array_access() {
 }
 
 #[test]
+fn test_json_stringify() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "json_stringify",
+            arrow_schema::DataType::Utf8,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function json_stringify(object) {
+                return JSON.stringify(object);
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("json", DataType::LargeUtf8, true)]);
+    let arg0 = LargeStringArray::from(vec![r#"[1, null, ""]"#]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("json_stringify", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++----------------+
+| json_stringify |
++----------------+
+| [1,null,""]    |
++----------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
 fn test_range() {
     let mut runtime = Runtime::new().unwrap();
 

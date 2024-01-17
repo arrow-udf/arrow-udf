@@ -18,7 +18,7 @@ use anyhow::{Context, Result};
 use arrow_array::{array::*, builder::*};
 use arrow_buffer::OffsetBuffer;
 use arrow_schema::DataType;
-use rquickjs::{function::Args, Ctx, Error, FromJs, Function, IntoJs, TypedArray, Value};
+use rquickjs::{function::Args, Ctx, Error, FromJs, Function, IntoJs, Object, TypedArray, Value};
 use std::sync::Arc;
 
 macro_rules! get_jsvalue {
@@ -90,6 +90,15 @@ pub fn get_jsvalue<'a>(ctx: &Ctx<'a>, array: &dyn Array, i: usize) -> Result<Val
                     values.into_js(ctx)
                 }
             }
+        }
+        DataType::Struct(fields) => {
+            let array = array.as_any().downcast_ref::<StructArray>().unwrap();
+            let object = Object::new(ctx.clone())?;
+            for (j, field) in fields.iter().enumerate() {
+                let value = get_jsvalue(ctx, array.column(j).as_ref(), i)?;
+                object.set(field.name(), value)?;
+            }
+            Ok(object.into_value())
         }
         _ => todo!(),
     }
@@ -210,6 +219,28 @@ pub fn build_array<'a>(
                 inner.clone(),
                 OffsetBuffer::new(offsets.into()),
                 values_array,
+                Some(nulls),
+            )))
+        }
+        DataType::Struct(fields) => {
+            let mut arrays = Vec::with_capacity(fields.len());
+            for field in fields {
+                let mut field_values = Vec::with_capacity(values.len());
+                for val in &values {
+                    let v = if val.is_null() {
+                        Value::new_null(ctx.clone())
+                    } else {
+                        let object = val.as_object().context("expect object")?;
+                        object.get(field.name())?
+                    };
+                    field_values.push(v);
+                }
+                arrays.push(build_array(field.data_type(), ctx, field_values)?);
+            }
+            let nulls = values.iter().map(|v| !v.is_null()).collect();
+            Ok(Arc::new(StructArray::new(
+                fields.clone(),
+                arrays,
                 Some(nulls),
             )))
         }

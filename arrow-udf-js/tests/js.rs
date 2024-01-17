@@ -15,8 +15,8 @@
 use std::sync::Arc;
 
 use arrow_array::{
-    types::*, BinaryArray, Int32Array, LargeBinaryArray, LargeStringArray, ListArray, RecordBatch,
-    StringArray,
+    types::*, ArrayRef, BinaryArray, Int32Array, LargeBinaryArray, LargeStringArray, ListArray,
+    RecordBatch, StringArray, StructArray,
 };
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
@@ -369,6 +369,107 @@ fn test_return_array() {
 | [3]      |
 +----------+
     "#
+        .trim()
+    );
+}
+
+#[test]
+fn test_key_value() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "key_value",
+            DataType::Struct(
+                vec![
+                    Field::new("key", DataType::Utf8, true),
+                    Field::new("value", DataType::Utf8, true),
+                ]
+                .into(),
+            ),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function key_value(s) {
+                const [key, value] = s.split("=", 2);
+                return {key, value};
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8, true)]);
+    let arg0 = StringArray::from(vec!["a=b"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("key_value", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++--------------------+
+| key_value          |
++--------------------+
+| {key: a, value: b} |
++--------------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_struct_to_json() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "to_json",
+            DataType::LargeUtf8,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function to_json(object) {
+                return object;
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new(
+        "struct",
+        DataType::Struct(
+            vec![
+                Field::new("key", DataType::Utf8, true),
+                Field::new("value", DataType::Utf8, true),
+            ]
+            .into(),
+        ),
+        true,
+    )]);
+    let arg0 = StructArray::from(vec![
+        (
+            Arc::new(Field::new("key", DataType::Utf8, true)),
+            Arc::new(StringArray::from(vec![Some("a"), None])) as ArrayRef,
+        ),
+        (
+            Arc::new(Field::new("value", DataType::Utf8, true)),
+            Arc::new(StringArray::from(vec![Some("b"), None])),
+        ),
+    ]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("to_json", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++---------------------------+
+| to_json                   |
++---------------------------+
+| {"key":"a","value":"b"}   |
+| {"key":null,"value":null} |
++---------------------------+
+"#
         .trim()
     );
 }

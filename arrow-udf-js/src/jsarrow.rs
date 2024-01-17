@@ -14,10 +14,10 @@
 
 //! Convert arrow array from/to python objects.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use arrow_array::{array::*, builder::*};
 use arrow_schema::DataType;
-use rquickjs::{Ctx, Error, FromJs, IntoJs, Value};
+use rquickjs::{function::Args, Ctx, Error, FromJs, Function, IntoJs, Value};
 use std::sync::Arc;
 
 macro_rules! get_jsvalue {
@@ -51,6 +51,13 @@ pub fn get_jsvalue<'a>(ctx: &Ctx<'a>, array: &dyn Array, i: usize) -> Result<Val
         DataType::LargeUtf8 => {
             let array = array.as_any().downcast_ref::<LargeStringArray>().unwrap();
             ctx.json_parse(array.value(i))
+        }
+        // decimal type
+        DataType::LargeBinary => {
+            let array = array.as_any().downcast_ref::<LargeBinaryArray>().unwrap();
+            let string = std::str::from_utf8(array.value(i))?;
+            // XXX: this may be slow
+            ctx.eval(format!("BigDecimal(\"{string}\")"))
         }
         _ => todo!(),
     }
@@ -115,6 +122,7 @@ pub fn build_array<'a>(
         DataType::Float64 => build_array!(Float64Builder, ctx, values),
         DataType::Utf8 => build_array!(StringBuilder, String, ctx, values),
         DataType::Binary => build_array!(BinaryBuilder, Vec::<u8>, ctx, values),
+        // json type
         DataType::LargeUtf8 => {
             let mut builder = LargeStringBuilder::with_capacity(values.len(), 1024);
             for val in values {
@@ -124,6 +132,26 @@ pub fn build_array<'a>(
                     builder.append_value(s.to_string()?);
                 } else {
                     builder.append_null();
+                }
+            }
+            Ok(Arc::new(builder.finish()))
+        }
+        // decimal type
+        DataType::LargeBinary => {
+            let mut builder = LargeBinaryBuilder::with_capacity(values.len(), 1024);
+            let bigdecimal_to_string: Function = ctx
+                .eval("BigDecimal.prototype.toString")
+                .context("failed to get BigDecimal.prototype.string")?;
+            for val in values {
+                if val.is_null() {
+                    builder.append_null();
+                } else {
+                    let mut args = Args::new(ctx.clone(), 0);
+                    args.this(val)?;
+                    let string: String = bigdecimal_to_string.call_arg(args).context(
+                        "failed to convert BigDecimal to string. make sure you return a BigDecimal value",
+                    )?;
+                    builder.append_value(string);
                 }
             }
             Ok(Arc::new(builder.finish()))

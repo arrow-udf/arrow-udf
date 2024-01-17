@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use arrow_array::{BinaryArray, Int32Array, LargeStringArray, RecordBatch};
+use arrow_array::{BinaryArray, Int32Array, LargeBinaryArray, LargeStringArray, RecordBatch};
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js::{CallMode, Runtime};
@@ -226,6 +226,48 @@ fn test_json_stringify() {
 +----------------+
 | [1,null,""]    |
 +----------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_decimal_add() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "decimal_add",
+            arrow_schema::DataType::LargeBinary,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function decimal_add(a, b) {
+                return a + b;
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("a", DataType::LargeBinary, true),
+        Field::new("b", DataType::LargeBinary, true),
+    ]);
+    let arg0 = LargeBinaryArray::from(vec![b"0.0001".as_ref()]);
+    let arg1 = LargeBinaryArray::from(vec![b"0.0002".as_ref()]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let output = runtime.call("decimal_add", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++--------------+
+| decimal_add  |
++--------------+
+| 302e30303033 |
++--------------+
 "#
         .trim()
     );

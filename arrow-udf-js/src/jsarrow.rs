@@ -107,8 +107,8 @@ pub fn get_jsvalue<'a>(ctx: &Ctx<'a>, array: &dyn Array, i: usize) -> Result<Val
 macro_rules! build_array {
     (NullBuilder, $ctx:expr, $values:expr) => {{
         let mut builder = NullBuilder::with_capacity($values.len());
-        for pyobj in $values {
-            if pyobj.is_null() {
+        for val in $values {
+            if val.is_null() || val.is_undefined() {
                 builder.append_null();
             } else {
                 builder.append_empty_value();
@@ -120,7 +120,7 @@ macro_rules! build_array {
     ($builder_type: ty, $ctx:expr, $values:expr) => {{
         let mut builder = <$builder_type>::with_capacity($values.len());
         for val in $values {
-            if val.is_null() {
+            if val.is_null() || val.is_undefined() {
                 builder.append_null();
             } else {
                 builder.append_value(FromJs::from_js($ctx, val)?);
@@ -132,7 +132,7 @@ macro_rules! build_array {
     ($builder_type: ty, $elem_type: ty, $ctx:expr, $values:expr) => {{
         let mut builder = <$builder_type>::with_capacity($values.len(), 1024);
         for val in $values {
-            if val.is_null() {
+            if val.is_null() || val.is_undefined() {
                 builder.append_null();
             } else {
                 builder.append_value(<$elem_type>::from_js($ctx, val)?);
@@ -167,7 +167,7 @@ pub fn build_array<'a>(
         DataType::LargeUtf8 => {
             let mut builder = LargeStringBuilder::with_capacity(values.len(), 1024);
             for val in values {
-                if val.is_null() {
+                if val.is_null() || val.is_undefined() {
                     builder.append_null();
                 } else if let Some(s) = ctx.json_stringify(val)? {
                     builder.append_value(s.to_string()?);
@@ -184,7 +184,7 @@ pub fn build_array<'a>(
                 .eval("BigDecimal.prototype.toString")
                 .context("failed to get BigDecimal.prototype.string")?;
             for val in values {
-                if val.is_null() {
+                if val.is_null() || val.is_undefined() {
                     builder.append_null();
                 } else {
                     let mut args = Args::new(ctx.clone(), 0);
@@ -204,7 +204,7 @@ pub fn build_array<'a>(
             let mut offsets = Vec::<i32>::with_capacity(values.len() + 1);
             offsets.push(0);
             for val in &values {
-                if !val.is_null() {
+                if !val.is_null() && !val.is_undefined() {
                     let array = val.as_array().context("failed to convert to array")?;
                     flatten_values.reserve(array.len());
                     for elem in array.iter() {
@@ -214,7 +214,10 @@ pub fn build_array<'a>(
                 offsets.push(flatten_values.len() as i32);
             }
             let values_array = build_array(inner.data_type(), ctx, flatten_values)?;
-            let nulls = values.iter().map(|v| !v.is_null()).collect();
+            let nulls = values
+                .iter()
+                .map(|v| !v.is_null() && !v.is_undefined())
+                .collect();
             Ok(Arc::new(ListArray::new(
                 inner.clone(),
                 OffsetBuffer::new(offsets.into()),
@@ -227,7 +230,7 @@ pub fn build_array<'a>(
             for field in fields {
                 let mut field_values = Vec::with_capacity(values.len());
                 for val in &values {
-                    let v = if val.is_null() {
+                    let v = if val.is_null() || val.is_undefined() {
                         Value::new_null(ctx.clone())
                     } else {
                         let object = val.as_object().context("expect object")?;
@@ -237,7 +240,10 @@ pub fn build_array<'a>(
                 }
                 arrays.push(build_array(field.data_type(), ctx, field_values)?);
             }
-            let nulls = values.iter().map(|v| !v.is_null()).collect();
+            let nulls = values
+                .iter()
+                .map(|v| !v.is_null() && !v.is_undefined())
+                .collect();
             Ok(Arc::new(StructArray::new(
                 fields.clone(),
                 arrays,

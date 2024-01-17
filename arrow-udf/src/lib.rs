@@ -21,7 +21,6 @@ pub use arrow_udf_macros::function;
 /// A specialized `Result` type for Arrow UDF operations.
 pub type Result<T> = std::result::Result<T, Error>;
 
-mod byte_builder;
 pub mod ffi;
 #[cfg(feature = "global_registry")]
 pub mod sig;
@@ -46,7 +45,6 @@ pub mod types {
 /// Internal APIs used by macros.
 #[doc(hidden)]
 pub mod codegen {
-    pub use crate::byte_builder::*;
     pub use arrow_arith;
     pub use arrow_array;
     pub use arrow_schema;

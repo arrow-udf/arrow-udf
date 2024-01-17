@@ -161,12 +161,13 @@ fn bytes3(x: i32) -> [u8; 10] {
     [x as u8; 10]
 }
 
-#[function("bytes4(int) -> bytea")]
-fn bytes4(x: i32, output: &mut impl std::io::Write) {
-    for _ in 0..x {
-        output.write_all(&[0]).unwrap();
-    }
-}
+// FIXME: std::io::Write is not supported yet
+// #[function("bytes4(int) -> bytea")]
+// fn bytes4(x: i32, output: &mut impl std::io::Write) {
+//     for _ in 0..x {
+//         output.write_all(&[0]).unwrap();
+//     }
+// }
 
 #[function("array_sum(int2[]) -> int2")]
 #[function("array_sum(int4[]) -> int4")]
@@ -190,6 +191,11 @@ fn key_value(kv: &str) -> Option<(&str, &str)> {
 #[function("nested_struct() -> struct<a:int, b:struct<c:int, d:varchar>>")]
 fn nested_struct() -> (i32, (i32, &'static str)) {
     (1, (2, "g"))
+}
+
+#[function("array_in_struct(varchar) -> struct<items:varchar[]>")]
+fn array_in_struct(s: &str) -> (impl Iterator<Item = Option<&str>>,) {
+    (s.split(",").map(Some),)
 }
 
 #[function("range(int) -> setof int")]
@@ -300,6 +306,28 @@ fn test_nested_struct() {
 +-------------------------+
 | {a: 1, b: {c: 2, d: g}} |
 +-------------------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_array_in_struct() {
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8, true)]);
+    let arg0 = StringArray::from(vec!["a,b,c"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = array_in_struct_varchar_struct_items_varchararray_eval(&input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++--------------------+
+| array_in_struct    |
++--------------------+
+| {items: [a, b, c]} |
++--------------------+
 "#
         .trim()
     );

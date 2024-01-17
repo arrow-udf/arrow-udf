@@ -175,7 +175,7 @@ impl FunctionAttr {
 
         let variadic_args = variadic.then(|| quote! { variadic_row, });
         let context = user_fn.context.then(|| quote! { &self.context, });
-        let writer = user_fn.write.then(|| quote! { &mut writer, });
+        let writer = user_fn.write.then(|| quote! { &mut builder, });
         let await_ = user_fn.async_.then(|| quote! { .await });
         // transform inputs for array arguments
         // e.g. for `int[]`, transform `ArrayRef` -> `&[T]`
@@ -387,11 +387,9 @@ impl FunctionAttr {
                     ));
                 }
                 quote! {{
-                    let mut writer = builder.writer();
                     if #output.is_some() {
-                        writer.finish();
+                        builder.append_value("");
                     } else {
-                        drop(writer);
                         builder.append_null();
                     }
                 }}
@@ -532,20 +530,20 @@ fn fields(ty: &str) -> TokenStream2 {
 fn builder(ty: &str) -> TokenStream2 {
     match ty {
         "varchar" => {
-            quote! { arrow_udf::codegen::StringBuilder::with_capacity(input.num_rows(), 1024) }
+            quote! { StringBuilder::with_capacity(input.num_rows(), 1024) }
         }
         "bytea" => {
-            quote! { arrow_udf::codegen::BinaryBuilder::with_capacity(input.num_rows(), 1024) }
+            quote! { BinaryBuilder::with_capacity(input.num_rows(), 1024) }
         }
         "decimal" => {
-            quote! { arrow_udf::codegen::LargeBinaryBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
+            quote! { LargeBinaryBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
         }
         "json" => {
-            quote! { arrow_udf::codegen::LargeStringBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
+            quote! { LargeStringBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
         }
         s if s.ends_with("[]") => {
             let values_builder = builder(ty.strip_suffix("[]").unwrap());
-            quote! { ListBuilder::with_capacity(#values_builder, input.num_rows()) }
+            quote! { ListBuilder::<Box<dyn ArrayBuilder>>::with_capacity(Box::new(#values_builder), input.num_rows()) }
         }
         s if s.starts_with("struct") => {
             let fields = fields(s);
@@ -555,6 +553,17 @@ fn builder(ty: &str) -> TokenStream2 {
             let builder_type = format_ident!("{}", types::array_builder_type(ty));
             quote! { #builder_type::with_capacity(input.num_rows()) }
         }
+    }
+}
+
+/// Return the builder type for the given type.
+///
+/// This should be consistent with `StructBuilder::from_fields`.
+fn builder_type(ty: &str) -> TokenStream2 {
+    if ty.ends_with("[]") {
+        quote! { ListBuilder::<Box<dyn ArrayBuilder>> }
+    } else {
+        types::array_builder_type(ty).parse().unwrap()
     }
 }
 
@@ -583,7 +592,7 @@ fn gen_append_value(ty: &str) -> TokenStream2 {
     if ty.starts_with("struct") {
         let append_fields = types::iter_fields(ty).enumerate().map(|(i, (_, ty))| {
             let index = syn::Index::from(i);
-            let builder_type = format_ident!("{}", types::array_builder_type(ty));
+            let builder_type = builder_type(ty);
             let append = gen_append_value(ty);
             quote! {{
                 let builder = builder.field_builder::<#builder_type>(#i).unwrap();
@@ -595,13 +604,23 @@ fn gen_append_value(ty: &str) -> TokenStream2 {
             #(#append_fields)*
             builder.append(true);
         }}
-    } else if ty == "decimal" || ty == "json" {
+    } else if let Some(inner_ty) = ty.strip_suffix("[]") {
+        let value_builder_type = builder_type(inner_ty);
         quote! {{
-            use std::fmt::Write;
-            let mut writer = builder.writer();
-            write!(&mut writer, "{}", v).unwrap();
-            writer.finish();
+            // builder.values() is Box<dyn ArrayBuilder>
+            let value_builder = builder.values().as_any_mut().downcast_mut::<#value_builder_type>().expect("downcast list value builder");
+            value_builder.extend(v);
+            builder.append(true);
         }}
+    } else if ty == "json" {
+        quote! {{
+            // builder: LargeStringBuilder
+            use std::fmt::Write;
+            write!(builder, "{}", v).expect("write json");
+            builder.append_value("");
+        }}
+    } else if ty == "decimal" {
+        quote! { builder.append_value(v.to_string()) }
     } else if ty == "date" {
         quote! { builder.append_value(arrow_array::types::Date32Type::from_naive_date(v)) }
     } else if ty == "time" {
@@ -625,9 +644,9 @@ fn gen_append_null(ty: &str) -> TokenStream2 {
     if ty.starts_with("struct") {
         let append_fields = types::iter_fields(ty).enumerate().map(|(i, (_, ty))| {
             let append = gen_append_null(ty);
-            let builder_type = format_ident!("{}", types::array_builder_type(ty));
+            let builder_type = builder_type(ty);
             quote! {{
-                let builder = builder.field_builder::<#builder_type>(#i).unwrap();
+                let builder = builder.field_builder::<#builder_type>(#i).expect("downcast field builder");
                 #append
             }}
         });
@@ -657,20 +676,20 @@ fn gen_append_null(ty: &str) -> TokenStream2 {
 /// | `float[]`   | `ArrayRef`       | `&[f64]`                     |
 fn transform_input(input: &Ident, ty: &str) -> TokenStream2 {
     if ty == "decimal" {
-        return quote! { std::str::from_utf8(#input).unwrap().parse::<rust_decimal::Decimal>().unwrap() };
+        return quote! { std::str::from_utf8(#input).expect("invalid utf8 for decimal").parse::<rust_decimal::Decimal>().expect("invalid decimal") };
     } else if ty == "date" {
         return quote! { arrow_array::types::Date32Type::to_naive_date(#input) };
     } else if ty == "time" {
-        return quote! { arrow_array::temporal_conversions::as_time::<arrow_array::types::Time64MicrosecondType>(#input).unwrap() };
+        return quote! { arrow_array::temporal_conversions::as_time::<arrow_array::types::Time64MicrosecondType>(#input).expect("invalid time") };
     } else if ty == "timestamp" {
-        return quote! { arrow_array::temporal_conversions::as_datetime::<arrow_array::types::TimestampMicrosecondType>(#input).unwrap() };
+        return quote! { arrow_array::temporal_conversions::as_datetime::<arrow_array::types::TimestampMicrosecondType>(#input).expect("invalid timestamp") };
     } else if ty == "interval" {
         return quote! {{
             let (months, days, nanos) = arrow_array::types::IntervalMonthDayNanoType::to_parts(#input);
             arrow_udf::types::Interval { months, days, nanos }
         }};
     } else if ty == "json" {
-        return quote! { #input.parse::<serde_json::Value>().unwrap() };
+        return quote! { #input.parse::<serde_json::Value>().expect("invalid json") };
     } else if let Some(elem_type) = ty.strip_suffix("[]") {
         if types::is_primitive(elem_type) {
             let array_type = format_ident!("{}", types::array_type(elem_type));

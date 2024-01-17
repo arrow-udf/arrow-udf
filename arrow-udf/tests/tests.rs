@@ -195,7 +195,7 @@ fn nested_struct() -> (i32, (i32, &'static str)) {
 
 #[function("array_in_struct(varchar) -> struct<items:varchar[]>")]
 fn array_in_struct(s: &str) -> (impl Iterator<Item = Option<&str>>,) {
-    (s.split(",").map(Some),)
+    (s.split(',').map(Some),)
 }
 
 #[function("range(int) -> setof int")]

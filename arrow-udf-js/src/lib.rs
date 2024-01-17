@@ -12,39 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! JavaScript UDF for Apache Arrow
-//!
-//! # Type Mapping
-//!
-//! | Arrow Type            | JS Type       | Note                  |
-//! | --------------------- | ------------- | --------------------- |
-//! | Null                  | null          |                       |
-//! | Boolean               | boolean       |                       |
-//! | Int8                  | number        |                       |
-//! | Int16                 | number        |                       |
-//! | Int32                 | number        |                       |
-//! | Int64                 | number        |                       |
-//! | UInt8                 | number        |                       |
-//! | UInt16                | number        |                       |
-//! | UInt32                | number        |                       |
-//! | UInt64                | number        |                       |
-//! | Float32               | number        |                       |
-//! | Float64               | number        |                       |
-//! | Utf8                  | string        |                       |
-//! | Binary                | Uint8Array    |                       |
-//! | LargeString (json)    | any           | `JSON.parse(string)`  |
-//! | LargeBinary (decimal) | BigDecimal    |                       |
-//! | List(Int8)            | Int8Array     |                       |
-//! | List(Int16)           | Int16Array    |                       |
-//! | List(Int32)           | Int32Array    |                       |
-//! | List(Int64)           | BigInt64Array |                       |
-//! | List(UInt8)           | Uint8Array    |                       |
-//! | List(UInt16)          | Uint16Array   |                       |
-//! | List(UInt32)          | Uint32Array   |                       |
-//! | List(UInt64)          | BigUint64Array|                       |
-//! | List(Float32)         | Float32Array  |                       |
-//! | List(Float64)         | Float64Array  |                       |
-//! | List(others)          | Array         |                       |
+#![doc = include_str!("../README.md")]
 
 use std::collections::HashMap;
 use std::fmt::Debug;

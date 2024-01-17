@@ -14,7 +14,10 @@
 
 use std::sync::Arc;
 
-use arrow_array::{BinaryArray, Int32Array, LargeBinaryArray, LargeStringArray, RecordBatch};
+use arrow_array::{
+    types::*, BinaryArray, Int32Array, LargeBinaryArray, LargeStringArray, ListArray, RecordBatch,
+    StringArray,
+};
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js::{CallMode, Runtime};
@@ -271,6 +274,61 @@ fn test_decimal_add() {
 "#
         .trim()
     );
+}
+
+#[test]
+fn test_typed_array() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "object_type",
+            arrow_schema::DataType::Utf8,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function object_type(a) {
+                return Object.prototype.toString.call(a);
+            }
+            "#,
+        )
+        .unwrap();
+
+    /// Generate a record batch with a single column of type `List<T>`.
+    fn array_input<T: ArrowPrimitiveType>() -> RecordBatch {
+        let schema = Schema::new(vec![Field::new(
+            "x",
+            DataType::new_list(T::DATA_TYPE, true),
+            true,
+        )]);
+        let arg0 =
+            ListArray::from_iter_primitive::<T, _, _>(vec![Some(vec![Some(Default::default())])]);
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap()
+    }
+
+    let cases = [
+        // (input, JS object type)
+        (array_input::<Int8Type>(), "Int8Array"),
+        (array_input::<Int16Type>(), "Int16Array"),
+        (array_input::<Int32Type>(), "Int32Array"),
+        (array_input::<Int64Type>(), "BigInt64Array"),
+        (array_input::<UInt8Type>(), "Uint8Array"),
+        (array_input::<UInt16Type>(), "Uint16Array"),
+        (array_input::<UInt32Type>(), "Uint32Array"),
+        (array_input::<UInt64Type>(), "BigUint64Array"),
+        (array_input::<Float32Type>(), "Float32Array"),
+        (array_input::<Float64Type>(), "Float64Array"),
+    ];
+
+    for (input, expected) in cases.iter() {
+        let output = runtime.call("object_type", input).unwrap();
+        let object_type = output
+            .column(0)
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .unwrap()
+            .value(0);
+        assert_eq!(object_type, format!("[object {}]", expected));
+    }
 }
 
 #[test]

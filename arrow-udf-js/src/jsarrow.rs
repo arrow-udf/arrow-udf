@@ -17,13 +17,20 @@
 use anyhow::{Context, Result};
 use arrow_array::{array::*, builder::*};
 use arrow_schema::DataType;
-use rquickjs::{function::Args, Ctx, Error, FromJs, Function, IntoJs, Value};
+use rquickjs::{function::Args, Ctx, Error, FromJs, Function, IntoJs, TypedArray, Value};
 use std::sync::Arc;
 
 macro_rules! get_jsvalue {
     ($array_type: ty, $ctx:expr, $array:expr, $i:expr) => {{
         let array = $array.as_any().downcast_ref::<$array_type>().unwrap();
         array.value($i).into_js($ctx)
+    }};
+}
+
+macro_rules! get_typed_array {
+    ($array_type: ty, $ctx:expr, $array:expr) => {{
+        let array = $array.as_any().downcast_ref::<$array_type>().unwrap();
+        TypedArray::new($ctx.clone(), array.values().as_ref()).map(|a| a.into_value())
     }};
 }
 
@@ -58,6 +65,30 @@ pub fn get_jsvalue<'a>(ctx: &Ctx<'a>, array: &dyn Array, i: usize) -> Result<Val
             let string = std::str::from_utf8(array.value(i))?;
             // XXX: this may be slow
             ctx.eval(format!("BigDecimal(\"{string}\")"))
+        }
+        // list
+        DataType::List(inner) => {
+            let array = array.as_any().downcast_ref::<ListArray>().unwrap();
+            let list = array.value(i);
+            match inner.data_type() {
+                DataType::Int8 => get_typed_array!(Int8Array, ctx, list),
+                DataType::Int16 => get_typed_array!(Int16Array, ctx, list),
+                DataType::Int32 => get_typed_array!(Int32Array, ctx, list),
+                DataType::Int64 => get_typed_array!(Int64Array, ctx, list),
+                DataType::UInt8 => get_typed_array!(UInt8Array, ctx, list),
+                DataType::UInt16 => get_typed_array!(UInt16Array, ctx, list),
+                DataType::UInt32 => get_typed_array!(UInt32Array, ctx, list),
+                DataType::UInt64 => get_typed_array!(UInt64Array, ctx, list),
+                DataType::Float32 => get_typed_array!(Float32Array, ctx, list),
+                DataType::Float64 => get_typed_array!(Float64Array, ctx, list),
+                _ => {
+                    let mut values = Vec::with_capacity(list.len());
+                    for j in 0..list.len() {
+                        values.push(get_jsvalue(ctx, list.as_ref(), j)?);
+                    }
+                    values.into_js(ctx)
+                }
+            }
         }
         _ => todo!(),
     }

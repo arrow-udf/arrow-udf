@@ -16,6 +16,7 @@
 
 use anyhow::{Context, Result};
 use arrow_array::{array::*, builder::*};
+use arrow_buffer::OffsetBuffer;
 use arrow_schema::DataType;
 use rquickjs::{function::Args, Ctx, Error, FromJs, Function, IntoJs, TypedArray, Value};
 use std::sync::Arc;
@@ -186,6 +187,31 @@ pub fn build_array<'a>(
                 }
             }
             Ok(Arc::new(builder.finish()))
+        }
+        // list
+        DataType::List(inner) => {
+            // flatten lists
+            let mut flatten_values = vec![];
+            let mut offsets = Vec::<i32>::with_capacity(values.len() + 1);
+            offsets.push(0);
+            for val in &values {
+                if !val.is_null() {
+                    let array = val.as_array().context("failed to convert to array")?;
+                    flatten_values.reserve(array.len());
+                    for elem in array.iter() {
+                        flatten_values.push(elem?);
+                    }
+                }
+                offsets.push(flatten_values.len() as i32);
+            }
+            let values_array = build_array(inner.data_type(), ctx, flatten_values)?;
+            let nulls = values.iter().map(|v| !v.is_null()).collect();
+            Ok(Arc::new(ListArray::new(
+                inner.clone(),
+                OffsetBuffer::new(offsets.into()),
+                values_array,
+                Some(nulls),
+            )))
         }
         _ => todo!(),
     }

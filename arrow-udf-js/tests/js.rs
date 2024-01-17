@@ -39,7 +39,7 @@ fn test_gcd() {
     runtime
         .add_function(
             "gcd",
-            arrow_schema::DataType::Int32,
+            DataType::Int32,
             CallMode::ReturnNullOnNullInput,
             js_code,
         )
@@ -86,7 +86,7 @@ fn test_to_string() {
     runtime
         .add_function(
             "to_string",
-            arrow_schema::DataType::Utf8,
+            DataType::Utf8,
             CallMode::CalledOnNullInput,
             js_code,
         )
@@ -120,7 +120,7 @@ fn test_concat() {
     runtime
         .add_function(
             "concat",
-            arrow_schema::DataType::Binary,
+            DataType::Binary,
             CallMode::ReturnNullOnNullInput,
             r#"
             export function concat(a, b) {
@@ -162,7 +162,7 @@ fn test_json_array_access() {
     runtime
         .add_function(
             "json_array_access",
-            arrow_schema::DataType::LargeUtf8,
+            DataType::LargeUtf8,
             CallMode::ReturnNullOnNullInput,
             r#"
             export function json_array_access(array, i) {
@@ -204,7 +204,7 @@ fn test_json_stringify() {
     runtime
         .add_function(
             "json_stringify",
-            arrow_schema::DataType::Utf8,
+            DataType::Utf8,
             CallMode::ReturnNullOnNullInput,
             r#"
             export function json_stringify(object) {
@@ -241,7 +241,7 @@ fn test_decimal_add() {
     runtime
         .add_function(
             "decimal_add",
-            arrow_schema::DataType::LargeBinary,
+            DataType::LargeBinary,
             CallMode::ReturnNullOnNullInput,
             r#"
             export function decimal_add(a, b) {
@@ -283,7 +283,7 @@ fn test_typed_array() {
     runtime
         .add_function(
             "object_type",
-            arrow_schema::DataType::Utf8,
+            DataType::Utf8,
             CallMode::ReturnNullOnNullInput,
             r#"
             export function object_type(a) {
@@ -332,13 +332,55 @@ fn test_typed_array() {
 }
 
 #[test]
+fn test_return_array() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "to_array",
+            DataType::new_list(DataType::Int32, true),
+            CallMode::CalledOnNullInput,
+            r#"
+            export function to_array(x) {
+                if(x == null) {
+                    return null;
+                }
+                return [x];
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("to_array", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++----------+
+| to_array |
++----------+
+| [1]      |
+|          |
+| [3]      |
++----------+
+    "#
+        .trim()
+    );
+}
+
+#[test]
 fn test_range() {
     let mut runtime = Runtime::new().unwrap();
 
     runtime
         .add_function(
             "range",
-            arrow_schema::DataType::Int32,
+            DataType::Int32,
             CallMode::ReturnNullOnNullInput,
             r#"
             export function* range(n) {

@@ -9,7 +9,11 @@ anyhow = "1"
 arrow-array = "50"
 arrow-buffer = "50"
 arrow-schema = "50"
-rquickjs = { version = "0.4", features = ["array-buffer", "parallel"] }
+rquickjs = { version = "0.4", features = [
+    "bindgen",
+    "array-buffer",
+    "parallel",
+] }
 
 [dev-dependencies]
 arrow-cast = { version = "50", features = ["prettyprint"] }

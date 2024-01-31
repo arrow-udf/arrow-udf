@@ -1,11 +1,37 @@
 use anyhow::{Context, Result};
 use std::process::Command;
 
-/// Build a wasm file from a cargo project.
+/// Build a wasm binary from a Rust UDF script.
+///
+/// The `manifest` is a TOML string that will be appended to the generated `Cargo.toml`.
+/// The `script` is a Rust source code string that will be written to `src/lib.rs`.
 ///
 /// This function will block the current thread until the build is finished.
-pub fn build(cargo: &str, script: &str) -> Result<Vec<u8>> {
-    let cargo_toml = format!(
+///
+/// # Example
+///
+/// ```ignore
+/// let manifest = r#"
+/// [dependencies]
+/// chrono = "0.4"
+/// "#;
+///
+/// let script = r#"
+/// use arrow_udf::function;
+///
+/// #[function("gcd(int, int) -> int")]
+/// fn gcd(mut a: i32, mut b: i32) -> i32 {
+///     while b != 0 {
+///         (a, b) = (b, a % b);
+///     }
+///     a
+/// }
+/// "#;
+///
+/// let binary = arrow_udf_wasm::build(manifest, script).unwrap();
+/// ```
+pub fn build(manifest: &str, script: &str) -> Result<Vec<u8>> {
+    let manifest = format!(
         r#"
 [package]
 name = "udf"
@@ -21,14 +47,14 @@ version = "0.1"
 [dependencies.genawaiter]
 version = "0.99"
 
-{cargo}"#,
+{manifest}"#,
     );
 
     // create a new cargo package at temporary directory
     let dir = tempfile::tempdir()?;
     std::fs::create_dir(dir.path().join("src"))?;
     std::fs::write(dir.path().join("src/lib.rs"), script)?;
-    std::fs::write(dir.path().join("Cargo.toml"), cargo_toml)?;
+    std::fs::write(dir.path().join("Cargo.toml"), manifest)?;
 
     let output = Command::new("cargo")
         .arg("build")

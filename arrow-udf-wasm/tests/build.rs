@@ -4,6 +4,11 @@ use arrow_udf_wasm::{build, Runtime};
 
 #[test]
 fn test_build() {
+    let manifest = r#"
+[dependencies]
+chrono = "0.4"
+"#;
+
     let script = r#"
 use arrow_udf::function;
 
@@ -15,7 +20,7 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
     a
 }
 "#;
-    let binary = build("", script).unwrap();
+    let binary = build(manifest, script).unwrap();
 
     let runtime = Runtime::new(&binary).unwrap();
     assert!(runtime.functions().any(|f| f == "gcd(int4,int4)->int4"));

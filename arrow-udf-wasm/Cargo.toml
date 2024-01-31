@@ -9,6 +9,9 @@ categories = ["wasm"]
 license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+build = ["tempfile"]
+
 [dependencies]
 anyhow = "1"
 arrow-array = "50"
@@ -17,6 +20,7 @@ arrow-schema = "50"
 base64 = "0.21"
 genawaiter = "0.99"
 lazy_static = "1"
+tempfile = { version = "3", optional = true }
 wasmtime = "16"
 wasmtime-wasi = "16"
 

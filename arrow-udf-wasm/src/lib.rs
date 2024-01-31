@@ -20,6 +20,12 @@ use std::sync::Mutex;
 use wasmtime::*;
 use wasmtime_wasi::{sync::WasiCtxBuilder, WasiCtx};
 
+#[cfg(feature = "build")]
+mod build;
+
+#[cfg(feature = "build")]
+pub use self::build::build;
+
 /// The WASM UDF runtime.
 ///
 /// This runtime contains an instance pool and can be shared by multiple threads.

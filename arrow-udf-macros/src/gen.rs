@@ -674,6 +674,8 @@ fn gen_append_null(ty: &str) -> TokenStream2 {
 /// | `bigint[]`  | `ArrayRef`       | `&[i64]`                     |
 /// | `real[]`    | `ArrayRef`       | `&[f32]`                     |
 /// | `float[]`   | `ArrayRef`       | `&[f64]`                     |
+/// | `varchar[]` | `ArrayRef`       | `arrow::array::StringArray`  |
+/// | `bytea[]`   | `ArrayRef`       | `arrow::array::BinaryArray`  |
 fn transform_input(input: &Ident, ty: &str) -> TokenStream2 {
     if ty == "decimal" {
         return quote! { std::str::from_utf8(#input).expect("invalid utf8 for decimal").parse::<rust_decimal::Decimal>().expect("invalid decimal") };
@@ -697,6 +699,16 @@ fn transform_input(input: &Ident, ty: &str) -> TokenStream2 {
                 let primitive_array: &#array_type = #input.as_primitive();
                 primitive_array.values().as_ref()
             }};
+        } else if elem_type == "varchar" {
+            return quote! {
+                #input.as_any().downcast_ref::<arrow_array::StringArray>().expect("string array")
+            };
+        } else if elem_type == "bytea" {
+            return quote! {
+                #input.as_any().downcast_ref::<arrow_array::BinaryArray>().expect("binary array")
+            };
+        } else {
+            return quote! { #input };
         }
     }
     quote! { #input }

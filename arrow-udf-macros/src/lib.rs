@@ -107,8 +107,8 @@ mod utils;
 ///
 /// ## Optimization
 ///
-/// When all input and output types of the function are *primitive type* (refer to the [type
-/// matrix]) and do not contain any Option or Result, the `#[function]` macro will automatically
+/// When all input and output types of the function are *primitive type* (int2, int4, int8, float4, float8)
+/// and do not contain any Option or Result, the `#[function]` macro will automatically
 /// generate SIMD vectorized execution code.
 ///
 /// Therefore, try to avoid returning `Option` and `Result` whenever possible.
@@ -187,22 +187,36 @@ mod utils;
 ///
 /// ## Base Types
 ///
-/// | SQL type           | Rust type                      | primitive? |
-/// | ------------------ | ------------------------------ | ---------- |
-/// | `boolean`          | `bool`                         | no         |
-/// | `smallint`         | `i16`                          | yes        |
-/// | `integer`          | `i32`                          | yes        |
-/// | `bigint`           | `i64`                          | yes        |
-/// | `real`             | `f32`                          | yes        |
-/// | `double precision` | `f64`                          | yes        |
-/// | `numeric`          | [`rust_decimal::Decimal`]      | yes        |
-/// | `date`             | [`chrono::NaiveDate`]          | yes        |
-/// | `time`             | [`chrono::NaiveTime`]          | yes        |
-/// | `timestamp`        | [`chrono::NaiveDateTime`]      | yes        |
-/// | `interval`         | [`arrow_udf::types::Interval`] | yes        |
-/// | `json`             | [`serde_json::Value`]          | no         |
-/// | `varchar`          | `&str`                         | no         |
-/// | `bytea`            | `&[u8]`                        | no         |
+/// | SQL type             | Rust type as argument          | Rust type as return value      |
+/// | -------------------- | ------------------------------ | ------------------------------ |
+/// | `boolean`            | `bool`                         | `bool`                         |
+/// | `smallint`           | `i16`                          | `i16`                          |
+/// | `integer`            | `i32`                          | `i32`                          |
+/// | `bigint`             | `i64`                          | `i64`                          |
+/// | `real`               | `f32`                          | `f32`                          |
+/// | `double precision`   | `f64`                          | `f64`                          |
+/// | `decimal`            | [`rust_decimal::Decimal`]      | [`rust_decimal::Decimal`]      |
+/// | `date`               | [`chrono::NaiveDate`]          | [`chrono::NaiveDate`]          |
+/// | `time`               | [`chrono::NaiveTime`]          | [`chrono::NaiveTime`]          |
+/// | `timestamp`          | [`chrono::NaiveDateTime`]      | [`chrono::NaiveDateTime`]      |
+/// | `timestamptz`        | not supported yet              | not supported yet              |
+/// | `interval`           | [`arrow_udf::types::Interval`] | [`arrow_udf::types::Interval`] |
+/// | `json`               | [`serde_json::Value`]          | [`serde_json::Value`]          |
+/// | `varchar`            | `&str`                         | `impl AsRef<str>`, e.g. `String`, `Box<str>`, `&str`     |
+/// | `bytea`              | `&[u8]`                        | `impl AsRef<[u8]>`, e.g. `Vec<u8>`, `Box<[u8]>`, `&[u8]` |
+///
+/// ## Array Types
+///
+/// | SQL type             | Rust type as argument          | Rust type as return value      |
+/// | -------------------- | ------------------------------ | ------------------------------ |
+/// | `smallint[]`         | `&[i16]`                       | `impl Iterator<Item = i16>`    |
+/// | `integer[]`          | `&[i32]`                       | `impl Iterator<Item = i32>`    |
+/// | `bigint[]`           | `&[i64]`                       | `impl Iterator<Item = i64>`    |
+/// | `real[]`             | `&[f32]`                       | `impl Iterator<Item = f32>`    |
+/// | `double precision[]` | `&[f64]`                       | `impl Iterator<Item = f64>`    |
+/// | `varchar[]`          | [`&arrow::array::StringArray`] | `impl Iterator<Item = &str>`   |
+/// | `bytea[]`            | [`&arrow::array::BinaryArray`] | `impl Iterator<Item = &[u8]>`  |
+/// | `others[]`           | not supported yet              | not supported yet              |
 ///
 /// [type matrix]: #appendix-type-matrix
 /// [`rust_decimal::Decimal`]: https://docs.rs/rust_decimal/1.33.1/rust_decimal/struct.Decimal.html
@@ -211,6 +225,8 @@ mod utils;
 /// [`chrono::NaiveDateTime`]: https://docs.rs/chrono/0.4.31/chrono/naive/struct.NaiveDateTime.html
 /// [`arrow_udf::types::Interval`]: https://docs.rs/arrow_udf/0.1.0/arrow_udf/types/struct.Interval.html
 /// [`serde_json::Value`]: https://docs.rs/serde_json/1.0.108/serde_json/enum.Value.html
+/// [`&arrow::array::StringArray`]: https://docs.rs/arrow/50.0.0/arrow/array/type.StringArray.html
+/// [`&arrow::array::BinaryArray`]: https://docs.rs/arrow/50.0.0/arrow/array/type.BinaryArray.html
 #[proc_macro_attribute]
 pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
     fn inner(attr: TokenStream, item: TokenStream) -> Result<TokenStream2> {

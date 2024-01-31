@@ -101,7 +101,9 @@ pub fn normalize_type(ty: &str) -> String {
         "bigint" => "int8",
         "real" => "float4",
         "double precision" => "float8",
+        "numeric" => "decimal",
         "character varying" => "varchar",
+        "jsonb" => "json",
         _ => ty,
     }
     .to_string()
@@ -163,7 +165,15 @@ mod tests {
 
     #[test]
     fn test_normalize_type() {
+        assert_eq!(normalize_type("bool"), "boolean");
+        assert_eq!(normalize_type("smallint"), "int2");
         assert_eq!(normalize_type("int"), "int4");
+        assert_eq!(normalize_type("bigint"), "int8");
+        assert_eq!(normalize_type("real"), "float4");
+        assert_eq!(normalize_type("double precision"), "float8");
+        assert_eq!(normalize_type("numeric"), "decimal");
+        assert_eq!(normalize_type("character varying"), "varchar");
+        assert_eq!(normalize_type("jsonb"), "json");
         assert_eq!(normalize_type("int[]"), "int4[]");
         assert_eq!(
             normalize_type("struct< a: int, b: struct< c:int, d: varchar> >"),

@@ -19,8 +19,8 @@ use arrow_array::cast::AsArray;
 use arrow_array::temporal_conversions::time_to_time64us;
 use arrow_array::types::{Date32Type, Int32Type};
 use arrow_array::{
-    Date32Array, Int32Array, LargeBinaryArray, LargeStringArray, ListArray, RecordBatch,
-    StringArray, Time64MicrosecondArray,
+    BinaryArray, Date32Array, Int32Array, LargeBinaryArray, LargeStringArray, ListArray,
+    RecordBatch, StringArray, Time64MicrosecondArray,
 };
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
@@ -181,6 +181,51 @@ fn array_sum<T: Sum + Copy>(s: &[T]) -> T {
 #[function("split(varchar) -> varchar[]")]
 fn split(s: &str) -> impl Iterator<Item = &str> {
     s.split(',')
+}
+
+#[function("int2_array(int2[]) -> int2[]")]
+fn int2_array(_: &[i16]) -> impl Iterator<Item = i16> {
+    [].into_iter()
+}
+
+#[function("int4_array(int4[]) -> int4[]")]
+fn int4_array(_: &[i32]) -> impl Iterator<Item = i32> {
+    [].into_iter()
+}
+
+#[function("int8_array(int8[]) -> int8[]")]
+fn int8_array(_: &[i64]) -> impl Iterator<Item = i64> {
+    [].into_iter()
+}
+
+#[function("float4_array(float4[]) -> float4[]")]
+fn float4_array(_: &[f32]) -> impl Iterator<Item = f32> {
+    [].into_iter()
+}
+
+#[function("float8_array(float8[]) -> float8[]")]
+fn float8_array(_: &[f64]) -> impl Iterator<Item = f64> {
+    [].into_iter()
+}
+
+#[function("string_array(varchar[]) -> varchar[]")]
+fn string_array<'b>(_: &StringArray) -> impl Iterator<Item = &'b str> {
+    [].into_iter()
+}
+
+#[function("string_array1(varchar[]) -> varchar[]")]
+fn string_array1(_: &StringArray) -> impl Iterator<Item = String> {
+    [].into_iter()
+}
+
+#[function("byte_array(bytea[]) -> bytea[]")]
+fn byte_array<'b>(_: &BinaryArray) -> impl Iterator<Item = &'b [u8]> {
+    [].into_iter()
+}
+
+#[function("byte_array1(bytea[]) -> bytea[]")]
+fn byte_array1(_: &BinaryArray) -> impl Iterator<Item = Vec<u8>> {
+    [].into_iter()
 }
 
 #[function("key_value(varchar) -> struct<key:varchar,value:varchar>")]

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![doc = include_str!("../README.md")]
+
 use anyhow::{anyhow, bail, ensure, Context};
 use arrow_array::RecordBatch;
 use std::collections::{HashMap, HashSet};

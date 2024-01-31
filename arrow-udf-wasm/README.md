@@ -14,7 +14,7 @@ arrow-udf = "0.1"
 
 Define your functions with the `#[function]` macro:
 
-```rust
+```rust,ignore
 use arrow_udf::function;
 
 #[function("gcd(int, int) -> int")]
@@ -43,7 +43,7 @@ arrow-udf-wasm = "0.1"
 
 You can then load the WebAssembly module and call the functions:
 
-```rust
+```rust,ignore
 use arrow_udf_wasm::Runtime;
 
 // load the WebAssembly module

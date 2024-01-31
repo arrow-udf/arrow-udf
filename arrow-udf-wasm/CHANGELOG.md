@@ -7,19 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.2] - 2024-01-31
+## [0.1.1] - 2024-01-31
 
 ### Added
 
-- Support type alias `numeric` and `jsonb` in `#[function]`.
-- Support `varchar[]` and `bytea[]` as arguments.
+- Add `build` feature to build the wasm binary from source.
 
-## [0.1.1] - 2024-01-17
+### Changed
 
-### Fixed
-
-- Fixed returning a list in a struct. e.g. `-> struct<a:int[]>` is now supported.
-- However, the trade-off is that the performance of returning a list might decrease.
+- Update `wasmtime` to v17.
 
 ## [0.1.0] - 2024-01-13
 

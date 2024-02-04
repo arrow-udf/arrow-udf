@@ -25,7 +25,9 @@ use arrow_array::{
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
 use arrow_udf::function;
+use arrow_udf::types::{Interval, StructType};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use rust_decimal::Decimal;
 
 // test no return value
 #[function("null()")]
@@ -228,19 +230,71 @@ fn byte_array1(_: &BinaryArray) -> impl Iterator<Item = Vec<u8>> {
     [].into_iter()
 }
 
-#[function("key_value(varchar) -> struct<key:varchar,value:varchar>")]
-fn key_value(kv: &str) -> Option<(&str, &str)> {
-    kv.split_once('=')
+#[derive(StructType)]
+struct KeyValue<'a> {
+    key: &'a str,
+    value: &'a str,
 }
 
-#[function("nested_struct() -> struct<a:int, b:struct<c:int, d:varchar>>")]
-fn nested_struct() -> (i32, (i32, &'static str)) {
-    (1, (2, "g"))
+#[function("key_value(varchar) -> struct KeyValue")]
+fn key_value(kv: &str) -> Option<KeyValue<'_>> {
+    let (key, value) = kv.split_once('=')?;
+    Some(KeyValue { key, value })
 }
 
-#[function("array_in_struct(varchar) -> struct<items:varchar[]>")]
-fn array_in_struct(s: &str) -> (impl Iterator<Item = Option<&str>>,) {
-    (s.split(',').map(Some),)
+#[derive(StructType)]
+struct StructOfAll {
+    // FIXME: panic on 'StructBuilder and field_builders are of unequal lengths.'
+    // a: (),
+    b: Option<bool>,
+    c: i16,
+    d: i32,
+    e: i64,
+    f: f32,
+    g: f64,
+    h: Decimal,
+    i: NaiveDate,
+    j: NaiveTime,
+    k: NaiveDateTime,
+    l: Interval,
+    m: serde_json::Value,
+    n: String,
+    o: Vec<u8>,
+    p: Vec<String>,
+    q: KeyValue<'static>,
+}
+
+#[function("struct_of_all() -> struct StructOfAll")]
+fn struct_of_all() -> StructOfAll {
+    StructOfAll {
+        // a: (),
+        b: None,
+        c: 1,
+        d: 2,
+        e: 3,
+        f: 4.0,
+        g: 5.0,
+        h: Decimal::new(6, 3),
+        i: NaiveDate::from_ymd_opt(2022, 4, 8).unwrap(),
+        j: NaiveTime::from_hms_micro_opt(12, 34, 56, 789_012).unwrap(),
+        k: NaiveDateTime::new(
+            NaiveDate::from_ymd_opt(2022, 4, 8).unwrap(),
+            NaiveTime::from_hms_micro_opt(12, 34, 56, 789_012).unwrap(),
+        ),
+        l: Interval {
+            months: 7,
+            days: 8,
+            nanos: 9,
+        },
+        m: serde_json::json!({ "key": "value" }),
+        n: "string".to_string(),
+        o: vec![10, 11, 12],
+        p: vec!["a".to_string(), "b".to_string()],
+        q: KeyValue {
+            key: "a",
+            value: "b",
+        },
+    }
 }
 
 #[function("range(int) -> setof int")]
@@ -317,7 +371,7 @@ fn test_key_value() {
     let arg0 = StringArray::from(vec!["a=b", "??"]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = key_value_varchar_struct_key_varchar_value_varchar_eval(&input).unwrap();
+    let output = key_value_varchar_struct_KeyValue_eval(&input).unwrap();
     assert_eq!(
         pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()
@@ -335,44 +389,22 @@ fn test_key_value() {
 }
 
 #[test]
-fn test_nested_struct() {
+fn test_struct_of_all() {
     let schema = Schema::new(vec![Field::new("int32", DataType::Int32, true)]);
     let arg0 = Int32Array::from(vec![1]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = nested_struct_struct_a_int4_b_struct_c_int4_d_varchar_eval(&input).unwrap();
+    let output = struct_of_all_struct_StructOfAll_eval(&input).unwrap();
     assert_eq!(
         pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()
             .to_string(),
         r#"
-+-------------------------+
-| nested_struct           |
-+-------------------------+
-| {a: 1, b: {c: 2, d: g}} |
-+-------------------------+
-"#
-        .trim()
-    );
-}
-
-#[test]
-fn test_array_in_struct() {
-    let schema = Schema::new(vec![Field::new("x", DataType::Utf8, true)]);
-    let arg0 = StringArray::from(vec!["a,b,c"]);
-    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
-
-    let output = array_in_struct_varchar_struct_items_varchararray_eval(&input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+--------------------+
-| array_in_struct    |
-+--------------------+
-| {items: [a, b, c]} |
-+--------------------+
++----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| struct_of_all                                                                                                                                                                                                                                                  |
++----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| {b: , c: 1, d: 2, e: 3, f: 4.0, g: 5.0, h: 302e303036, i: 2022-04-08, j: 12:34:56.789012, k: 2022-04-08T12:34:56.789012, l: 0 years 7 mons 8 days 0 hours 0 mins 0.000000009 secs, m: {"key":"value"}, n: string, o: 0a0b0c, p: [a, b], q: {key: a, value: b}} |
++----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 "#
         .trim()
     );

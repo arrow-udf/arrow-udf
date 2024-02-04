@@ -18,8 +18,17 @@ use syn::{Error, Result};
 
 mod gen;
 mod parse;
+mod struct_type;
 mod types;
 mod utils;
+
+#[proc_macro_derive(StructType)]
+pub fn struct_type(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    match struct_type::gen(tokens.into()) {
+        Ok(output) => output.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
 
 /// Defining a function on Arrow arrays.
 ///

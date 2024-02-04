@@ -12,49 +12,71 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! This module provides utility functions for SQL data type conversion and manipulation.
+//! This module provides utility functions for Arrow data type conversion and manipulation.
 
 use itertools::Itertools;
 
-//  name    primitive   array prefix            data type
+//  name    primitive   rust type       array prefix            data type
 const TYPE_MATRIX: &str = "
-    void        _       Null                    Null
-    boolean     _       Boolean                 Boolean
-    int2        y       Int16                   Int16
-    int4        y       Int32                   Int32
-    int8        y       Int64                   Int64
-    float4      y       Float32                 Float32
-    float8      y       Float64                 Float64
-    decimal     _       LargeBinary             LargeBinary
-    date        _       Date32                  Date32
-    time        _       Time64Microsecond       Time64(TimeUnit::Microsecond)
-    timestamp   _       TimestampMicrosecond    Timestamp(TimeUnit::Microsecond,None)
-    interval    _       IntervalMonthDayNano    Interval(IntervalUnit::MonthDayNano)
-    json        _       LargeString             LargeUtf8
-    varchar     _       String                  Utf8
-    bytea       _       Binary                  Binary
-    array       _       List                    List
-    struct      _       Struct                  Struct
+    void        _       ()              Null                    Null
+    boolean     _       bool            Boolean                 Boolean
+    int2        y       i16             Int16                   Int16
+    int4        y       i32             Int32                   Int32
+    int8        y       i64             Int64                   Int64
+    float4      y       f32             Float32                 Float32
+    float8      y       f64             Float64                 Float64
+    decimal     _       Decimal         LargeBinary             LargeBinary
+    date        _       NaiveDate       Date32                  Date32
+    time        _       NaiveTime       Time64Microsecond       Time64(TimeUnit::Microsecond)
+    timestamp   _       NaiveDateTime   TimestampMicrosecond    Timestamp(TimeUnit::Microsecond,None)
+    interval    _       Interval        IntervalMonthDayNano    Interval(IntervalUnit::MonthDayNano)
+    json        _       Value           LargeString             LargeUtf8
+    varchar     _       String,str      String                  Utf8
+    bytea       _       Vec<u8>,[u8]    Binary                  Binary
+    array       _       _               List                    List
+    struct      _       _               Struct                  Struct
 ";
 
 /// Maps a data type to its corresponding data type name.
 pub fn data_type(ty: &str) -> &str {
-    lookup_matrix(ty, 3)
+    lookup_matrix(ty, 4)
 }
 
 /// Maps a data type to its corresponding array type name.
 pub fn array_type(ty: &str) -> String {
-    format!("{}Array", lookup_matrix(ty, 2))
+    format!("{}Array", lookup_matrix(ty, 3))
 }
 
 /// Maps a data type to its corresponding array type name.
 pub fn array_builder_type(ty: &str) -> String {
-    format!("{}Builder", lookup_matrix(ty, 2))
+    format!("{}Builder", lookup_matrix(ty, 3))
 }
 
 /// Checks if a data type is primitive.
 pub fn is_primitive(ty: &str) -> bool {
     lookup_matrix(ty, 1) == "y"
+}
+
+/// Maps a Rust type to its corresponding data type name.
+pub fn type_of(rust_type: &str) -> String {
+    if let Some(ty) = TYPE_MATRIX.trim().lines().find_map(|line| {
+        let mut parts = line.split_whitespace();
+        let ty = parts.next()?;
+        let rust_types = parts.nth(1)?;
+        if rust_types.split(',').any(|t| rust_type.ends_with(t)) {
+            Some(ty)
+        } else {
+            None
+        }
+    }) {
+        return ty.to_string();
+    }
+    let struct_type = match rust_type.find('<') {
+        // strip generic type
+        Some(i) => &rust_type[..i],
+        None => rust_type,
+    };
+    format!("struct {}", struct_type)
 }
 
 fn lookup_matrix(mut ty: &str, idx: usize) -> &str {

@@ -24,6 +24,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub mod ffi;
 #[cfg(feature = "global_registry")]
 pub mod sig;
+pub mod types;
 
 /// A scalar function that operates on a record batch.
 pub type ScalarFunction = fn(input: &RecordBatch) -> Result<RecordBatch>;
@@ -31,16 +32,6 @@ pub type ScalarFunction = fn(input: &RecordBatch) -> Result<RecordBatch>;
 /// A table function that operates on a record batch and returns an iterator of record batches.
 pub type TableFunction =
     for<'a> fn(input: &'a RecordBatch) -> Result<Box<dyn Iterator<Item = RecordBatch> + 'a>>;
-
-/// Types used by the generated code.
-pub mod types {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct Interval {
-        pub months: i32,
-        pub days: i32,
-        pub nanos: i64,
-    }
-}
 
 /// Internal APIs used by macros.
 #[doc(hidden)]

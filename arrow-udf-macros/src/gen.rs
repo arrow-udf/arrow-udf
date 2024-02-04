@@ -175,7 +175,7 @@ impl FunctionAttr {
 
         let variadic_args = variadic.then(|| quote! { variadic_row, });
         let context = user_fn.context.then(|| quote! { &self.context, });
-        let writer = user_fn.write.then(|| quote! { &mut builder, });
+        let writer = user_fn.write.then(|| quote! { builder, });
         let await_ = user_fn.async_.then(|| quote! { .await });
         // transform inputs for array arguments
         // e.g. for `int[]`, transform `ArrayRef` -> `&[T]`
@@ -402,6 +402,7 @@ impl FunctionAttr {
             };
             quote! {
                 let mut builder = #builder;
+                let builder = &mut builder;
                 for (i, (#(#inputs,)*)) in #array_zip.enumerate() {
                     #append_output
                 }
@@ -494,8 +495,6 @@ impl FunctionAttr {
 fn sig_data_type(ty: &str) -> TokenStream2 {
     match ty {
         "any" => quote! { SigDataType::Any },
-        "anyarray" => quote! { SigDataType::AnyArray },
-        "struct" => quote! { SigDataType::AnyStruct },
         _ => {
             let datatype = data_type(ty);
             quote! { SigDataType::Exact(#datatype) }
@@ -504,26 +503,17 @@ fn sig_data_type(ty: &str) -> TokenStream2 {
 }
 
 /// Returns a `DataType` from type name.
-fn data_type(ty: &str) -> TokenStream2 {
+pub fn data_type(ty: &str) -> TokenStream2 {
     if let Some(ty) = ty.strip_suffix("[]") {
         let inner_type = data_type(ty);
         return quote! { arrow_schema::DataType::List(Arc::new(arrow_schema::Field::new("item", #inner_type, true))) };
     }
-    if ty.starts_with("struct<") && ty.ends_with('>') {
-        let fields = fields(ty);
-        return quote! { arrow_schema::DataType::Struct(#fields) };
+    if let Some(s) = ty.strip_prefix("struct ") {
+        let struct_type = format_ident!("{}", s);
+        return quote! { arrow_schema::DataType::Struct(#struct_type::fields()) };
     }
     let variant: TokenStream2 = types::data_type(ty).parse().unwrap();
     quote! { arrow_schema::DataType::#variant }
-}
-
-/// Returns a `Fields` from struct type name.
-fn fields(ty: &str) -> TokenStream2 {
-    let fields = types::iter_fields(ty).map(|(name, ty)| {
-        let ty = data_type(ty);
-        quote! { arrow_schema::Field::new(#name, #ty, true) }
-    });
-    quote! { arrow_schema::Fields::from(vec![#(#fields,)*]) }
 }
 
 /// Generate a builder for the given type.
@@ -545,9 +535,9 @@ fn builder(ty: &str) -> TokenStream2 {
             let values_builder = builder(ty.strip_suffix("[]").unwrap());
             quote! { ListBuilder::<Box<dyn ArrayBuilder>>::with_capacity(Box::new(#values_builder), input.num_rows()) }
         }
-        s if s.starts_with("struct") => {
-            let fields = fields(s);
-            quote! { StructBuilder::from_fields(#fields, input.num_rows()) }
+        s if s.starts_with("struct ") => {
+            let struct_ident = format_ident!("{}", &s[7..]);
+            quote! { StructBuilder::from_fields(#struct_ident::fields(), input.num_rows()) }
         }
         _ => {
             let builder_type = format_ident!("{}", types::array_builder_type(ty));
@@ -559,7 +549,7 @@ fn builder(ty: &str) -> TokenStream2 {
 /// Return the builder type for the given type.
 ///
 /// This should be consistent with `StructBuilder::from_fields`.
-fn builder_type(ty: &str) -> TokenStream2 {
+pub fn builder_type(ty: &str) -> TokenStream2 {
     if ty.ends_with("[]") {
         quote! { ListBuilder::<Box<dyn ArrayBuilder>> }
     } else {
@@ -569,15 +559,7 @@ fn builder_type(ty: &str) -> TokenStream2 {
 
 /// Generate code to append the `v: Option<T>` to the `builder`.
 fn gen_append(ty: &str) -> TokenStream2 {
-    let mut append_value = gen_append_value(ty);
-    if ty.ends_with("[]") {
-        // the user function returns an iterator of `T`
-        // we need to wrap the item with `Some`
-        append_value = quote! {{
-            let v = v.map(Some);
-            #append_value
-        }};
-    }
+    let append_value = gen_append_value(ty);
     let append_null = gen_append_null(ty);
     quote! {
         match v {
@@ -587,30 +569,19 @@ fn gen_append(ty: &str) -> TokenStream2 {
     }
 }
 
-/// Generate code to append the `v: T` to the `builder`.
-fn gen_append_value(ty: &str) -> TokenStream2 {
-    if ty.starts_with("struct") {
-        let append_fields = types::iter_fields(ty).enumerate().map(|(i, (_, ty))| {
-            let index = syn::Index::from(i);
-            let builder_type = builder_type(ty);
-            let append = gen_append_value(ty);
-            quote! {{
-                let builder = builder.field_builder::<#builder_type>(#i).unwrap();
-                let v = v.#index;
-                #append
-            }}
-        });
-        quote! {{
-            #(#append_fields)*
-            builder.append(true);
-        }}
-    } else if let Some(inner_ty) = ty.strip_suffix("[]") {
+/// Generate code to append the `v: T` to the `builder: &mut Builder`.
+pub fn gen_append_value(ty: &str) -> TokenStream2 {
+    if let Some(inner_ty) = ty.strip_suffix("[]") {
         let value_builder_type = builder_type(inner_ty);
         quote! {{
             // builder.values() is Box<dyn ArrayBuilder>
             let value_builder = builder.values().as_any_mut().downcast_mut::<#value_builder_type>().expect("downcast list value builder");
-            value_builder.extend(v);
+            value_builder.extend(v.into_iter().map(Some));
             builder.append(true);
+        }}
+    } else if ty.starts_with("struct ") {
+        quote! {{
+            v.append_to(builder);
         }}
     } else if ty == "json" {
         quote! {{
@@ -639,21 +610,11 @@ fn gen_append_value(ty: &str) -> TokenStream2 {
     }
 }
 
-/// Generate code to append null to the `builder`.
-fn gen_append_null(ty: &str) -> TokenStream2 {
-    if ty.starts_with("struct") {
-        let append_fields = types::iter_fields(ty).enumerate().map(|(i, (_, ty))| {
-            let append = gen_append_null(ty);
-            let builder_type = builder_type(ty);
-            quote! {{
-                let builder = builder.field_builder::<#builder_type>(#i).expect("downcast field builder");
-                #append
-            }}
-        });
-        quote! {{
-            #(#append_fields)*
-            builder.append(false);
-        }}
+/// Generate code to append null to the `builder: &mut Builder`.
+pub fn gen_append_null(ty: &str) -> TokenStream2 {
+    if let Some(s) = ty.strip_prefix("struct ") {
+        let struct_type = format_ident!("{}", s);
+        quote! { #struct_type::append_null(builder) }
     } else {
         quote! { builder.append_null() }
     }

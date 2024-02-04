@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use arrow_udf::function;
+use arrow_udf::{function, types::StructType};
 
 #[function("gcd(int, int) -> int")]
 fn gcd(mut a: i32, mut b: i32) -> i32 {
@@ -58,9 +58,16 @@ fn length(s: impl AsRef<[u8]>) -> i32 {
     s.as_ref().len() as i32
 }
 
-#[function("key_value(varchar) -> struct<key:varchar, value:varchar>")]
-fn key_value(kv: &str) -> Option<(&str, &str)> {
-    kv.split_once('=')
+#[derive(StructType)]
+struct KeyValue<'a> {
+    key: &'a str,
+    value: &'a str,
+}
+
+#[function("key_value(varchar) -> struct KeyValue")]
+fn key_value(kv: &str) -> Option<KeyValue<'_>> {
+    let (key, value) = kv.split_once('=')?;
+    Some(KeyValue { key, value })
 }
 
 #[function("range(int) -> setof int")]

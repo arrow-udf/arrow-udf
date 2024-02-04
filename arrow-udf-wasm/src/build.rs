@@ -58,11 +58,12 @@ pub fn build_with(opts: &BuildOpts) -> Result<Vec<u8>> {
     // install wasm32-wasi target
     if !opts.offline {
         let output = Command::new("rustup")
+            .arg("+stable")
             .arg("target")
             .arg("add")
             .arg("wasm32-wasi")
             .output()
-            .context("failed to run `rustup target add wasm32-wasi`")?;
+            .context("failed to run `rustup +stable target add wasm32-wasi`")?;
         if !output.status.success() {
             return Err(anyhow::anyhow!(
                 "failed to install wasm32-wasi target. ({})\n--- stdout\n{}\n--- stderr\n{}",
@@ -101,6 +102,7 @@ version = "0.99"
 
     let mut command = Command::new("cargo");
     command
+        .arg("+stable")
         .arg("build")
         .arg("--release")
         .arg("--target")

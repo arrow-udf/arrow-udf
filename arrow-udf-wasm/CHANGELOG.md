@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2024-02-04
+
+### Added
+
+- Add `build_with` and `BuildOpts` to allow building in offline mode.
+- Automatically install `wasm32-wasi` target when building without offline.
+
 ## [0.1.1] - 2024-01-31
 
 ### Added

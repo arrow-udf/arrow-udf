@@ -28,9 +28,47 @@ use std::process::Command;
 /// }
 /// "#;
 ///
-/// let binary = arrow_udf_wasm::build(manifest, script).unwrap();
+/// let binary = arrow_udf_wasm::build::build(manifest, script).unwrap();
 /// ```
 pub fn build(manifest: &str, script: &str) -> Result<Vec<u8>> {
+    let opts = BuildOpts {
+        manifest: manifest.to_string(),
+        script: script.to_string(),
+        ..Default::default()
+    };
+    build_with(&opts)
+}
+
+/// Options for building wasm binaries.
+#[derive(Debug, Default)]
+#[non_exhaustive]
+pub struct BuildOpts {
+    pub manifest: String,
+    pub script: String,
+    /// Whether to build the wasm binary offline.
+    pub offline: bool,
+}
+
+/// Build a wasm binary from a Rust UDF script with options.
+pub fn build_with(opts: &BuildOpts) -> Result<Vec<u8>> {
+    // install wasm32-wasi target
+    if !opts.offline {
+        let output = Command::new("rustup")
+            .arg("target")
+            .arg("add")
+            .arg("wasm32-wasi")
+            .output()
+            .context("failed to run `rustup target add wasm32-wasi`")?;
+        if !output.status.success() {
+            return Err(anyhow::anyhow!(
+                "failed to install wasm32-wasi target. ({})\n--- stdout\n{}\n--- stderr\n{}",
+                output.status,
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+
     let manifest = format!(
         r#"
 [package]
@@ -47,23 +85,27 @@ version = "0.1"
 [dependencies.genawaiter]
 version = "0.99"
 
-{manifest}"#,
+{}"#,
+        opts.manifest
     );
 
     // create a new cargo package at temporary directory
     let dir = tempfile::tempdir()?;
     std::fs::create_dir(dir.path().join("src"))?;
-    std::fs::write(dir.path().join("src/lib.rs"), script)?;
+    std::fs::write(dir.path().join("src/lib.rs"), &opts.script)?;
     std::fs::write(dir.path().join("Cargo.toml"), manifest)?;
 
-    let output = Command::new("cargo")
+    let mut command = Command::new("cargo");
+    command
         .arg("build")
         .arg("--release")
         .arg("--target")
         .arg("wasm32-wasi")
-        .current_dir(dir.path())
-        .output()
-        .context("failed to run cargo build")?;
+        .current_dir(dir.path());
+    if opts.offline {
+        command.arg("--offline");
+    }
+    let output = command.output().context("failed to run cargo build")?;
     if !output.status.success() {
         return Err(anyhow::anyhow!(
             "failed to build wasm ({})\n--- stdout\n{}\n--- stderr\n{}",
@@ -73,8 +115,7 @@ version = "0.99"
         ));
     }
     let binary_path = dir.path().join("target/wasm32-wasi/release/udf.wasm");
-    println!("binary_path: {:?}", binary_path);
-    // strip the wasm binary if wasm-tools exists
+    // strip the wasm binary if wasm-strip exists
     if Command::new("wasm-strip").arg("--version").output().is_ok() {
         let output = Command::new("wasm-strip")
             .arg(&binary_path)

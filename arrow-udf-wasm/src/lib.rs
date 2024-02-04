@@ -23,10 +23,7 @@ use wasmtime::*;
 use wasmtime_wasi::{sync::WasiCtxBuilder, WasiCtx};
 
 #[cfg(feature = "build")]
-mod build;
-
-#[cfg(feature = "build")]
-pub use self::build::build;
+pub mod build;
 
 /// The WASM UDF runtime.
 ///

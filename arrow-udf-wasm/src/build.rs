@@ -1,3 +1,5 @@
+//! Build WASM binaries from source.
+
 use anyhow::{Context, Result};
 use std::process::Command;
 
@@ -43,13 +45,15 @@ pub fn build(manifest: &str, script: &str) -> Result<Vec<u8>> {
 #[derive(Debug, Default)]
 #[non_exhaustive]
 pub struct BuildOpts {
+    /// A TOML string that will be appended to the generated `Cargo.toml`.
     pub manifest: String,
+    /// A Rust source code string that will be written to `src/lib.rs`.
     pub script: String,
-    /// Whether to build the wasm binary offline.
+    /// Whether to build offline.
     pub offline: bool,
 }
 
-/// Build a wasm binary from a Rust UDF script with options.
+/// Build a wasm binary with options.
 pub fn build_with(opts: &BuildOpts) -> Result<Vec<u8>> {
     // install wasm32-wasi target
     if !opts.offline {

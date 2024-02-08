@@ -9,7 +9,7 @@ Add the following lines to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-arrow-udf = "0.1"
+arrow-udf = "0.2"
 ```
 
 Define your functions with the `#[function]` macro:
@@ -74,6 +74,33 @@ and the error message will be stored in the error column.
 | 5  | 0  |     | division by zero |
 +----+----+-----+------------------+
 ```
+
+### Struct Types
+
+You can define a struct type with the `StructType` trait:
+
+```rust
+use arrow_udf::types::StructType;
+
+#[derive(StructType)]
+struct Point {
+    x: f64,
+    y: f64,
+}
+```
+
+Then you can use the struct type in function signatures:
+
+```rust,ignore
+use arrow_udf::function;
+
+#[function("point(float8, float8) -> struct Point", output = "eval_point")]
+fn point(x: f64, y: f64) -> Point {
+    Point { x, y }
+}
+```
+
+Currently struct types are only supported as return types.
 
 ### Function Registry
 

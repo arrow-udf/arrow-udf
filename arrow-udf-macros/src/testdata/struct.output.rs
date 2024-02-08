@@ -1,3 +1,5 @@
+#[export_name = "arrowudt_RGF0YT1hOnZvaWQsYjpib29sZWFuLGM6aW50MixkOmludDQsZTppbnQ4LGY6ZmxvYXQ0LGc6ZmxvYXQ4LGg6ZGVjaW1hbCxpOmRhdGUsajp0aW1lLGs6dGltZXN0YW1wLGw6aW50ZXJ2YWwsbTpqc29uLG46dmFyY2hhcixvOmJ5dGVhLHA6dmFyY2hhcltdLHE6c3RydWN0IEtleVZhbHVl"]
+static DATA_METADATA: () = ();
 impl ::arrow_udf::types::StructType for Data {
     fn fields() -> ::arrow_udf::codegen::arrow_schema::Fields {
         use ::arrow_udf::codegen::arrow_schema::{self, Field, TimeUnit, IntervalUnit};
@@ -17,7 +19,8 @@ impl ::arrow_udf::types::StructType for Data {
             true), Field::new("m", arrow_schema::DataType::LargeUtf8, true),
             Field::new("n", arrow_schema::DataType::Utf8, true), Field::new("o",
             arrow_schema::DataType::Binary, true), Field::new("p",
-            arrow_schema::DataType::Utf8, true), Field::new("q",
+            arrow_schema::DataType::List(Arc::new(arrow_schema::Field::new("item",
+            arrow_schema::DataType::Utf8, true))), true), Field::new("q",
             arrow_schema::DataType::Struct(KeyValue::fields()), true),
         ];
         fields.into()
@@ -121,9 +124,19 @@ impl ::arrow_udf::types::StructType for Data {
             builder.append_value(v)
         }
         {
-            let builder = builder.field_builder::<StringBuilder>(15usize).unwrap();
+            let builder = builder
+                .field_builder::<ListBuilder<Box<dyn ArrayBuilder>>>(15usize)
+                .unwrap();
             let v = self.p;
-            builder.append_value(v)
+            {
+                let value_builder = builder
+                    .values()
+                    .as_any_mut()
+                    .downcast_mut::<StringBuilder>()
+                    .expect("downcast list value builder");
+                value_builder.extend(v.into_iter().map(Some));
+                builder.append(true);
+            }
         }
         {
             let builder = builder.field_builder::<StructBuilder>(16usize).unwrap();
@@ -205,7 +218,9 @@ impl ::arrow_udf::types::StructType for Data {
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<StringBuilder>(15usize).unwrap();
+            let builder = builder
+                .field_builder::<ListBuilder<Box<dyn ArrayBuilder>>>(15usize)
+                .unwrap();
             builder.append_null()
         }
         {

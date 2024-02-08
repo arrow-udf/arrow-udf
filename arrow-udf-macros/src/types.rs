@@ -14,8 +14,6 @@
 
 //! This module provides utility functions for Arrow data type conversion and manipulation.
 
-use itertools::Itertools;
-
 //  name    primitive   rust type       array prefix            data type
 const TYPE_MATRIX: &str = "
     void        _       ()              Null                    Null
@@ -102,19 +100,14 @@ fn lookup_matrix(mut ty: &str, idx: usize) -> &str {
 /// ```text
 /// "int" => "int4"
 /// "int[]" => "int4[]"
-/// "struct< a: int, b:int >" => "struct<a:int4,b:int4>"
+/// "struct  Key" => "struct Key"
 /// ```
 pub fn normalize_type(ty: &str) -> String {
     if let Some(t) = ty.strip_suffix("[]") {
         return format!("{}[]", normalize_type(t));
     }
-    if ty.starts_with("struct<") && ty.ends_with('>') {
-        return format!(
-            "struct<{}>",
-            iter_fields(ty)
-                .map(|(name, ty)| format!("{}:{}", name, normalize_type(ty)))
-                .join(",")
-        );
+    if let Some(s) = ty.strip_prefix("struct ") {
+        return format!("struct {}", s.trim());
     }
     match ty {
         "bool" => "boolean",
@@ -129,41 +122,6 @@ pub fn normalize_type(ty: &str) -> String {
         _ => ty,
     }
     .to_string()
-}
-
-/// Iterates over the fields of a struct type.
-///
-/// # Examples
-///
-/// ```text
-/// "struct<a:struct<c:int,d:int>,b:varchar>"
-/// yield ("a", "struct<c:int,d:int>")
-/// yield ("b", "varchar")
-/// ```
-pub fn iter_fields(ty: &str) -> impl Iterator<Item = (&str, &str)> {
-    let ty = ty.strip_prefix("struct<").unwrap();
-    let mut ty = ty.strip_suffix('>').unwrap();
-    std::iter::from_fn(move || {
-        if ty.is_empty() {
-            return None;
-        }
-        let mut depth = 0;
-        let mut i = 0;
-        for b in ty.bytes() {
-            match b {
-                b'<' => depth += 1,
-                b'>' => depth -= 1,
-                b',' if depth == 0 => break,
-                _ => {}
-            }
-            i += 1;
-        }
-        // ty[i] is Some(',') or None
-        let field = &ty[..i];
-        ty = &ty[(i + 1).min(ty.len())..];
-        let (name, t) = field.split_once(':').unwrap();
-        Some((name.trim(), t.trim()))
-    })
 }
 
 /// Expands a type wildcard string into a list of concrete types.
@@ -197,17 +155,6 @@ mod tests {
         assert_eq!(normalize_type("character varying"), "varchar");
         assert_eq!(normalize_type("jsonb"), "json");
         assert_eq!(normalize_type("int[]"), "int4[]");
-        assert_eq!(
-            normalize_type("struct< a: int, b: struct< c:int, d: varchar> >"),
-            "struct<a:int4,b:struct<c:int4,d:varchar>>"
-        );
-    }
-
-    #[test]
-    fn test_iter_fields() {
-        assert_eq!(
-            iter_fields("struct<a:int,b:struct<c:int,d:int>>").collect::<Vec<_>>(),
-            vec![("a", "int"), ("b", "struct<c:int,d:int>")]
-        );
+        assert_eq!(normalize_type("struct   Key"), "struct Key");
     }
 }

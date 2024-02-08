@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2024-02-08
+
+### Added
+
+- Add `StructType` trait and derive macro to define struct types.
+
+### Changed
+
+- **Breaking**: The inline syntax `struct<..>` in function signatures is deprecated. Use `struct StructType` instead.
+
 ## [0.1.2] - 2024-01-31
 
 ### Added

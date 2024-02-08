@@ -23,9 +23,14 @@ use arrow_ipc::{reader::FileReader, writer::FileWriter};
 /// The version follows semantic versioning `MAJOR.MINOR`.
 /// - The major version is incremented when incompatible API changes are made.
 /// - The minor version is incremented when new functionality are added in a backward compatible manner.
+///
+/// # Changelog
+///
+/// - 2.0: Add user defined struct type.
+/// - 1.0: Initial version.
 #[no_mangle]
 #[used]
-pub static ARROWUDF_VERSION_1_0: () = ();
+pub static ARROWUDF_VERSION_2_0: () = ();
 
 /// Allocate memory.
 ///

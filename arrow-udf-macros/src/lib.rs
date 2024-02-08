@@ -22,6 +22,27 @@ mod struct_type;
 mod types;
 mod utils;
 
+/// Derive `StructType` for user defined struct.
+///
+/// Structs that implement `StructType` can be used as Arrow struct types.
+///
+/// # Examples
+///
+/// ```ignore
+/// #[derive(StructType)]
+/// struct KeyValue<'a> {
+///     key: &'a str,
+///     value: &'a str,
+/// }
+/// ```
+///
+/// ```ignore
+/// #[function("split_kv(varchar) -> struct KeyValue")]
+/// fn split_kv(kv: &str) -> Option<KeyValue<'_>> {
+///     let (key, value) = kv.split_once('=')?;
+///     Some(KeyValue { key, value })
+/// }
+/// ```
 #[proc_macro_derive(StructType)]
 pub fn struct_type(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     match struct_type::gen(tokens.into()) {
@@ -226,6 +247,12 @@ pub fn struct_type(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// | `varchar[]`          | [`&arrow::array::StringArray`] | `impl Iterator<Item = &str>`   |
 /// | `bytea[]`            | [`&arrow::array::BinaryArray`] | `impl Iterator<Item = &[u8]>`  |
 /// | `others[]`           | not supported yet              | not supported yet              |
+///
+/// ## Composite Types
+///
+/// | SQL type             | Rust type as argument          | Rust type as return value      |
+/// | -------------------- | ------------------------------ | ------------------------------ |
+/// | `struct<..>`         | `UserDefinedStruct`            | `UserDefinedStruct`            |
 ///
 /// [type matrix]: #appendix-type-matrix
 /// [`rust_decimal::Decimal`]: https://docs.rs/rust_decimal/1.33.1/rust_decimal/struct.Decimal.html

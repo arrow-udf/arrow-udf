@@ -676,7 +676,7 @@ fn transform_input(input: &Ident, ty: &str) -> TokenStream2 {
 }
 
 /// Encode a string to a symbol name using customized base64.
-fn base64_encode(input: &str) -> String {
+pub fn base64_encode(input: &str) -> String {
     use base64::{
         alphabet::Alphabet,
         engine::{general_purpose::NO_PAD, GeneralPurpose},

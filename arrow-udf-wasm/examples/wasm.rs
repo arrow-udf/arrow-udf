@@ -77,10 +77,7 @@ fn main() {
     .unwrap();
 
     let output = runtime
-        .call(
-            "key_value(varchar)->struct<key:varchar,value:varchar>",
-            &input,
-        )
+        .call("key_value(varchar)->struct KeyValue", &input)
         .unwrap();
     print(&input, &output);
 

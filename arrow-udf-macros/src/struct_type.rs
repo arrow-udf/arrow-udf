@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use itertools::Itertools;
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{format_ident, quote, ToTokens};
 use syn::{Data, DeriveInput, Result};
 
 use crate::{gen, types};
@@ -63,8 +64,25 @@ pub fn gen(tokens: TokenStream) -> Result<TokenStream> {
             #append_null
         }}
     });
+    let static_name = format_ident!("{}_METADATA", struct_name.to_string().to_uppercase());
+    let export_name = format!(
+        "arrowudt_{}",
+        // example: "KeyValue=key:varchar,value:varchar"
+        gen::base64_encode(&format!(
+            "{}={}",
+            struct_name.to_string(),
+            fields
+                .iter()
+                .map(|f| format!("{}:{}", f.name, f.type_))
+                .join(",")
+        ))
+    );
 
     Ok(quote! {
+        // export a symbol to describe the struct type
+        #[export_name = #export_name]
+        static #static_name: () = ();
+
         impl #generics ::arrow_udf::types::StructType for #struct_name #generics {
             fn fields() -> ::arrow_udf::codegen::arrow_schema::Fields {
                 use ::arrow_udf::codegen::arrow_schema::{self, Field, TimeUnit, IntervalUnit};

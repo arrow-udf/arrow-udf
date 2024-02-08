@@ -51,19 +51,24 @@ pub struct BuildOpts {
     pub script: String,
     /// Whether to build offline.
     pub offline: bool,
+    /// The toolchain to use.
+    pub toolchain: Option<String>,
 }
 
 /// Build a wasm binary with options.
 pub fn build_with(opts: &BuildOpts) -> Result<Vec<u8>> {
     // install wasm32-wasi target
     if !opts.offline {
-        let output = Command::new("rustup")
-            .arg("+stable")
+        let mut command = Command::new("rustup");
+        if let Some(toolchain) = &opts.toolchain {
+            command.arg(format!("+{}", toolchain));
+        }
+        command
             .arg("target")
             .arg("add")
             .arg("wasm32-wasi")
             .output()
-            .context("failed to run `rustup +stable target add wasm32-wasi`")?;
+            .context("failed to run `rustup target add wasm32-wasi`")?;
         if !output.status.success() {
             return Err(anyhow::anyhow!(
                 "failed to install wasm32-wasi target. ({})\n--- stdout\n{}\n--- stderr\n{}",
@@ -101,8 +106,10 @@ version = "0.99"
     std::fs::write(dir.path().join("Cargo.toml"), manifest)?;
 
     let mut command = Command::new("cargo");
+    if let Some(toolchain) = &opts.toolchain {
+        command.arg(format!("+{}", toolchain));
+    }
     command
-        .arg("+stable")
         .arg("build")
         .arg("--release")
         .arg("--target")

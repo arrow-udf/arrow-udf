@@ -302,7 +302,7 @@ fn range(x: i32) -> impl Iterator<Item = i32> {
     0..x
 }
 
-#[function("json_array_elements(json) -> setof json")]
+#[function("json_array_elements(json) ->> json")]
 fn json_array_elements(
     x: serde_json::Value,
 ) -> Result<impl Iterator<Item = serde_json::Value>, &'static str> {

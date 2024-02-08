@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add `StructType` trait and derive macro to define struct types.
+- Support `->>` as an alias for `-> setof` in `#[function]`.
 
 ### Changed
 

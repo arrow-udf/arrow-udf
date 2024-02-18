@@ -15,7 +15,7 @@
 use std::sync::Arc;
 
 use arrow_arith::arity::binary;
-use arrow_array::{Int32Array, RecordBatch};
+use arrow_array::{Int32Array, LargeBinaryArray, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf::function;
 use arrow_udf_js::Runtime as JsRuntime;
@@ -132,8 +132,6 @@ fn bench_eval_range(c: &mut Criterion) {
         })
     });
 
-    let filepath = "../target/wasm32-wasi/release/arrow_udf_example.wasm";
-    let binary = std::fs::read(filepath).unwrap();
     let input = RecordBatch::try_new(
         Arc::new(Schema::new(vec![Field::new("a", DataType::Int32, true)])),
         vec![Arc::new(a.clone())],
@@ -141,6 +139,8 @@ fn bench_eval_range(c: &mut Criterion) {
     .unwrap();
 
     c.bench_function("range/wasm", |bencher| {
+        let filepath = "../target/wasm32-wasi/release/arrow_udf_example.wasm";
+        let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
         bencher.iter(|| {
             rt.call_table_function("range(int4)->>int4", &input)
@@ -166,5 +166,40 @@ fn bench_eval_range(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench_eval_gcd, bench_eval_range);
+fn bench_eval_decimal(c: &mut Criterion) {
+    let js_code = r#"
+    export function decimal(a) {
+        return a;
+    }
+    "#;
+
+    let input = RecordBatch::try_new(
+        Arc::new(Schema::new(vec![Field::new(
+            "a",
+            DataType::LargeBinary,
+            true,
+        )])),
+        vec![Arc::new(LargeBinaryArray::from(vec![&b"0.0"[..]; 1024]))],
+    )
+    .unwrap();
+
+    c.bench_function("decimal/js", |bencher| {
+        let mut rt = JsRuntime::new().unwrap();
+        rt.add_function(
+            "decimal",
+            DataType::LargeBinary,
+            arrow_udf_js::CallMode::ReturnNullOnNullInput,
+            js_code,
+        )
+        .unwrap();
+        bencher.iter(|| rt.call("decimal", &input).unwrap())
+    });
+}
+
+criterion_group!(
+    benches,
+    bench_eval_gcd,
+    bench_eval_range,
+    bench_eval_decimal
+);
 criterion_main!(benches);

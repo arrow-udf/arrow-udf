@@ -31,8 +31,10 @@ mod jsarrow;
 
 /// The JS UDF runtime.
 pub struct Runtime {
-    // NOTE: the function must be put before the runtime and context to be dropped first.
     functions: HashMap<String, Function>,
+    /// The `BigDecimal` constructor.
+    bigdecimal: Persistent<rquickjs::Function<'static>>,
+    // NOTE: `functions` and `bigdecimal` must be put before the runtime and context to be dropped first.
     _runtime: rquickjs::Runtime,
     context: Context,
 }
@@ -80,8 +82,13 @@ impl Runtime {
                 &runtime,
             )
             .context("failed to create quickjs context")?;
+        let bigdecimal = context.with(|ctx| {
+            let bigdecimal: rquickjs::Function = ctx.eval("BigDecimal")?;
+            Ok(Persistent::save(&ctx, bigdecimal)) as Result<_>
+        })?;
         Ok(Self {
             functions: HashMap::new(),
+            bigdecimal,
             _runtime: runtime,
             context,
         })
@@ -120,13 +127,14 @@ impl Runtime {
         let function = self.functions.get(name).context("function not found")?;
         // convert each row to python objects and call the function
         self.context.with(|ctx| {
+            let bigdecimal = self.bigdecimal.clone().restore(&ctx)?;
             let js_function = function.function.clone().restore(&ctx)?;
             let mut results = Vec::with_capacity(input.num_rows());
             let mut row = Vec::with_capacity(input.num_columns());
             for i in 0..input.num_rows() {
                 row.clear();
                 for column in input.columns() {
-                    let val = jsarrow::get_jsvalue(&ctx, column, i)
+                    let val = jsarrow::get_jsvalue(&ctx, &bigdecimal, column, i)
                         .context("failed to get jsvalue from arrow array")?;
                     row.push(val);
                 }
@@ -162,6 +170,7 @@ impl Runtime {
 
         struct State<'a> {
             context: &'a Context,
+            bigdecimal: &'a Persistent<rquickjs::Function<'static>>,
             input: &'a RecordBatch,
             function: &'a Function,
             name: &'a str,
@@ -182,6 +191,7 @@ impl Runtime {
                     return Ok(None);
                 }
                 self.context.with(|ctx| {
+                    let bigdecimal = self.bigdecimal.clone().restore(&ctx)?;
                     let js_function = self.function.function.clone().restore(&ctx)?;
                     let mut indexes = Int32Builder::with_capacity(self.chunk_size);
                     let mut results = Vec::with_capacity(self.input.num_rows());
@@ -203,7 +213,7 @@ impl Runtime {
                             // call the table function to get a generator
                             row.clear();
                             for column in self.input.columns() {
-                                let val = jsarrow::get_jsvalue(&ctx, column, self.row)
+                                let val = jsarrow::get_jsvalue(&ctx, &bigdecimal, column, self.row)
                                     .context("failed to get jsvalue from arrow array")?;
                                 row.push(val);
                             }
@@ -268,6 +278,7 @@ impl Runtime {
         // initial state
         Ok(State {
             context: &self.context,
+            bigdecimal: &self.bigdecimal,
             input,
             function: self.functions.get(name).context("function not found")?,
             name,

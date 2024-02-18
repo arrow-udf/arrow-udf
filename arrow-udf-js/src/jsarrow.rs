@@ -36,7 +36,12 @@ macro_rules! get_typed_array {
 }
 
 /// Get array element as a JS Value.
-pub fn get_jsvalue<'a>(ctx: &Ctx<'a>, array: &dyn Array, i: usize) -> Result<Value<'a>, Error> {
+pub fn get_jsvalue<'a>(
+    ctx: &Ctx<'a>,
+    bigdecimal: &Function<'a>,
+    array: &dyn Array,
+    i: usize,
+) -> Result<Value<'a>, Error> {
     if array.is_null(i) {
         return Ok(Value::new_null(ctx.clone()));
     }
@@ -64,8 +69,7 @@ pub fn get_jsvalue<'a>(ctx: &Ctx<'a>, array: &dyn Array, i: usize) -> Result<Val
         DataType::LargeBinary => {
             let array = array.as_any().downcast_ref::<LargeBinaryArray>().unwrap();
             let string = std::str::from_utf8(array.value(i))?;
-            // XXX: this may be slow
-            ctx.eval(format!("BigDecimal(\"{string}\")"))
+            bigdecimal.call((string,))
         }
         // list
         DataType::List(inner) => {
@@ -85,7 +89,7 @@ pub fn get_jsvalue<'a>(ctx: &Ctx<'a>, array: &dyn Array, i: usize) -> Result<Val
                 _ => {
                     let mut values = Vec::with_capacity(list.len());
                     for j in 0..list.len() {
-                        values.push(get_jsvalue(ctx, list.as_ref(), j)?);
+                        values.push(get_jsvalue(ctx, bigdecimal, list.as_ref(), j)?);
                     }
                     values.into_js(ctx)
                 }
@@ -95,7 +99,7 @@ pub fn get_jsvalue<'a>(ctx: &Ctx<'a>, array: &dyn Array, i: usize) -> Result<Val
             let array = array.as_any().downcast_ref::<StructArray>().unwrap();
             let object = Object::new(ctx.clone())?;
             for (j, field) in fields.iter().enumerate() {
-                let value = get_jsvalue(ctx, array.column(j).as_ref(), i)?;
+                let value = get_jsvalue(ctx, bigdecimal, array.column(j).as_ref(), i)?;
                 object.set(field.name(), value)?;
             }
             Ok(object.into_value())

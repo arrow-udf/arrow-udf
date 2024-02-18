@@ -17,6 +17,7 @@ use std::sync::Arc;
 use arrow_arith::arity::binary;
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
+use arrow_udf::function;
 use arrow_udf_js::Runtime as JsRuntime;
 use arrow_udf_python::Function as PythonRuntime;
 use arrow_udf_python_wasm::Runtime as PythonWasmRuntime;
@@ -24,6 +25,7 @@ use arrow_udf_wasm::Runtime as WasmRuntime;
 use criterion::{criterion_group, criterion_main, Criterion};
 
 fn bench_eval_gcd(c: &mut Criterion) {
+    #[function("gcd(int, int) -> int")]
     fn gcd(mut a: i32, mut b: i32) -> i32 {
         while b != 0 {
             (a, b) = (b, a % b);
@@ -49,16 +51,6 @@ def gcd(a: int, b: int) -> int:
     return a
 "#;
 
-    let a = Int32Array::from_iter(0..1024);
-    let b = Int32Array::from_iter((0..2048).step_by(2));
-    c.bench_function("gcd/native", |bencher| {
-        bencher.iter(|| {
-            let _: Int32Array = binary(&a, &b, gcd).unwrap();
-        })
-    });
-
-    let filepath = "../target/wasm32-wasi/release/arrow_udf_example.wasm";
-    let binary = std::fs::read(filepath).unwrap();
     let input = RecordBatch::try_new(
         Arc::new(Schema::new(vec![
             Field::new("a", DataType::Int32, true),
@@ -71,7 +63,21 @@ def gcd(a: int, b: int) -> int:
     )
     .unwrap();
 
+    c.bench_function("gcd/native", |bencher| {
+        let a = Int32Array::from_iter(0..1024);
+        let b = Int32Array::from_iter((0..2048).step_by(2));
+        bencher.iter(|| {
+            let _: Int32Array = binary(&a, &b, gcd).unwrap();
+        })
+    });
+
+    c.bench_function("gcd/rust", |bencher| {
+        bencher.iter(|| gcd_int4_int4_int4_eval(&input).unwrap())
+    });
+
     c.bench_function("gcd/wasm", |bencher| {
+        let filepath = "../target/wasm32-wasi/release/arrow_udf_example.wasm";
+        let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
         bencher.iter(|| rt.call("gcd(int4,int4)->int4", &input).unwrap())
     });

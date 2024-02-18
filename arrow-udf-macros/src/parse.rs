@@ -38,7 +38,7 @@ impl Parse for FunctionAttr {
         let args = args.trim_start().trim_end_matches([')', ' ']);
         let (is_table_function, ret) = match ret.trim_start() {
             s if s.starts_with("setof") => (true, &s[5..]), // -> setof
-            s if s.starts_with(">") => (true, &s[1..]),     // ->>
+            s if s.starts_with('>') => (true, &s[1..]),     // ->>
             _ => (false, ret),
         };
         parsed.name = name.trim().to_string();

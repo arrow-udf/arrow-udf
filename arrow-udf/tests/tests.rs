@@ -313,6 +313,7 @@ fn json_array_elements(
 }
 
 #[function("many_args(int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int) -> int")]
+#[allow(clippy::too_many_arguments)]
 fn many_args(
     a: i32,
     b: i32,

@@ -63,7 +63,7 @@ pub fn build_with(opts: &BuildOpts) -> Result<Vec<u8>> {
         if let Some(toolchain) = &opts.toolchain {
             command.arg(format!("+{}", toolchain));
         }
-        command
+        let output = command
             .arg("target")
             .arg("add")
             .arg("wasm32-wasi")

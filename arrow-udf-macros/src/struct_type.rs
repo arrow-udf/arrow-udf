@@ -70,7 +70,7 @@ pub fn gen(tokens: TokenStream) -> Result<TokenStream> {
         // example: "KeyValue=key:varchar,value:varchar"
         gen::base64_encode(&format!(
             "{}={}",
-            struct_name.to_string(),
+            struct_name,
             fields
                 .iter()
                 .map(|f| format!("{}:{}", f.name, f.type_))
@@ -141,7 +141,7 @@ impl Field {
             _ => (false, ty),
         };
         let mut type_ =
-            types::type_of(&ty.to_token_stream().to_string().replace(" ", "")).to_string();
+            types::type_of(&ty.to_token_stream().to_string().replace(' ', "")).to_string();
         if list {
             type_ += "[]";
         }

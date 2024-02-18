@@ -22,7 +22,6 @@ arrow-schema = "50"
 arrow-udf-macros = { version = "0.1.1", path = "../arrow-udf-macros" }
 chrono = { version = "0.4", default-features = false }
 genawaiter = "0.99"
-itertools = "0.12"
 lazy_static = "1"
 linkme = { version = "0.3", optional = true }
 rust_decimal = "1"

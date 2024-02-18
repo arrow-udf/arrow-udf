@@ -312,6 +312,28 @@ fn json_array_elements(
     }
 }
 
+#[function("many_args(int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int) -> int")]
+fn many_args(
+    a: i32,
+    b: i32,
+    c: i32,
+    d: i32,
+    e: i32,
+    f: i32,
+    g: i32,
+    h: i32,
+    i: i32,
+    j: i32,
+    k: i32,
+    l: i32,
+    m: i32,
+    n: i32,
+    o: i32,
+    p: i32,
+) -> i32 {
+    a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p
+}
+
 #[test]
 #[allow(clippy::bool_assert_comparison)]
 fn test_neg() {

@@ -41,7 +41,6 @@ pub mod codegen {
     pub use arrow_schema;
     pub use chrono;
     pub use genawaiter;
-    pub use itertools;
     pub use lazy_static;
     #[cfg(feature = "global_registry")]
     pub use linkme;

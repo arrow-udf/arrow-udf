@@ -266,10 +266,6 @@ impl FunctionAttr {
         }
 
         let eval = if self.is_table_function {
-            let array_zip = match children_indices.len() {
-                0 => quote! { std::iter::repeat(()).take(input.num_rows()) },
-                _ => quote! { itertools::multizip((#(#arrays.iter(),)*)) },
-            };
             let builder = builder(&self.ret);
             let append_output = gen_append(&self.ret);
             let error_append_null = user_fn
@@ -317,7 +313,8 @@ impl FunctionAttr {
                 let mut index_builder = Int32Builder::with_capacity(input.num_rows());
                 let mut builder = #builder;
                 #let_error_builder
-                for (i, (#(#inputs,)*)) in #array_zip.enumerate() {
+                for i in 0..input.num_rows() {
+                    #(let #inputs = unsafe { (!#arrays.is_null(i)).then(|| #arrays.value_unchecked(i)) };)*
                     let Some(iter) = (#output) else {
                         continue;
                     };
@@ -373,10 +370,6 @@ impl FunctionAttr {
             }
         } else {
             // no optimization
-            let array_zip = match children_indices.len() {
-                0 => quote! { std::iter::repeat(()).take(input.num_rows()) },
-                _ => quote! { itertools::multizip((#(#arrays.iter(),)*)) },
-            };
             let builder = builder(&self.ret);
             // append the `output` to the `builder`
             let append_output = if user_fn.write {
@@ -402,7 +395,8 @@ impl FunctionAttr {
             };
             quote! {
                 let mut builder = #builder;
-                for (i, (#(#inputs,)*)) in #array_zip.enumerate() {
+                for i in 0..input.num_rows() {
+                    #(let #inputs = unsafe { (!#arrays.is_null(i)).then(|| #arrays.value_unchecked(i)) };)*
                     #append_output
                 }
                 let array = Arc::new(builder.finish());
@@ -459,7 +453,6 @@ impl FunctionAttr {
             use ::arrow_udf::codegen::arrow_schema;
             use ::arrow_udf::codegen::chrono;
             use ::arrow_udf::codegen::lazy_static::lazy_static;
-            use ::arrow_udf::codegen::itertools;
             use ::arrow_udf::codegen::rust_decimal;
             use ::arrow_udf::codegen::serde_json;
 

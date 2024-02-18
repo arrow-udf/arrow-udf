@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2024-02-18
+
+### Fixed
+
+- Fix the bug that the `#[function]` macro does not support more than 12 arguments.
+
 ## [0.1.2] - 2024-01-31
 
 ### Added

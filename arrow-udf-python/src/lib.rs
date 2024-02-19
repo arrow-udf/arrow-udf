@@ -12,41 +12,60 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use arrow_array::{Array, ArrayRef, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
 use pyo3::types::{PyModule, PyTuple};
 use pyo3::{PyObject, PyResult, Python};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 mod ffi;
 mod pyarrow;
 
+/// The Python UDF runtime.
+pub struct Runtime {
+    functions: HashMap<String, Function>,
+}
+
 /// A Python UDF.
 pub struct Function {
-    name: String,
     function: PyObject,
     return_type: DataType,
     mode: CallMode,
 }
 
-impl Function {
-    /// Create a new Python UDF runtime from a Python code.
-    pub fn new(name: &str, return_type: DataType, mode: CallMode, code: &str) -> Result<Self> {
-        pyo3::prepare_freethreaded_python();
-        let function = Python::with_gil(|py| -> PyResult<PyObject> {
-            Ok(PyModule::from_code(py, code, "", "")?.getattr(name)?.into())
-        })?;
+impl Runtime {
+    /// Create a new Python UDF runtime.
+    pub fn new() -> Result<Self> {
         Ok(Self {
-            name: name.into(),
-            function,
-            return_type,
-            mode,
+            functions: HashMap::new(),
         })
     }
 
+    /// Add a new function from Python code.
+    pub fn add_function(
+        &mut self,
+        name: &str,
+        return_type: DataType,
+        mode: CallMode,
+        code: &str,
+    ) -> Result<()> {
+        let function = Python::with_gil(|py| -> PyResult<PyObject> {
+            Ok(PyModule::from_code(py, code, "", "")?.getattr(name)?.into())
+        })?;
+        let function = Function {
+            function,
+            return_type,
+            mode,
+        };
+        self.functions.insert(name.to_string(), function);
+        Ok(())
+    }
+
     /// Call the Python UDF.
-    pub fn call(&self, input: &RecordBatch) -> Result<RecordBatch> {
+    pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
+        let function = self.functions.get(name).context("function not found")?;
         // convert each row to python objects and call the function
         let array = Python::with_gil(|py| -> Result<ArrayRef> {
             let mut results = Vec::with_capacity(input.num_rows());
@@ -57,23 +76,20 @@ impl Function {
                     let pyobj = pyarrow::get_pyobject(py, column, i);
                     row.push(pyobj);
                 }
-                if self.mode == CallMode::ReturnNullOnNullInput && row.iter().any(|v| v.is_none(py))
+                if function.mode == CallMode::ReturnNullOnNullInput
+                    && row.iter().any(|v| v.is_none(py))
                 {
                     results.push(py.None());
                     continue;
                 }
                 let args = PyTuple::new(py, row.drain(..));
-                let result = self.function.call1(py, args)?;
+                let result = function.function.call1(py, args)?;
                 results.push(result);
             }
-            let result = pyarrow::build_array(&self.return_type, py, &results)?;
+            let result = pyarrow::build_array(&function.return_type, py, &results)?;
             Ok(result)
         })?;
-        let schema = Schema::new(vec![Field::new(
-            &self.name,
-            array.data_type().clone(),
-            true,
-        )]);
+        let schema = Schema::new(vec![Field::new(name, array.data_type().clone(), true)]);
         Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
     }
 }

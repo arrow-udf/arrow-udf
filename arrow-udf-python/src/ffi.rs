@@ -18,12 +18,12 @@
 //!
 //! This module is not thread safe. It is intended to be used in a single threaded environment.
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use arrow_ipc::reader::FileReader;
 use arrow_ipc::writer::FileWriter;
-use std::ffi::CStr;
+use std::{ffi::CStr, sync::RwLock};
 
-use crate::{CallMode, Function};
+use crate::{CallMode, Runtime};
 
 #[no_mangle]
 unsafe extern "C" fn alloc(len: usize) -> *mut u8 {
@@ -51,9 +51,11 @@ unsafe extern "C" fn add_function(
             FileReader::try_new(std::io::Cursor::new(bytes), None).expect("invalid schema");
         reader.schema().field(0).data_type().clone()
     };
-    let runtime = Function::new(name, return_type, CallMode::CalledOnNullInput, code)
-        .expect("failed to initialize runtime");
-    RUNTIMES.push((name.to_string(), runtime));
+    RUNTIME
+        .write()
+        .unwrap()
+        .add_function(name, return_type, CallMode::CalledOnNullInput, code)
+        .expect("failed to add function");
     0
 }
 
@@ -73,19 +75,15 @@ unsafe extern "C" fn call(name: *const i8, ptr: *const u8, len: usize) -> u64 {
     }
 }
 
-static mut RUNTIMES: Vec<(String, Function)> = vec![];
+lazy_static::lazy_static! {
+    static ref RUNTIME: RwLock<Runtime> = RwLock::new(Runtime::new().unwrap());
+}
 
 fn call_internal(name: &str, input: &[u8]) -> Result<Box<[u8]>> {
     let mut reader = FileReader::try_new(std::io::Cursor::new(input), None)?;
     let input_batch = reader.next().unwrap()?;
 
-    let (_, runtime) = unsafe {
-        RUNTIMES
-            .iter()
-            .find(|(n, _)| n == name)
-            .with_context(|| format!("function not found: {name}"))?
-    };
-    let output_batch = runtime.call(&input_batch)?;
+    let output_batch = RUNTIME.read().unwrap().call(name, &input_batch)?;
 
     let mut buf = vec![];
     // Write data to IPC buffer

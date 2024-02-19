@@ -16,21 +16,23 @@ use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_python::{CallMode, Function};
+use arrow_udf_python::{CallMode, Runtime};
 
 fn main() {
-    let runtime = Function::new(
-        "gcd",
-        DataType::Int32,
-        CallMode::ReturnNullOnNullInput,
-        r#"
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_function(
+            "gcd",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
 def gcd(a: int, b: int) -> int:
     while b:
         a, b = b, a % b
     return a
 "#,
-    )
-    .unwrap();
+        )
+        .unwrap();
     println!("\ncall gcd");
 
     let input = RecordBatch::try_new(
@@ -45,7 +47,7 @@ def gcd(a: int, b: int) -> int:
     )
     .unwrap();
 
-    let output = runtime.call(&input).unwrap();
+    let output = runtime.call("gcd", &input).unwrap();
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
     arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();

@@ -17,22 +17,24 @@ use std::sync::Arc;
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_python::{CallMode, Function};
+use arrow_udf_python::{CallMode, Runtime};
 
 #[test]
 fn test_gcd() {
-    let function = Function::new(
-        "gcd",
-        DataType::Int32,
-        CallMode::ReturnNullOnNullInput,
-        r#"
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_function(
+            "gcd",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
 def gcd(a: int, b: int) -> int:
     while b:
         a, b = b, a % b
     return a
 "#,
-    )
-    .unwrap();
+        )
+        .unwrap();
 
     let schema = Schema::new(vec![
         Field::new("x", DataType::Int32, true),
@@ -43,7 +45,7 @@ def gcd(a: int, b: int) -> int:
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = function.call(&input).unwrap();
+    let output = runtime.call("gcd", &input).unwrap();
     assert_eq!(
         pretty_format_batches(std::slice::from_ref(&output))
             .unwrap()

@@ -104,7 +104,6 @@ def fib(n: int) -> int:
 #[test]
 // #[cfg(Py_3_12)]
 fn test_multi_threads() {
-    use arrow_udf_python::interpreter::SubInterpreter;
     use std::time::Duration;
 
     fn timeit(f: impl FnOnce()) -> Duration {
@@ -117,10 +116,7 @@ fn test_multi_threads() {
     let t1 = timeit(|| {
         std::thread::scope(|s| {
             for _ in 0..4 {
-                s.spawn(|| {
-                    let interpreter = SubInterpreter::new().unwrap();
-                    interpreter.with(|_| test_fib);
-                });
+                s.spawn(test_fib);
             }
         })
     });

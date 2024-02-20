@@ -12,21 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use self::interpreter::SubInterpreter;
 use anyhow::{Context, Result};
 use arrow_array::{Array, ArrayRef, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
 use pyo3::types::{PyModule, PyTuple};
-use pyo3::{PyObject, PyResult, Python};
+use pyo3::{PyObject, PyResult};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-mod ffi;
+// mod ffi;
 // #[cfg(Py_3_12)]
-pub mod interpreter;
+mod interpreter;
 mod pyarrow;
 
 /// The Python UDF runtime.
 pub struct Runtime {
+    interpreter: SubInterpreter,
     functions: HashMap<String, Function>,
 }
 
@@ -41,6 +43,7 @@ impl Runtime {
     /// Create a new Python UDF runtime.
     pub fn new() -> Result<Self> {
         Ok(Self {
+            interpreter: SubInterpreter::new()?,
             functions: HashMap::new(),
         })
     }
@@ -53,7 +56,7 @@ impl Runtime {
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
-        let function = Python::with_gil(|py| -> PyResult<PyObject> {
+        let function = self.interpreter.with_gil(|py| -> PyResult<PyObject> {
             Ok(PyModule::from_code(py, code, "", "")?.getattr(name)?.into())
         })?;
         let function = Function {
@@ -69,7 +72,7 @@ impl Runtime {
     pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let function = self.functions.get(name).context("function not found")?;
         // convert each row to python objects and call the function
-        let array = Python::with_gil(|py| -> Result<ArrayRef> {
+        let array = self.interpreter.with_gil(|py| -> Result<ArrayRef> {
             let mut results = Vec::with_capacity(input.num_rows());
             let mut row = Vec::with_capacity(input.num_columns());
             for i in 0..input.num_rows() {

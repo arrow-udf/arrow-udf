@@ -17,10 +17,15 @@
 use pyo3::{ffi::*, prepare_freethreaded_python, PyErr, PyResult, Python};
 
 /// A Python sub-interpreter.
+#[derive(Debug)]
 pub struct SubInterpreter {
     // NOTE: thread state is only valid in the thread that created it
     state: *mut PyThreadState,
 }
+
+// XXX: not sure if this is safe
+unsafe impl Send for SubInterpreter {}
+unsafe impl Sync for SubInterpreter {}
 
 impl SubInterpreter {
     /// Create a new Python sub-interpreter.

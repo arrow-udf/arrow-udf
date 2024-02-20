@@ -20,6 +20,7 @@ use arrow_schema::{DataType, Field, Schema};
 use pyo3::types::{PyIterator, PyModule, PyTuple};
 use pyo3::{Py, PyObject, PyResult};
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::sync::Arc;
 
 // #[cfg(Py_3_12)]
@@ -30,6 +31,14 @@ mod pyarrow;
 pub struct Runtime {
     interpreter: SubInterpreter,
     functions: HashMap<String, Function>,
+}
+
+impl Debug for Runtime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Runtime")
+            .field("functions", &self.functions.keys())
+            .finish()
+    }
 }
 
 /// A Python UDF.

@@ -125,3 +125,34 @@ fn test_multi_threads() {
         "multi-threaded execution is slower than single-threaded. there is GIL contention."
     )
 }
+
+#[test]
+fn test_forbid() {
+    assert_err("", "AttributeError: module 'gcd' has no attribute 'gcd'");
+    assert_err("import os", "ImportError: __import__ not found");
+    assert_err(
+        "breakpoint()",
+        "NameError: name 'breakpoint' is not defined",
+    );
+    assert_err("exit()", "NameError: name 'exit' is not defined");
+    assert_err("eval('exit()')", "NameError: name 'eval' is not defined");
+    assert_err("exec('exit()')", "NameError: name 'exec' is not defined");
+    assert_err("help()", "NameError: name 'help' is not defined");
+    assert_err("input()", "NameError: name 'input' is not defined");
+    assert_err("open('foo', 'w')", "NameError: name 'open' is not defined");
+    assert_err("print()", "NameError: name 'print' is not defined");
+}
+
+#[track_caller]
+fn assert_err(code: &str, err: &str) {
+    let mut runtime = Runtime::new().unwrap();
+    let error = runtime
+        .add_function(
+            "gcd",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            code,
+        )
+        .unwrap_err();
+    assert_eq!(error.to_string(), err);
+}

@@ -60,6 +60,12 @@ impl SubInterpreter {
         unsafe { PyThreadState_Swap(main_state) };
         ret
     }
+
+    /// Run Python code in the sub-interpreter.
+    pub fn run(&self, code: &str) -> PyResult<()> {
+        self.with_gil(|py| py.run(code, None, None))?;
+        Ok(())
+    }
 }
 
 impl Drop for SubInterpreter {

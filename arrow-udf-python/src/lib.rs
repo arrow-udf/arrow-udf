@@ -42,8 +42,24 @@ pub struct Function {
 impl Runtime {
     /// Create a new Python UDF runtime.
     pub fn new() -> Result<Self> {
+        let interpreter = SubInterpreter::new()?;
+        // sandbox the interpreter
+        interpreter.run(
+            r#"
+del __builtins__.__import__  # disable importing modules
+del __builtins__.breakpoint
+del __builtins__.compile
+del __builtins__.exit
+del __builtins__.eval
+del __builtins__.exec
+del __builtins__.help
+del __builtins__.input
+del __builtins__.open
+del __builtins__.print
+"#,
+        )?;
         Ok(Self {
-            interpreter: SubInterpreter::new()?,
+            interpreter,
             functions: HashMap::new(),
         })
     }
@@ -57,7 +73,9 @@ impl Runtime {
         code: &str,
     ) -> Result<()> {
         let function = self.interpreter.with_gil(|py| -> PyResult<PyObject> {
-            Ok(PyModule::from_code(py, code, "", "")?.getattr(name)?.into())
+            Ok(PyModule::from_code(py, code, "", name)?
+                .getattr(name)?
+                .into())
         })?;
         let function = Function {
             function,
@@ -111,4 +129,11 @@ pub enum CallMode {
     /// If this parameter is specified, the function is not executed when there are null arguments;
     /// instead a null result is assumed automatically.
     ReturnNullOnNullInput,
+}
+
+impl Drop for Runtime {
+    fn drop(&mut self) {
+        // `PyObject` must be dropped inside the interpreter
+        self.interpreter.with_gil(|_| self.functions.clear());
+    }
 }

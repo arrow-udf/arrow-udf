@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use arrow_array::{Int32Array, LargeStringArray, RecordBatch};
+use arrow_array::*;
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_python::{CallMode, Runtime};
@@ -142,6 +142,151 @@ def json_array_access(array, i):
 }
 
 #[test]
+fn test_return_array() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "to_array",
+            DataType::new_list(DataType::Int32, true),
+            CallMode::CalledOnNullInput,
+            r#"
+def to_array(x):
+    if x is None:
+        return None
+    else:
+        return [x]
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("to_array", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++----------+
+| to_array |
++----------+
+| [1]      |
+|          |
+| [3]      |
++----------+
+    "#
+        .trim()
+    );
+}
+
+#[test]
+fn test_key_value() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "key_value",
+            DataType::Struct(
+                vec![
+                    Field::new("key", DataType::Utf8, true),
+                    Field::new("value", DataType::Utf8, true),
+                ]
+                .into(),
+            ),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+class KeyValue:
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+
+def key_value(s: str):
+    key, value = s.split('=')
+    return KeyValue(key, value)
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8, true)]);
+    let arg0 = StringArray::from(vec!["a=b"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("key_value", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++--------------------+
+| key_value          |
++--------------------+
+| {key: a, value: b} |
++--------------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
+fn test_struct_to_json() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "to_json",
+            DataType::LargeUtf8,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def to_json(object):
+    return object.__dict__
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new(
+        "struct",
+        DataType::Struct(
+            vec![
+                Field::new("key", DataType::Utf8, true),
+                Field::new("value", DataType::Utf8, true),
+            ]
+            .into(),
+        ),
+        true,
+    )]);
+    let arg0 = StructArray::from(vec![
+        (
+            Arc::new(Field::new("key", DataType::Utf8, true)),
+            Arc::new(StringArray::from(vec![Some("a"), None])) as ArrayRef,
+        ),
+        (
+            Arc::new(Field::new("value", DataType::Utf8, true)),
+            Arc::new(StringArray::from(vec![Some("b"), None])),
+        ),
+    ]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("to_json", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++------------------------------+
+| to_json                      |
++------------------------------+
+| {"key": "a", "value": "b"}   |
+| {"key": null, "value": null} |
++------------------------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
 fn test_range() {
     let mut runtime = Runtime::new().unwrap();
 
@@ -212,16 +357,40 @@ fn test_multi_threads() {
 }
 
 #[test]
+fn test_import() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_function(
+            "gcd",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+import decimal
+import json
+import math
+import re
+import numbers
+import datetime
+
+def gcd(a: int, b: int) -> int:
+    while b:
+        a, b = b, a % b
+    return a
+"#,
+        )
+        .unwrap();
+}
+
+#[test]
 fn test_forbid() {
     assert_err("", "AttributeError: module 'gcd' has no attribute 'gcd'");
-    assert_err("import os", "ImportError: __import__ not found");
+    assert_err("import os", "ImportError: import os is not allowed");
     assert_err(
         "breakpoint()",
         "NameError: name 'breakpoint' is not defined",
     );
     assert_err("exit()", "NameError: name 'exit' is not defined");
     assert_err("eval('exit()')", "NameError: name 'eval' is not defined");
-    assert_err("exec('exit()')", "NameError: name 'exec' is not defined");
     assert_err("help()", "NameError: name 'help' is not defined");
     assert_err("input()", "NameError: name 'input' is not defined");
     assert_err("open('foo', 'w')", "NameError: name 'open' is not defined");

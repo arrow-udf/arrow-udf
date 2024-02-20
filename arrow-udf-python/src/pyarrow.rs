@@ -16,6 +16,7 @@
 
 use anyhow::Result;
 use arrow_array::{array::*, builder::*};
+use arrow_buffer::OffsetBuffer;
 use arrow_schema::DataType;
 use pyo3::{types::PyString, IntoPy, PyObject, Python};
 use std::sync::Arc;
@@ -54,6 +55,25 @@ pub fn get_pyobject(py: Python<'_>, array: &dyn Array, i: usize) -> Result<PyObj
             // XXX: it is slow to call eval every time
             let json_loads = py.eval("json.loads", None, None)?;
             json_loads.call1((json_str,))?.into()
+        }
+        // list
+        DataType::List(_) => {
+            let array = array.as_any().downcast_ref::<ListArray>().unwrap();
+            let list = array.value(i);
+            let mut values = Vec::with_capacity(list.len());
+            for j in 0..list.len() {
+                values.push(get_pyobject(py, list.as_ref(), j)?);
+            }
+            values.into_py(py)
+        }
+        DataType::Struct(fields) => {
+            let array = array.as_any().downcast_ref::<StructArray>().unwrap();
+            let object = py.eval("Struct()", None, None)?;
+            for (j, field) in fields.iter().enumerate() {
+                let value = get_pyobject(py, array.column(j).as_ref(), i)?;
+                object.setattr(field.name().as_str(), value)?;
+            }
+            object.into()
         }
         _ => todo!(),
     })
@@ -127,6 +147,52 @@ pub fn build_array(data_type: &DataType, py: Python<'_>, values: &[PyObject]) ->
                 builder.append_value(json_str.extract::<&str>()?);
             }
             Ok(Arc::new(builder.finish()))
+        }
+        // list
+        DataType::List(inner) => {
+            // flatten lists
+            let mut flatten_values = vec![];
+            let mut offsets = Vec::<i32>::with_capacity(values.len() + 1);
+            offsets.push(0);
+            for val in values {
+                if !val.is_none(py) {
+                    let array = val.as_ref(py);
+                    flatten_values.reserve(array.len()?);
+                    for elem in array.iter()? {
+                        flatten_values.push(elem?.into());
+                    }
+                }
+                offsets.push(flatten_values.len() as i32);
+            }
+            let values_array = build_array(inner.data_type(), py, &flatten_values)?;
+            let nulls = values.iter().map(|v| !v.is_none(py)).collect();
+            Ok(Arc::new(ListArray::new(
+                inner.clone(),
+                OffsetBuffer::new(offsets.into()),
+                values_array,
+                Some(nulls),
+            )))
+        }
+        DataType::Struct(fields) => {
+            let mut arrays = Vec::with_capacity(fields.len());
+            for field in fields {
+                let mut field_values = Vec::with_capacity(values.len());
+                for val in values {
+                    let v = if val.is_none(py) {
+                        py.None()
+                    } else {
+                        val.as_ref(py).getattr(field.name().as_str())?.into()
+                    };
+                    field_values.push(v);
+                }
+                arrays.push(build_array(field.data_type(), py, &field_values)?);
+            }
+            let nulls = values.iter().map(|v| !v.is_none(py)).collect();
+            Ok(Arc::new(StructArray::new(
+                fields.clone(),
+                arrays,
+                Some(nulls),
+            )))
         }
         _ => todo!(),
     }

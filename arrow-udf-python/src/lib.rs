@@ -46,13 +46,46 @@ impl Runtime {
         // sandbox the interpreter
         interpreter.run(
             r#"
+# internal use for json types
 import json
-del __builtins__.__import__  # disable importing modules
+
+# an internal class used for struct input arguments
+class Struct:
+    pass  
+
+# limit the modules that can be imported
+original_import = __builtins__.__import__
+
+def limited_import(name, globals=None, locals=None, fromlist=(), level=0):
+    # FIXME: 'sys' should not be allowed, but it is required by 'decimal'
+    # FIXME: 'time.sleep' should not be allowed, but 'time' is required by 'datetime'
+    allowlist = (
+        'json',
+        'decimal',
+        're',
+        'math',
+        'datetime',
+        'time',
+        'operator',
+        'numbers',
+        'abc',
+        'sys',
+        'contextvars',
+        '_io',
+        '_contextvars',
+        '_pydecimal',
+        '_pydatetime',
+    )
+    if level == 0 and name in allowlist:
+        return original_import(name, globals, locals, fromlist, level)
+    raise ImportError(f'import {name} is not allowed')
+
+__builtins__.__import__ = limited_import
+del limited_import
+
 del __builtins__.breakpoint
-del __builtins__.compile
 del __builtins__.exit
 del __builtins__.eval
-del __builtins__.exec
 del __builtins__.help
 del __builtins__.input
 del __builtins__.open

@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -27,11 +27,6 @@ jobs:
           target: wasm32-wasi
       - name: Build UDF
         run: cargo build --release -p arrow-udf-example --target wasm32-wasi
-      - name: Build Python
-        run: |
-          PYO3_NO_PYTHON=1 cargo build --release -p arrow-udf-python --target wasm32-wasi
-          mkdir arrow-udf-python/target/wasm32-wasi/wasi-deps/bin
-          cp target/wasm32-wasi/release/arrow_udf_python.wasm arrow-udf-python/target/wasm32-wasi/wasi-deps/bin/python.wasm
       - name: Run benchmark
         run: cargo bench --bench wasm -- --output-format bencher | tee output.txt
 

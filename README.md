@@ -6,14 +6,13 @@ You can define functions in Rust, Python or JavaScript, run natively or on WebAs
 | Language   | Native             | WebAssembly             |
 | ---------- | ------------------ | ----------------------- |
 | Rust       | [arrow-udf]        | [arrow-udf-wasm]        |
-| Python     | [arrow-udf-python] | [arrow-udf-python-wasm] |
+| Python     | [arrow-udf-python] | N/A                     |
 | JavaScript | [arrow-udf-js]     | N/A                     |
 
 [arrow-udf]: ./arrow-udf
 [arrow-udf-python]: ./arrow-udf-python
 [arrow-udf-js]: ./arrow-udf-js
 [arrow-udf-wasm]: ./arrow-udf-wasm
-[arrow-udf-python-wasm]: ./arrow-udf-python-wasm
 
 ## Usage
 
@@ -81,5 +80,4 @@ gcd/native          1.4476 µs   x1
 gcd/wasm            16.006 µs   x11
 gcd/js              82.103 µs   x57
 gcd/python          122.52 µs   x85
-gcd/python-wasm     2.2475 ms   x1553
 ```

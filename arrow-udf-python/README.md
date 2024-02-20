@@ -3,6 +3,9 @@
 [![Crate](https://img.shields.io/crates/v/arrow-udf-python.svg)](https://crates.io/crates/arrow-udf-python)
 [![Docs](https://docs.rs/arrow-udf-python/badge.svg)](https://docs.rs/arrow-udf-python)
 
+Notice: Python 3.12 is required to run this library.
+If `python3` is not 3.12, please set the environment variable `PYO3_PYTHON=python3.12`.
+
 Add the following lines to your `Cargo.toml`:
 
 ```toml

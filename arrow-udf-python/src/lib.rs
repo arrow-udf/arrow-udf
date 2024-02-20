@@ -21,7 +21,6 @@ use pyo3::{PyObject, PyResult};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-// mod ffi;
 // #[cfg(Py_3_12)]
 mod interpreter;
 mod pyarrow;

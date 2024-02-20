@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -44,7 +44,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -55,13 +55,6 @@ jobs:
         with:
           command: build
           args: --release -p arrow-udf-example --target wasm32-wasi
-      - name: Build Python
-        uses: actions-rs/cargo@v1
-        env:
-          PYO3_NO_PYTHON: 1
-        with:
-          command: build
-          args: --release -p arrow-udf-python --target wasm32-wasi
       - name: Build
         uses: actions-rs/cargo@v1
         with:

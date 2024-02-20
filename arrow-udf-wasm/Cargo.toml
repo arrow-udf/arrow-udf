@@ -30,7 +30,6 @@ arrow-cast = { version = "50", features = ["prettyprint"] }
 arrow-udf = { path = "../arrow-udf" }
 arrow-udf-js = { path = "../arrow-udf-js" }
 arrow-udf-python = { path = "../arrow-udf-python" }
-arrow-udf-python-wasm = { path = "../arrow-udf-python-wasm" }
 criterion = "0.5"
 
 [[bench]]

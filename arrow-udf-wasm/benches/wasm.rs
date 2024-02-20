@@ -20,7 +20,6 @@ use arrow_schema::{DataType, Field, Schema};
 use arrow_udf::function;
 use arrow_udf_js::Runtime as JsRuntime;
 use arrow_udf_python::Runtime as PythonRuntime;
-use arrow_udf_python_wasm::Runtime as PythonWasmRuntime;
 use arrow_udf_wasm::Runtime as WasmRuntime;
 use criterion::{criterion_group, criterion_main, Criterion};
 
@@ -103,13 +102,6 @@ def gcd(a: int, b: int) -> int:
             python_code,
         )
         .unwrap();
-        bencher.iter(|| rt.call("gcd", &input).unwrap())
-    });
-
-    c.bench_function("gcd/python-wasm", |bencher| {
-        let mut rt =
-            PythonWasmRuntime::new("../arrow-udf-python/target/wasm32-wasi/wasi-deps").unwrap();
-        rt.add_function("gcd", DataType::Int32, python_code);
         bencher.iter(|| rt.call("gcd", &input).unwrap())
     });
 }

@@ -115,6 +115,12 @@ fn bench_eval_range(c: &mut Criterion) {
     }
     "#;
 
+    let python_code = r#"
+def range1(n: int):
+    for i in range(n):
+        yield i
+"#;
+
     let a = Int32Array::from(vec![16 * 1024]);
     c.bench_function("range/native", |bencher| {
         bencher.iter(|| {
@@ -153,6 +159,22 @@ fn bench_eval_range(c: &mut Criterion) {
         .unwrap();
         bencher.iter(|| {
             rt.call_table_function("range", &input, 1024)
+                .unwrap()
+                .for_each(|_| {})
+        })
+    });
+
+    c.bench_function("range/python", |bencher| {
+        let mut rt = PythonRuntime::new().unwrap();
+        rt.add_function(
+            "range1",
+            DataType::Int32,
+            arrow_udf_python::CallMode::ReturnNullOnNullInput,
+            python_code,
+        )
+        .unwrap();
+        bencher.iter(|| {
+            rt.call_table_function("range1", &input, 1024)
                 .unwrap()
                 .for_each(|_| {})
         })

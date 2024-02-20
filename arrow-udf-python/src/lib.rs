@@ -14,10 +14,11 @@
 
 use self::interpreter::SubInterpreter;
 use anyhow::{Context, Result};
+use arrow_array::builder::Int32Builder;
 use arrow_array::{Array, ArrayRef, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
-use pyo3::types::{PyModule, PyTuple};
-use pyo3::{PyObject, PyResult};
+use pyo3::types::{PyIterator, PyModule, PyTuple};
+use pyo3::{Py, PyObject, PyResult};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -113,6 +114,102 @@ del __builtins__.print
         })?;
         let schema = Schema::new(vec![Field::new(name, array.data_type().clone(), true)]);
         Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
+    }
+
+    /// Call a table function.
+    pub fn call_table_function<'a>(
+        &'a self,
+        name: &'a str,
+        input: &'a RecordBatch,
+        chunk_size: usize,
+    ) -> Result<impl Iterator<Item = Result<RecordBatch>> + 'a> {
+        assert!(chunk_size > 0);
+
+        struct State<'a> {
+            interpreter: &'a SubInterpreter,
+            input: &'a RecordBatch,
+            function: &'a Function,
+            name: &'a str,
+            chunk_size: usize,
+            // mutable states
+            /// Current row index.
+            row: usize,
+            /// Generator of the current row.
+            generator: Option<Py<PyIterator>>,
+        }
+
+        impl State<'_> {
+            fn next(&mut self) -> Result<Option<RecordBatch>> {
+                if self.row == self.input.num_rows() {
+                    return Ok(None);
+                }
+                self.interpreter.with_gil(|py| {
+                    let mut indexes = Int32Builder::with_capacity(self.chunk_size);
+                    let mut results = Vec::with_capacity(self.input.num_rows());
+                    let mut row = Vec::with_capacity(self.input.num_columns());
+                    while self.row < self.input.num_rows() && results.len() < self.chunk_size {
+                        let generator = if let Some(g) = self.generator.as_ref() {
+                            g
+                        } else {
+                            // call the table function to get a generator
+                            row.clear();
+                            for column in self.input.columns() {
+                                let val = pyarrow::get_pyobject(py, column, self.row);
+                                row.push(val);
+                            }
+                            if self.function.mode == CallMode::ReturnNullOnNullInput
+                                && row.iter().any(|v| v.is_none(py))
+                            {
+                                self.row += 1;
+                                continue;
+                            }
+                            let args = PyTuple::new(py, row.drain(..));
+                            let result = self.function.function.call1(py, args)?;
+                            let iter = result.as_ref(py).iter()?.into();
+                            self.generator.insert(iter)
+                        };
+                        if let Some(value) = generator.as_ref(py).next() {
+                            let value: PyObject = value?.into();
+                            indexes.append_value(self.row as i32);
+                            results.push(value);
+                        } else {
+                            self.row += 1;
+                            self.generator = None;
+                        }
+                    }
+
+                    if results.is_empty() {
+                        return Ok(None);
+                    }
+                    let indexes = Arc::new(indexes.finish());
+                    let array = pyarrow::build_array(&self.function.return_type, py, &results)
+                        .context("failed to build arrow array from return values")?;
+                    Ok(Some(RecordBatch::try_new(
+                        Arc::new(Schema::new(vec![
+                            Field::new("row", DataType::Int32, true),
+                            Field::new(self.name, array.data_type().clone(), true),
+                        ])),
+                        vec![indexes, array],
+                    )?))
+                })
+            }
+        }
+        impl Iterator for State<'_> {
+            type Item = Result<RecordBatch>;
+            fn next(&mut self) -> Option<Self::Item> {
+                self.next().transpose()
+            }
+        }
+        // initial state
+        Ok(State {
+            interpreter: &self.interpreter,
+            input,
+            function: self.functions.get(name).context("function not found")?,
+            name,
+            chunk_size,
+            row: 0,
+            generator: None,
+        })
     }
 }
 

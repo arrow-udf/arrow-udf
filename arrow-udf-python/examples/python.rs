@@ -33,6 +33,20 @@ def gcd(a: int, b: int) -> int:
 "#,
         )
         .unwrap();
+
+    runtime
+        .add_function(
+            "range1",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def range1(n: int):
+    for i in range(n):
+        yield i
+"#,
+        )
+        .unwrap();
+
     println!("\ncall gcd");
 
     let input = RecordBatch::try_new(
@@ -51,4 +65,17 @@ def gcd(a: int, b: int) -> int:
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
     arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
+
+    println!("\ncall range");
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let mut outputs = runtime.call_table_function("range1", &input, 2).unwrap();
+    let o1 = outputs.next().unwrap().unwrap();
+    let o2 = outputs.next().unwrap().unwrap();
+
+    arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
+    arrow_cast::pretty::print_batches(&[o1, o2]).unwrap();
 }

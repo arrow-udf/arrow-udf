@@ -100,6 +100,50 @@ def fib(n: int) -> int:
     );
 }
 
+#[test]
+fn test_range() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "range1",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def range1(n: int):
+    for i in range(n):
+        yield i
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let mut outputs = runtime.call_table_function("range1", &input, 2).unwrap();
+    let o1 = outputs.next().unwrap().unwrap();
+    let o2 = outputs.next().unwrap().unwrap();
+    assert_eq!(o1.num_rows(), 2);
+    assert_eq!(o2.num_rows(), 2);
+    assert!(outputs.next().is_none());
+
+    assert_eq!(
+        pretty_format_batches(&[o1, o2]).unwrap().to_string(),
+        r#"
++-----+--------+
+| row | range1 |
++-----+--------+
+| 0   | 0      |
+| 2   | 0      |
+| 2   | 1      |
+| 2   | 2      |
++-----+--------+
+"#
+        .trim()
+    );
+}
+
 /// Test there is no GIL contention across threads.
 #[test]
 // #[cfg(Py_3_12)]

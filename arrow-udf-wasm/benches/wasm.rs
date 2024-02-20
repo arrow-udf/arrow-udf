@@ -182,10 +182,20 @@ def range1(n: int):
 }
 
 fn bench_eval_decimal(c: &mut Criterion) {
+    #[function("decimal(decimal) -> decimal")]
+    fn decimal<T>(a: T) -> T {
+        a
+    }
+
     let js_code = r#"
     export function decimal(a) {
         return a;
     }
+    "#;
+
+    let python_code = r#"
+def decimal(a):
+    return a
     "#;
 
     let input = RecordBatch::try_new(
@@ -198,6 +208,10 @@ fn bench_eval_decimal(c: &mut Criterion) {
     )
     .unwrap();
 
+    c.bench_function("decimal/rust", |bencher| {
+        bencher.iter(|| decimal_decimal_decimal_eval(&input).unwrap())
+    });
+
     c.bench_function("decimal/js", |bencher| {
         let mut rt = JsRuntime::new().unwrap();
         rt.add_function(
@@ -205,6 +219,18 @@ fn bench_eval_decimal(c: &mut Criterion) {
             DataType::LargeBinary,
             arrow_udf_js::CallMode::ReturnNullOnNullInput,
             js_code,
+        )
+        .unwrap();
+        bencher.iter(|| rt.call("decimal", &input).unwrap())
+    });
+
+    c.bench_function("decimal/python", |bencher| {
+        let mut rt = PythonRuntime::new().unwrap();
+        rt.add_function(
+            "decimal",
+            DataType::LargeBinary,
+            arrow_udf_python::CallMode::ReturnNullOnNullInput,
+            python_code,
         )
         .unwrap();
         bencher.iter(|| rt.call("decimal", &input).unwrap())

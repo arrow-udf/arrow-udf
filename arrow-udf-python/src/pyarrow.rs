@@ -56,6 +56,14 @@ pub fn get_pyobject(py: Python<'_>, array: &dyn Array, i: usize) -> Result<PyObj
             let json_loads = py.eval("json.loads", None, None)?;
             json_loads.call1((json_str,))?.into()
         }
+        // decimal type
+        DataType::LargeBinary => {
+            let array = array.as_any().downcast_ref::<LargeBinaryArray>().unwrap();
+            let string = std::str::from_utf8(array.value(i))?;
+            // XXX: it is slow to call eval every time
+            let decimal_constructor = py.import("decimal")?.getattr("Decimal")?;
+            decimal_constructor.call1((string,))?.into()
+        }
         // list
         DataType::List(_) => {
             let array = array.as_any().downcast_ref::<ListArray>().unwrap();
@@ -145,6 +153,18 @@ pub fn build_array(data_type: &DataType, py: Python<'_>, values: &[PyObject]) ->
                 };
                 let json_str = json_dumps.call1((val,))?;
                 builder.append_value(json_str.extract::<&str>()?);
+            }
+            Ok(Arc::new(builder.finish()))
+        }
+        // decimal type
+        DataType::LargeBinary => {
+            let mut builder = LargeBinaryBuilder::with_capacity(values.len(), 1024);
+            for val in values {
+                if val.is_none(py) {
+                    builder.append_null();
+                } else {
+                    builder.append_value(val.to_string());
+                }
             }
             Ok(Arc::new(builder.finish()))
         }

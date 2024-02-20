@@ -107,9 +107,7 @@ del __builtins__.print
         code: &str,
     ) -> Result<()> {
         let function = self.interpreter.with_gil(|py| -> PyResult<PyObject> {
-            Ok(PyModule::from_code(py, code, "", name)?
-                .getattr(name)?
-                .into())
+            Ok(PyModule::from_code(py, code, "", "")?.getattr(name)?.into())
         })?;
         let function = Function {
             function,

@@ -101,6 +101,47 @@ def fib(n: int) -> int:
 }
 
 #[test]
+fn test_decimal_add() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "decimal_add",
+            DataType::LargeBinary,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def decimal_add(a, b):
+    return a + b
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("a", DataType::LargeBinary, true),
+        Field::new("b", DataType::LargeBinary, true),
+    ]);
+    let arg0 = LargeBinaryArray::from(vec![b"0.0001".as_ref()]);
+    let arg1 = LargeBinaryArray::from(vec![b"0.0002".as_ref()]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let output = runtime.call("decimal_add", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++--------------+
+| decimal_add  |
++--------------+
+| 302e30303033 |
++--------------+
+"#
+        .trim()
+    );
+}
+
+#[test]
 fn test_json_array_access() {
     let mut runtime = Runtime::new().unwrap();
 
@@ -383,7 +424,7 @@ def gcd(a: int, b: int) -> int:
 
 #[test]
 fn test_forbid() {
-    assert_err("", "AttributeError: module 'gcd' has no attribute 'gcd'");
+    assert_err("", "AttributeError: module '' has no attribute 'gcd'");
     assert_err("import os", "ImportError: import os is not allowed");
     assert_err(
         "breakpoint()",

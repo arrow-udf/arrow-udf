@@ -21,6 +21,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 mod ffi;
+// #[cfg(Py_3_12)]
+pub mod interpreter;
 mod pyarrow;
 
 /// The Python UDF runtime.

@@ -46,6 +46,7 @@ impl Runtime {
         // sandbox the interpreter
         interpreter.run(
             r#"
+import json
 del __builtins__.__import__  # disable importing modules
 del __builtins__.breakpoint
 del __builtins__.compile
@@ -96,7 +97,7 @@ del __builtins__.print
             for i in 0..input.num_rows() {
                 row.clear();
                 for column in input.columns() {
-                    let pyobj = pyarrow::get_pyobject(py, column, i);
+                    let pyobj = pyarrow::get_pyobject(py, column, i)?;
                     row.push(pyobj);
                 }
                 if function.mode == CallMode::ReturnNullOnNullInput
@@ -154,7 +155,7 @@ del __builtins__.print
                             // call the table function to get a generator
                             row.clear();
                             for column in self.input.columns() {
-                                let val = pyarrow::get_pyobject(py, column, self.row);
+                                let val = pyarrow::get_pyobject(py, column, self.row)?;
                                 row.push(val);
                             }
                             if self.function.mode == CallMode::ReturnNullOnNullInput

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![doc = include_str!("../README.md")]
+
 use self::interpreter::SubInterpreter;
 use anyhow::{Context, Result};
 use arrow_array::builder::Int32Builder;
@@ -28,6 +30,8 @@ mod interpreter;
 mod pyarrow;
 
 /// The Python UDF runtime.
+///
+/// Each runtime owns a Python interpreter with its own GIL.
 pub struct Runtime {
     interpreter: SubInterpreter,
     functions: HashMap<String, Function>,
@@ -41,18 +45,58 @@ impl Debug for Runtime {
     }
 }
 
-/// A Python UDF.
-pub struct Function {
+/// A user defined function.
+struct Function {
     function: PyObject,
     return_type: DataType,
     mode: CallMode,
 }
 
-impl Runtime {
-    /// Create a new Python UDF runtime.
-    pub fn new() -> Result<Self> {
+/// A builder for `Runtime`.
+#[derive(Default, Debug)]
+pub struct Builder {
+    sandboxed: bool,
+    removed_symbols: Vec<String>,
+}
+
+impl Builder {
+    /// Set whether the runtime is sandboxed.
+    ///
+    /// When sandboxed, only a limited set of modules can be imported, and some built-in functions are disabled.
+    /// This is useful for running untrusted code.
+    ///
+    /// Allowed modules: `json`, `decimal`, `re`, `math`, `datetime`, `time`.
+    ///
+    /// Disallowed builtins: `breakpoint`, `exit`, `eval`, `help`, `input`, `open`, `print`.
+    ///
+    /// The default is `false`.
+    pub fn sandboxed(mut self, sandboxed: bool) -> Self {
+        self.sandboxed = sandboxed;
+        self.remove_symbol("__builtins__.breakpoint")
+            .remove_symbol("__builtins__.exit")
+            .remove_symbol("__builtins__.eval")
+            .remove_symbol("__builtins__.help")
+            .remove_symbol("__builtins__.input")
+            .remove_symbol("__builtins__.open")
+            .remove_symbol("__builtins__.print")
+    }
+
+    /// Remove a symbol from builtins.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use arrow_udf_python::Runtime;
+    /// let builder = Runtime::builder().remove_symbol("__builtins__.eval");
+    /// ```
+    pub fn remove_symbol(mut self, symbol: &str) -> Self {
+        self.removed_symbols.push(symbol.to_string());
+        self
+    }
+
+    /// Build the `Runtime`.
+    pub fn build(self) -> Result<Runtime> {
         let interpreter = SubInterpreter::new()?;
-        // sandbox the interpreter
         interpreter.run(
             r#"
 # internal use for json types
@@ -60,8 +104,11 @@ import json
 
 # an internal class used for struct input arguments
 class Struct:
-    pass  
-
+    pass
+"#,
+        )?;
+        if self.sandboxed {
+            let mut script = r#"
 # limit the modules that can be imported
 original_import = __builtins__.__import__
 
@@ -91,20 +138,29 @@ def limited_import(name, globals=None, locals=None, fromlist=(), level=0):
 
 __builtins__.__import__ = limited_import
 del limited_import
-
-del __builtins__.breakpoint
-del __builtins__.exit
-del __builtins__.eval
-del __builtins__.help
-del __builtins__.input
-del __builtins__.open
-del __builtins__.print
-"#,
-        )?;
-        Ok(Self {
+"#
+            .to_string();
+            for symbol in self.removed_symbols {
+                script.push_str(&format!("del {}\n", symbol));
+            }
+            interpreter.run(&script)?;
+        }
+        Ok(Runtime {
             interpreter,
             functions: HashMap::new(),
         })
+    }
+}
+
+impl Runtime {
+    /// Create a new Python UDF runtime.
+    pub fn new() -> Result<Self> {
+        Builder::default().build()
+    }
+
+    /// Return a new builder for `Runtime`.
+    pub fn builder() -> Builder {
+        Builder::default()
     }
 
     /// Add a new function from Python code.
@@ -124,6 +180,13 @@ del __builtins__.print
             mode,
         };
         self.functions.insert(name.to_string(), function);
+        Ok(())
+    }
+
+    /// Remove a function.
+    pub fn del_function(&mut self, name: &str) -> Result<()> {
+        let function = self.functions.remove(name).context("function not found")?;
+        self.interpreter.with_gil(|_| drop(function));
         Ok(())
     }
 
@@ -239,6 +302,13 @@ del __builtins__.print
             type Item = Result<RecordBatch>;
             fn next(&mut self) -> Option<Self::Item> {
                 self.next().transpose()
+            }
+        }
+        impl Drop for State<'_> {
+            fn drop(&mut self) {
+                if let Some(generator) = self.generator.take() {
+                    self.interpreter.with_gil(|_| drop(generator));
+                }
             }
         }
         // initial state

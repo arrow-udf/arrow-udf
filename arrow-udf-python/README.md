@@ -13,7 +13,8 @@ Add the following lines to your `Cargo.toml`:
 arrow-udf-python = "0.1"
 ```
 
-Define your Python function in a string and create a `Runtime` for each function:
+Create a `Runtime` and define your Python functions in string form.
+Note that the function name must match the one you pass to `add_function`.
 
 ```rust
 use arrow_udf_python::{CallMode, Runtime};
@@ -32,7 +33,7 @@ runtime.add_function("gcd", return_type, mode, python_code).unwrap();
 
 You can then call the python function on a `RecordBatch`:
 
-```rust
+```rust,ignore
 let input: RecordBatch = ...;
 let output: RecordBatch = runtime.call("gcd", &input).unwrap();
 ```

@@ -16,7 +16,7 @@
 
 use pyo3::{ffi::*, prepare_freethreaded_python, PyErr, PyResult, Python};
 
-/// A Python sub-interpreter.
+/// A Python sub-interpreter with its own GIL.
 #[derive(Debug)]
 pub struct SubInterpreter {
     // NOTE: thread state is only valid in the thread that created it
@@ -28,7 +28,7 @@ unsafe impl Send for SubInterpreter {}
 unsafe impl Sync for SubInterpreter {}
 
 impl SubInterpreter {
-    /// Create a new Python sub-interpreter.
+    /// Create a new sub-interpreter.
     pub fn new() -> PyResult<Self> {
         prepare_freethreaded_python();
         // reference: https://github.com/PyO3/pyo3/blob/9a36b5078989a7c07a5e880aea3c6da205585ee3/examples/sequential/tests/test.rs

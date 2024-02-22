@@ -60,6 +60,8 @@ def gcd(a: int, b: int) -> int:
 "#
         .trim()
     );
+
+    runtime.del_function("gcd").unwrap();
 }
 
 #[test]
@@ -399,7 +401,7 @@ fn test_multi_threads() {
 
 #[test]
 fn test_import() {
-    let mut runtime = Runtime::new().unwrap();
+    let mut runtime = Runtime::builder().sandboxed(true).build().unwrap();
     runtime
         .add_function(
             "gcd",
@@ -440,7 +442,7 @@ fn test_forbid() {
 
 #[track_caller]
 fn assert_err(code: &str, err: &str) {
-    let mut runtime = Runtime::new().unwrap();
+    let mut runtime = Runtime::builder().sandboxed(true).build().unwrap();
     let error = runtime
         .add_function(
             "gcd",

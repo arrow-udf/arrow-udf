@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Context as _, Result};
 use arrow_array::{builder::Int32Builder, Array, RecordBatch};
-use arrow_schema::{DataType, Field, Schema};
+use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use rquickjs::{
     context::intrinsic::{BaseObjects, BigDecimal, Eval, Json, TypedArrays},
     function::Args,
@@ -165,127 +165,136 @@ impl Runtime {
         name: &'a str,
         input: &'a RecordBatch,
         chunk_size: usize,
-    ) -> Result<impl Iterator<Item = Result<RecordBatch>> + 'a> {
+    ) -> Result<RecordBatchIter<'a>> {
         assert!(chunk_size > 0);
+        let function = self.functions.get(name).context("function not found")?;
 
-        struct State<'a> {
-            context: &'a Context,
-            bigdecimal: &'a Persistent<rquickjs::Function<'static>>,
-            input: &'a RecordBatch,
-            function: &'a Function,
-            name: &'a str,
-            chunk_size: usize,
-            // mutable states
-            /// Current row index.
-            row: usize,
-            /// Generator of the current row.
-            generator: Option<Persistent<Object<'static>>>,
-        }
-
-        // XXX: not sure if this is safe.
-        unsafe impl Send for State<'_> {}
-
-        impl State<'_> {
-            fn next(&mut self) -> Result<Option<RecordBatch>> {
-                if self.row == self.input.num_rows() {
-                    return Ok(None);
-                }
-                self.context.with(|ctx| {
-                    let bigdecimal = self.bigdecimal.clone().restore(&ctx)?;
-                    let js_function = self.function.function.clone().restore(&ctx)?;
-                    let mut indexes = Int32Builder::with_capacity(self.chunk_size);
-                    let mut results = Vec::with_capacity(self.input.num_rows());
-                    let mut row = Vec::with_capacity(self.input.num_columns());
-                    // restore generator from state
-                    let mut generator = match self.generator.take() {
-                        Some(generator) => {
-                            let gen = generator.restore(&ctx)?;
-                            let next: rquickjs::Function =
-                                gen.get("next").context("failed to get 'next' method")?;
-                            Some((gen, next))
-                        }
-                        None => None,
-                    };
-                    while self.row < self.input.num_rows() && results.len() < self.chunk_size {
-                        let (gen, next) = if let Some(g) = generator.as_ref() {
-                            g
-                        } else {
-                            // call the table function to get a generator
-                            row.clear();
-                            for column in self.input.columns() {
-                                let val = jsarrow::get_jsvalue(&ctx, &bigdecimal, column, self.row)
-                                    .context("failed to get jsvalue from arrow array")?;
-                                row.push(val);
-                            }
-                            if self.function.mode == CallMode::ReturnNullOnNullInput
-                                && row.iter().any(|v| v.is_null())
-                            {
-                                self.row += 1;
-                                continue;
-                            }
-                            let mut args = Args::new(ctx.clone(), row.len());
-                            args.push_args(row.drain(..))?;
-                            let gen = js_function
-                                .call_arg::<Object>(args)
-                                .map_err(|e| check_exception(e, &ctx))
-                                .context("failed to call function")?;
-                            let next: rquickjs::Function =
-                                gen.get("next").context("failed to get 'next' method")?;
-                            let mut args = Args::new(ctx.clone(), 0);
-                            args.this(gen.clone())?;
-                            generator.insert((gen, next))
-                        };
-                        let mut args = Args::new(ctx.clone(), 0);
-                        args.this(gen.clone())?;
-                        let object: Object = next
-                            .call_arg(args)
-                            .map_err(|e| check_exception(e, &ctx))
-                            .context("failed to call next")?;
-                        let value: Value = object.get("value")?;
-                        let done: bool = object.get("done")?;
-                        if done {
-                            self.row += 1;
-                            generator = None;
-                            continue;
-                        }
-                        indexes.append_value(self.row as i32);
-                        results.push(value);
-                    }
-                    self.generator = generator.map(|(gen, _)| Persistent::save(&ctx, gen));
-
-                    if results.is_empty() {
-                        return Ok(None);
-                    }
-                    let indexes = Arc::new(indexes.finish());
-                    let array = jsarrow::build_array(&self.function.return_type, &ctx, results)
-                        .context("failed to build arrow array from return values")?;
-                    Ok(Some(RecordBatch::try_new(
-                        Arc::new(Schema::new(vec![
-                            Field::new("row", DataType::Int32, true),
-                            Field::new(self.name, array.data_type().clone(), true),
-                        ])),
-                        vec![indexes, array],
-                    )?))
-                })
-            }
-        }
-        impl Iterator for State<'_> {
-            type Item = Result<RecordBatch>;
-            fn next(&mut self) -> Option<Self::Item> {
-                self.next().transpose()
-            }
-        }
         // initial state
-        Ok(State {
+        Ok(RecordBatchIter {
             context: &self.context,
             bigdecimal: &self.bigdecimal,
             input,
-            function: self.functions.get(name).context("function not found")?,
-            name,
+            function,
+            schema: Arc::new(Schema::new(vec![
+                Field::new("row", DataType::Int32, true),
+                Field::new(name, function.return_type.clone(), true),
+            ])),
             chunk_size,
             row: 0,
             generator: None,
         })
+    }
+}
+
+/// An iterator over the result of a table function.
+pub struct RecordBatchIter<'a> {
+    context: &'a Context,
+    bigdecimal: &'a Persistent<rquickjs::Function<'static>>,
+    input: &'a RecordBatch,
+    function: &'a Function,
+    schema: SchemaRef,
+    chunk_size: usize,
+    // mutable states
+    /// Current row index.
+    row: usize,
+    /// Generator of the current row.
+    generator: Option<Persistent<Object<'static>>>,
+}
+
+// XXX: not sure if this is safe.
+unsafe impl Send for RecordBatchIter<'_> {}
+
+impl RecordBatchIter<'_> {
+    /// Get the schema of the output.
+    pub fn schema(&self) -> &Schema {
+        &self.schema
+    }
+
+    fn next(&mut self) -> Result<Option<RecordBatch>> {
+        if self.row == self.input.num_rows() {
+            return Ok(None);
+        }
+        self.context.with(|ctx| {
+            let bigdecimal = self.bigdecimal.clone().restore(&ctx)?;
+            let js_function = self.function.function.clone().restore(&ctx)?;
+            let mut indexes = Int32Builder::with_capacity(self.chunk_size);
+            let mut results = Vec::with_capacity(self.input.num_rows());
+            let mut row = Vec::with_capacity(self.input.num_columns());
+            // restore generator from state
+            let mut generator = match self.generator.take() {
+                Some(generator) => {
+                    let gen = generator.restore(&ctx)?;
+                    let next: rquickjs::Function =
+                        gen.get("next").context("failed to get 'next' method")?;
+                    Some((gen, next))
+                }
+                None => None,
+            };
+            while self.row < self.input.num_rows() && results.len() < self.chunk_size {
+                let (gen, next) = if let Some(g) = generator.as_ref() {
+                    g
+                } else {
+                    // call the table function to get a generator
+                    row.clear();
+                    for column in self.input.columns() {
+                        let val = jsarrow::get_jsvalue(&ctx, &bigdecimal, column, self.row)
+                            .context("failed to get jsvalue from arrow array")?;
+                        row.push(val);
+                    }
+                    if self.function.mode == CallMode::ReturnNullOnNullInput
+                        && row.iter().any(|v| v.is_null())
+                    {
+                        self.row += 1;
+                        continue;
+                    }
+                    let mut args = Args::new(ctx.clone(), row.len());
+                    args.push_args(row.drain(..))?;
+                    let gen = js_function
+                        .call_arg::<Object>(args)
+                        .map_err(|e| check_exception(e, &ctx))
+                        .context("failed to call function")?;
+                    let next: rquickjs::Function =
+                        gen.get("next").context("failed to get 'next' method")?;
+                    let mut args = Args::new(ctx.clone(), 0);
+                    args.this(gen.clone())?;
+                    generator.insert((gen, next))
+                };
+                let mut args = Args::new(ctx.clone(), 0);
+                args.this(gen.clone())?;
+                let object: Object = next
+                    .call_arg(args)
+                    .map_err(|e| check_exception(e, &ctx))
+                    .context("failed to call next")?;
+                let value: Value = object.get("value")?;
+                let done: bool = object.get("done")?;
+                if done {
+                    self.row += 1;
+                    generator = None;
+                    continue;
+                }
+                indexes.append_value(self.row as i32);
+                results.push(value);
+            }
+            self.generator = generator.map(|(gen, _)| Persistent::save(&ctx, gen));
+
+            if results.is_empty() {
+                return Ok(None);
+            }
+            let indexes = Arc::new(indexes.finish());
+            let array = jsarrow::build_array(&self.function.return_type, &ctx, results)
+                .context("failed to build arrow array from return values")?;
+            Ok(Some(RecordBatch::try_new(
+                self.schema.clone(),
+                vec![indexes, array],
+            )?))
+        })
+    }
+}
+
+impl Iterator for RecordBatchIter<'_> {
+    type Item = Result<RecordBatch>;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next().transpose()
     }
 }
 

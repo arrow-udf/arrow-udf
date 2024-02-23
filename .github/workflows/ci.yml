@@ -64,4 +64,5 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-features --no-fail-fast
+          # Skip test_no_gil because there is only 1 core in the CI
+          args: --all-features --no-fail-fast -- --skip test_no_gil

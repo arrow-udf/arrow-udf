@@ -351,6 +351,11 @@ def range1(n: int):
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let mut outputs = runtime.call_table_function("range1", &input, 2).unwrap();
+
+    assert_eq!(outputs.schema().field(0).name(), "row");
+    assert_eq!(outputs.schema().field(1).name(), "range1");
+    assert_eq!(outputs.schema().field(1).data_type(), &DataType::Int32);
+
     let o1 = outputs.next().unwrap().unwrap();
     let o2 = outputs.next().unwrap().unwrap();
     assert_eq!(o1.num_rows(), 2);
@@ -375,8 +380,7 @@ def range1(n: int):
 
 /// Test there is no GIL contention across threads.
 #[test]
-// #[cfg(Py_3_12)]
-fn test_multi_threads() {
+fn test_no_gil() {
     use std::time::Duration;
 
     fn timeit(f: impl FnOnce()) -> Duration {

@@ -498,6 +498,11 @@ fn test_range() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let mut outputs = runtime.call_table_function("range", &input, 2).unwrap();
+
+    assert_eq!(outputs.schema().field(0).name(), "row");
+    assert_eq!(outputs.schema().field(1).name(), "range");
+    assert_eq!(outputs.schema().field(1).data_type(), &DataType::Int32);
+
     let o1 = outputs.next().unwrap().unwrap();
     let o2 = outputs.next().unwrap().unwrap();
     assert_eq!(o1.num_rows(), 2);

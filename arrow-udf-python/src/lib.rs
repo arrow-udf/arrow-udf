@@ -171,8 +171,22 @@ impl Runtime {
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
+        self.add_function_with_handler(name, return_type, mode, code, name)
+    }
+
+    /// Add a new function from Python code with custom handler name
+    pub fn add_function_with_handler(
+        &mut self,
+        name: &str,
+        return_type: DataType,
+        mode: CallMode,
+        code: &str,
+        handler: &str,
+    ) -> Result<()> {
         let function = self.interpreter.with_gil(|py| -> PyResult<PyObject> {
-            Ok(PyModule::from_code(py, code, "", "")?.getattr(name)?.into())
+            Ok(PyModule::from_code(py, code, "", "")?
+                .getattr(handler)?
+                .into())
         })?;
         let function = Function {
             function,

@@ -102,6 +102,18 @@ impl Runtime {
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
+        self.add_function_with_handler(name, return_type, mode, code, name)
+    }
+
+    /// Add a JS function with custom handler name
+    pub fn add_function_with_handler(
+        &mut self,
+        name: &str,
+        return_type: DataType,
+        mode: CallMode,
+        code: &str,
+        handler: &str,
+    ) -> Result<()> {
         let function = self.context.with(|ctx| {
             let module = ctx
                 .clone()
@@ -109,7 +121,7 @@ impl Runtime {
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to compile module")?;
             let function: rquickjs::Function = module
-                .get(name)
+                .get(handler)
                 .context("failed to get function. HINT: make sure the function is exported")?;
             Ok(Persistent::save(&ctx, function)) as Result<_>
         })?;

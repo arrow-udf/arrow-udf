@@ -65,6 +65,53 @@ def gcd(a: int, b: int) -> int:
 }
 
 #[test]
+fn test_max_with_custom_handler() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_function_with_handler(
+            "max_py",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def max_handler(a: int, b: int) -> int:
+    if a > b:
+         return a
+    else:
+         return b
+"#,
+            "max_handler",
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("x", DataType::Int32, true),
+        Field::new("y", DataType::Int32, true),
+    ]);
+    let arg0 = Int32Array::from(vec![Some(25), None]);
+    let arg1 = Int32Array::from(vec![Some(15), None]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let output = runtime.call("max_py", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++--------+
+| max_py |
++--------+
+| 25     |
+|        |
++--------+
+"#
+        .trim()
+    );
+
+    runtime.del_function("max_py").unwrap();
+}
+
+#[test]
 fn test_fib() {
     let mut runtime = Runtime::new().unwrap();
     runtime

@@ -504,3 +504,60 @@ fn assert_err(code: &str, err: &str) {
         .unwrap_err();
     assert_eq!(error.to_string(), err);
 }
+
+#[test]
+fn test_type_mismatch() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_function(
+            "neg",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def neg(x):
+    return -x
+"#,
+        )
+        .unwrap();
+
+    // case1: return type mismatch
+    let schema = Schema::new(vec![Field::new("x", DataType::Float32, true)]);
+    let arg0 = Float32Array::from(vec![1.0]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let err = runtime.call("neg", &input).unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "TypeError: 'float' object cannot be interpreted as an integer"
+    );
+
+    // case2: arguments mismatch
+    let input = RecordBatch::try_new_with_options(
+        Arc::new(Schema::empty()),
+        vec![],
+        &RecordBatchOptions::default().with_row_count(Some(1)),
+    )
+    .unwrap();
+
+    let err = runtime.call("neg", &input).unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "TypeError: neg() missing 1 required positional argument: 'x'"
+    );
+
+    // case3: arguments mismatch
+    let schema = Schema::new(vec![
+        Field::new("x", DataType::Int32, true),
+        Field::new("y", DataType::Int32, true),
+    ]);
+    let arg0 = Int32Array::from(vec![1]);
+    let arg1 = Int32Array::from(vec![2]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let err = runtime.call("neg", &input).unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "TypeError: neg() takes 1 positional argument but 2 were given"
+    );
+}

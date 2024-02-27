@@ -561,3 +561,24 @@ def neg(x):
         "TypeError: neg() takes 1 positional argument but 2 were given"
     );
 }
+
+#[test]
+fn test_send() {
+    let mut runtime = Runtime::new().unwrap();
+
+    std::thread::spawn(move || {
+        runtime
+            .add_function(
+                "neg",
+                DataType::Int32,
+                CallMode::ReturnNullOnNullInput,
+                r#"
+def neg(x):
+    return -x
+"#,
+            )
+            .unwrap();
+    })
+    .join()
+    .unwrap();
+}

@@ -14,7 +14,7 @@
 
 //! High-level API for Python sub-interpreters.
 
-use pyo3::{ffi::*, prepare_freethreaded_python, PyErr, PyResult, Python};
+use pyo3::{ffi::*, prepare_freethreaded_python, GILPool, PyErr, PyResult, Python};
 
 /// A Python sub-interpreter with its own GIL.
 #[derive(Debug)]
@@ -32,7 +32,6 @@ impl SubInterpreter {
     pub fn new() -> PyResult<Self> {
         prepare_freethreaded_python();
         // reference: https://github.com/PyO3/pyo3/blob/9a36b5078989a7c07a5e880aea3c6da205585ee3/examples/sequential/tests/test.rs
-        let main_state = unsafe { PyThreadState_Swap(std::ptr::null_mut()) };
         let config = PyInterpreterConfig {
             use_main_obmalloc: 0,
             allow_fork: 0,
@@ -47,7 +46,8 @@ impl SubInterpreter {
         if unsafe { PyStatus_IsError(status) } == 1 {
             return Err(PyErr::fetch(unsafe { Python::assume_gil_acquired() }));
         }
-        unsafe { PyThreadState_Swap(main_state) };
+        // release the GIL
+        unsafe { PyEval_SaveThread() };
         Ok(Self { state })
     }
 
@@ -56,13 +56,17 @@ impl SubInterpreter {
     where
         F: for<'py> FnOnce(Python<'py>) -> R,
     {
-        // switch to the sub-interpreter
-        let main_state = unsafe { PyThreadState_Swap(self.state) };
+        // switch to the sub-interpreter and acquire GIL
+        unsafe { PyEval_RestoreThread(self.state) };
 
-        let ret = Python::with_gil(f);
+        // Safety: the GIL is already held
+        // this pool is used to increment the internal GIL count of pyo3.
+        let pool = unsafe { GILPool::new() };
+        let ret = f(pool.python());
+        drop(pool);
 
-        // switch back to the main interpreter
-        unsafe { PyThreadState_Swap(main_state) };
+        // release the GIL
+        unsafe { PyEval_SaveThread() };
         ret
     }
 
@@ -77,11 +81,9 @@ impl Drop for SubInterpreter {
     fn drop(&mut self) {
         unsafe {
             // switch to the sub-interpreter
-            let main_state = PyThreadState_Swap(self.state);
+            PyEval_RestoreThread(self.state);
             // destroy the sub-interpreter
             Py_EndInterpreter(self.state);
-            // switch back to the main interpreter
-            PyThreadState_Swap(main_state);
         }
     }
 }

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1708684399513,
+  "lastUpdate": 1709031251634,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -3497,6 +3497,96 @@ window.BENCHMARK_DATA = {
             "name": "decimal/js",
             "value": 560080,
             "range": "± 9500",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "543950155@qq.com",
+            "name": "sundyli",
+            "username": "sundy-li"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bf89348eaf9726dd16a402962704350d6dca151a",
+          "message": "feat: support to use custom handler function name in function register (#5)",
+          "timestamp": "2024-02-27T18:44:42+08:00",
+          "tree_id": "b8df67d4ec33fa174a5e0d1898b94554544626d9",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/bf89348eaf9726dd16a402962704350d6dca151a"
+        },
+        "date": 1709031251267,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3871,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3968,
+            "range": "± 14",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23976,
+            "range": "± 1199",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 175498,
+            "range": "± 903",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 274301,
+            "range": "± 24707",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 88348,
+            "range": "± 966",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 416652,
+            "range": "± 23930",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5819015,
+            "range": "± 112075",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1056183,
+            "range": "± 65332",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 58937,
+            "range": "± 800",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 545312,
+            "range": "± 14305",
             "unit": "ns/iter"
           }
         ]

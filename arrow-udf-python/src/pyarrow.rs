@@ -14,11 +14,10 @@
 
 //! Convert arrow array from/to python objects.
 
-use anyhow::Result;
 use arrow_array::{array::*, builder::*};
 use arrow_buffer::OffsetBuffer;
 use arrow_schema::DataType;
-use pyo3::{types::PyString, IntoPy, PyObject, Python};
+use pyo3::{types::PyString, IntoPy, PyObject, PyResult, Python};
 use std::sync::Arc;
 
 macro_rules! get_pyobject {
@@ -29,7 +28,7 @@ macro_rules! get_pyobject {
 }
 
 /// Get array element as a python object.
-pub fn get_pyobject(py: Python<'_>, array: &dyn Array, i: usize) -> Result<PyObject> {
+pub fn get_pyobject(py: Python<'_>, array: &dyn Array, i: usize) -> PyResult<PyObject> {
     if array.is_null(i) {
         return Ok(py.None());
     }
@@ -126,7 +125,11 @@ macro_rules! build_array {
 }
 
 /// Build arrow array from python objects.
-pub fn build_array(data_type: &DataType, py: Python<'_>, values: &[PyObject]) -> Result<ArrayRef> {
+pub fn build_array(
+    data_type: &DataType,
+    py: Python<'_>,
+    values: &[PyObject],
+) -> PyResult<ArrayRef> {
     match data_type {
         DataType::Null => build_array!(NullBuilder, py, values),
         DataType::Boolean => build_array!(BooleanBuilder, py, values),

@@ -14,7 +14,10 @@
 
 //! High-level API for Python sub-interpreters.
 
-use pyo3::{ffi::*, prepare_freethreaded_python, GILPool, PyErr, PyResult, Python};
+use anyhow::{bail, Result};
+use pyo3::{ffi::*, prepare_freethreaded_python, GILPool, PyErr, Python};
+
+use super::pyerr_to_anyhow;
 
 /// A Python sub-interpreter with its own GIL.
 #[derive(Debug)]
@@ -29,7 +32,7 @@ unsafe impl Sync for SubInterpreter {}
 
 impl SubInterpreter {
     /// Create a new sub-interpreter.
-    pub fn new() -> PyResult<Self> {
+    pub fn new() -> Result<Self> {
         prepare_freethreaded_python();
         // reference: https://github.com/PyO3/pyo3/blob/9a36b5078989a7c07a5e880aea3c6da205585ee3/examples/sequential/tests/test.rs
         let config = PyInterpreterConfig {
@@ -44,7 +47,7 @@ impl SubInterpreter {
         let mut state: *mut PyThreadState = std::ptr::null_mut();
         let status: PyStatus = unsafe { Py_NewInterpreterFromConfig(&mut state, &config) };
         if unsafe { PyStatus_IsError(status) } == 1 {
-            return Err(PyErr::fetch(unsafe { Python::assume_gil_acquired() }));
+            bail!(PyErr::fetch(unsafe { Python::assume_gil_acquired() }).to_string());
         }
         // release the GIL
         unsafe { PyEval_SaveThread() };
@@ -52,6 +55,10 @@ impl SubInterpreter {
     }
 
     /// Run a closure in the sub-interpreter.
+    ///
+    /// Please note that if the return value contains any `Py` object (e.g. `PyErr`),
+    /// this object must be dropped in this sub-interpreter, otherwise it will cause
+    /// `SIGABRT: pointer being freed was not allocated`.
     pub fn with_gil<F, R>(&self, f: F) -> R
     where
         F: for<'py> FnOnce(Python<'py>) -> R,
@@ -71,8 +78,8 @@ impl SubInterpreter {
     }
 
     /// Run Python code in the sub-interpreter.
-    pub fn run(&self, code: &str) -> PyResult<()> {
-        self.with_gil(|py| py.run(code, None, None))?;
+    pub fn run(&self, code: &str) -> Result<()> {
+        self.with_gil(|py| py.run(code, None, None).map_err(pyerr_to_anyhow))?;
         Ok(())
     }
 }

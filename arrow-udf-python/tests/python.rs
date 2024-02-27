@@ -530,6 +530,23 @@ def neg(x):
         err.to_string(),
         "TypeError: 'float' object cannot be interpreted as an integer"
     );
+    // drop the error here and switch to a new runtime
+    // this is to ensure that error does not contain `PyErr`,
+    // otherwise the next call will cause SIGABRT `pointer being freed was not allocated`.
+    drop(err);
+
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_function(
+            "neg",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def neg(x):
+    return -x
+    "#,
+        )
+        .unwrap();
 
     // case2: arguments mismatch
     let input = RecordBatch::try_new_with_options(

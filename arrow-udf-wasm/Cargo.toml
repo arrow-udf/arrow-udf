@@ -14,9 +14,9 @@ build = ["tempfile"]
 
 [dependencies]
 anyhow = "1"
-arrow-array = "50"
-arrow-ipc = "50"
-arrow-schema = "50"
+arrow-array = { version = ">=47" }
+arrow-ipc = { version = ">=47" }
+arrow-schema = { version = ">=47" }
 base64 = "0.21"
 genawaiter = "0.99"
 lazy_static = "1"
@@ -25,8 +25,8 @@ wasmtime = "17"
 wasmtime-wasi = "17"
 
 [dev-dependencies]
-arrow-arith = "50"
-arrow-cast = { version = "50", features = ["prettyprint"] }
+arrow-arith = { version = ">=47" }
+arrow-cast = { version = ">=47" , features = ["prettyprint"] }
 arrow-udf = { path = "../arrow-udf" }
 arrow-udf-js = { path = "../arrow-udf-js" }
 arrow-udf-python = { path = "../arrow-udf-python" }

@@ -8,10 +8,10 @@ license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1"
-arrow-array = "50"
-arrow-buffer = "50"
-arrow-ipc = "50"
-arrow-schema = "50"
+arrow-array = { version = "47" }
+arrow-buffer  = { version = "47" }
+arrow-ipc  = { version = "47" }
+arrow-schema  = { version = "47" }
 lazy_static = "1"
 pyo3 = "0.20"
 
@@ -19,4 +19,4 @@ pyo3 = "0.20"
 pyo3-build-config = "0.20"
 
 [dev-dependencies]
-arrow-cast = { version = "50", features = ["prettyprint"] }
+arrow-cast = { version = "47", features = ["prettyprint"] }

@@ -10,10 +10,10 @@ license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1"
-arrow-array = "50"
-arrow-buffer = "50"
-arrow-schema = "50"
+arrow-array = { version = ">=47" }
+arrow-buffer = { version = ">=47" }
+arrow-schema =  { version = ">=47" }
 rquickjs = { version = "0.5", features = ["array-buffer", "parallel"] }
 
 [dev-dependencies]
-arrow-cast = { version = "50", features = ["prettyprint"] }
+arrow-cast = { version = ">=47", features = ["prettyprint"] }

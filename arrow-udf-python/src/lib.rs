@@ -27,10 +27,10 @@
 use self::interpreter::SubInterpreter;
 use anyhow::{Context, Result};
 use arrow_array::builder::Int32Builder;
-use arrow_array::{Array, ArrayRef, RecordBatch};
+use arrow_array::{Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use pyo3::types::{PyIterator, PyModule, PyTuple};
-use pyo3::{Py, PyErr, PyObject};
+use pyo3::{Py, PyObject};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
@@ -193,11 +193,9 @@ impl Runtime {
         code: &str,
         handler: &str,
     ) -> Result<()> {
-        let function = self.interpreter.with_gil(|py| -> Result<PyObject> {
-            Ok(PyModule::from_code(py, code, "", "")
-                .map_err(pyerr_to_anyhow)?
-                .getattr(handler)
-                .map_err(pyerr_to_anyhow)?
+        let function = self.interpreter.with_gil(|py| {
+            Ok(PyModule::from_code(py, code, "", "")?
+                .getattr(handler)?
                 .into())
         })?;
         let function = Function {
@@ -212,7 +210,10 @@ impl Runtime {
     /// Remove a function.
     pub fn del_function(&mut self, name: &str) -> Result<()> {
         let function = self.functions.remove(name).context("function not found")?;
-        self.interpreter.with_gil(|_| drop(function));
+        _ = self.interpreter.with_gil(|_| {
+            drop(function);
+            Ok(())
+        });
         Ok(())
     }
 
@@ -220,13 +221,13 @@ impl Runtime {
     pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let function = self.functions.get(name).context("function not found")?;
         // convert each row to python objects and call the function
-        let array = self.interpreter.with_gil(|py| -> Result<ArrayRef> {
+        let array = self.interpreter.with_gil(|py| {
             let mut results = Vec::with_capacity(input.num_rows());
             let mut row = Vec::with_capacity(input.num_columns());
             for i in 0..input.num_rows() {
                 row.clear();
                 for column in input.columns() {
-                    let pyobj = pyarrow::get_pyobject(py, column, i).map_err(pyerr_to_anyhow)?;
+                    let pyobj = pyarrow::get_pyobject(py, column, i)?;
                     row.push(pyobj);
                 }
                 if function.mode == CallMode::ReturnNullOnNullInput
@@ -236,11 +237,10 @@ impl Runtime {
                     continue;
                 }
                 let args = PyTuple::new(py, row.drain(..));
-                let result = function.function.call1(py, args).map_err(pyerr_to_anyhow)?;
+                let result = function.function.call1(py, args)?;
                 results.push(result);
             }
-            let result = pyarrow::build_array(&function.return_type, py, &results)
-                .map_err(pyerr_to_anyhow)?;
+            let result = pyarrow::build_array(&function.return_type, py, &results)?;
             Ok(result)
         })?;
         let schema = Schema::new(vec![Field::new(name, array.data_type().clone(), true)]);
@@ -297,7 +297,7 @@ impl RecordBatchIter<'_> {
         if self.row == self.input.num_rows() {
             return Ok(None);
         }
-        self.interpreter.with_gil(|py| {
+        let batch = self.interpreter.with_gil(|py| {
             let mut indexes = Int32Builder::with_capacity(self.chunk_size);
             let mut results = Vec::with_capacity(self.input.num_rows());
             let mut row = Vec::with_capacity(self.input.num_columns());
@@ -308,8 +308,7 @@ impl RecordBatchIter<'_> {
                     // call the table function to get a generator
                     row.clear();
                     for column in self.input.columns() {
-                        let val =
-                            pyarrow::get_pyobject(py, column, self.row).map_err(pyerr_to_anyhow)?;
+                        let val = pyarrow::get_pyobject(py, column, self.row)?;
                         row.push(val);
                     }
                     if self.function.mode == CallMode::ReturnNullOnNullInput
@@ -319,16 +318,12 @@ impl RecordBatchIter<'_> {
                         continue;
                     }
                     let args = PyTuple::new(py, row.drain(..));
-                    let result = self
-                        .function
-                        .function
-                        .call1(py, args)
-                        .map_err(pyerr_to_anyhow)?;
-                    let iter = result.as_ref(py).iter().map_err(pyerr_to_anyhow)?.into();
+                    let result = self.function.function.call1(py, args)?;
+                    let iter = result.as_ref(py).iter()?.into();
                     self.generator.insert(iter)
                 };
                 if let Some(value) = generator.as_ref(py).next() {
-                    let value: PyObject = value.map_err(pyerr_to_anyhow)?.into();
+                    let value: PyObject = value?.into();
                     indexes.append_value(self.row as i32);
                     results.push(value);
                 } else {
@@ -342,13 +337,12 @@ impl RecordBatchIter<'_> {
             }
             let indexes = Arc::new(indexes.finish());
             let array = pyarrow::build_array(&self.function.return_type, py, &results)
-                .map_err(pyerr_to_anyhow)
                 .context("failed to build arrow array from return values")?;
-            Ok(Some(RecordBatch::try_new(
-                self.schema.clone(),
-                vec![indexes, array],
-            )?))
-        })
+            Ok(Some(
+                RecordBatch::try_new(self.schema.clone(), vec![indexes, array]).unwrap(),
+            ))
+        })?;
+        Ok(batch)
     }
 }
 
@@ -362,7 +356,10 @@ impl Iterator for RecordBatchIter<'_> {
 impl Drop for RecordBatchIter<'_> {
     fn drop(&mut self) {
         if let Some(generator) = self.generator.take() {
-            self.interpreter.with_gil(|_| drop(generator));
+            _ = self.interpreter.with_gil(|_| {
+                drop(generator);
+                Ok(())
+            });
         }
     }
 }
@@ -384,13 +381,9 @@ pub enum CallMode {
 impl Drop for Runtime {
     fn drop(&mut self) {
         // `PyObject` must be dropped inside the interpreter
-        self.interpreter.with_gil(|_| self.functions.clear());
+        _ = self.interpreter.with_gil(|_| {
+            self.functions.clear();
+            Ok(())
+        });
     }
-}
-
-/// Convert a Python error to an `anyhow::Error`.
-///
-/// This function will drop the `PyErr` and only keep the error message.
-fn pyerr_to_anyhow(err: PyErr) -> anyhow::Error {
-    anyhow::anyhow!(err.to_string())
 }

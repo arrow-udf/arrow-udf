@@ -14,15 +14,15 @@
 
 //! High-level API for Python sub-interpreters.
 
-use anyhow::{bail, Result};
-use pyo3::{ffi::*, prepare_freethreaded_python, GILPool, PyErr, Python};
+use std::ffi::CStr;
 
-use super::pyerr_to_anyhow;
+use pyo3::{ffi::*, prepare_freethreaded_python, GILPool, PyErr, Python};
 
 /// A Python sub-interpreter with its own GIL.
 #[derive(Debug)]
 pub struct SubInterpreter {
-    // NOTE: thread state is only valid in the thread that created it
+    // XXX: according to the Python C API, the thread state is only valid in the thread that created it.
+    //      but we allow the `SubInterpreter` to be sent to other threads for practical reasons.
     state: *mut PyThreadState,
 }
 
@@ -32,7 +32,7 @@ unsafe impl Sync for SubInterpreter {}
 
 impl SubInterpreter {
     /// Create a new sub-interpreter.
-    pub fn new() -> Result<Self> {
+    pub fn new() -> Result<Self, PyError> {
         prepare_freethreaded_python();
         // reference: https://github.com/PyO3/pyo3/blob/9a36b5078989a7c07a5e880aea3c6da205585ee3/examples/sequential/tests/test.rs
         let config = PyInterpreterConfig {
@@ -45,9 +45,18 @@ impl SubInterpreter {
             gil: PyInterpreterConfig_OWN_GIL,
         };
         let mut state: *mut PyThreadState = std::ptr::null_mut();
+        // FIXME: according to the documentation:
+        // - "the GIL must be held before calling this function"
+        // - "a current thread state must be set on entry"
+        // but we don't acquire the GIL here.
         let status: PyStatus = unsafe { Py_NewInterpreterFromConfig(&mut state, &config) };
         if unsafe { PyStatus_IsError(status) } == 1 {
-            bail!(PyErr::fetch(unsafe { Python::assume_gil_acquired() }).to_string());
+            let msg = unsafe { CStr::from_ptr(status.err_msg) };
+            return Err(anyhow::anyhow!(
+                "failed to create sub-interpreter: {}",
+                msg.to_string_lossy()
+            )
+            .into());
         }
         // release the GIL
         unsafe { PyEval_SaveThread() };
@@ -59,9 +68,9 @@ impl SubInterpreter {
     /// Please note that if the return value contains any `Py` object (e.g. `PyErr`),
     /// this object must be dropped in this sub-interpreter, otherwise it will cause
     /// `SIGABRT: pointer being freed was not allocated`.
-    pub fn with_gil<F, R>(&self, f: F) -> R
+    pub fn with_gil<F, R>(&self, f: F) -> Result<R, PyError>
     where
-        F: for<'py> FnOnce(Python<'py>) -> R,
+        F: for<'py> FnOnce(Python<'py>) -> Result<R, PyError>,
     {
         // switch to the sub-interpreter and acquire GIL
         unsafe { PyEval_RestoreThread(self.state) };
@@ -78,9 +87,8 @@ impl SubInterpreter {
     }
 
     /// Run Python code in the sub-interpreter.
-    pub fn run(&self, code: &str) -> Result<()> {
-        self.with_gil(|py| py.run(code, None, None).map_err(pyerr_to_anyhow))?;
-        Ok(())
+    pub fn run(&self, code: &str) -> Result<(), PyError> {
+        self.with_gil(|py| py.run(code, None, None).map_err(|e| e.into()))
     }
 }
 
@@ -92,5 +100,37 @@ impl Drop for SubInterpreter {
             // destroy the sub-interpreter
             Py_EndInterpreter(self.state);
         }
+    }
+}
+
+/// The error type for Python sub-interpreters.
+///
+/// This type is a wrapper around `anyhow::Error`. The special thing is that
+/// when it comes from `PyErr`, only the error message is retained, and the
+/// original type is discarded. This is to avoid the problem of `PyErr` being
+/// dropped outside the sub-interpreter.
+#[derive(Debug)]
+pub struct PyError {
+    anyhow: anyhow::Error,
+}
+
+/// Converting from `PyErr` only keeps the error message.
+impl From<PyErr> for PyError {
+    fn from(err: PyErr) -> Self {
+        Self {
+            anyhow: anyhow::anyhow!(err.to_string()),
+        }
+    }
+}
+
+impl From<anyhow::Error> for PyError {
+    fn from(err: anyhow::Error) -> Self {
+        Self { anyhow: err }
+    }
+}
+
+impl From<PyError> for anyhow::Error {
+    fn from(err: PyError) -> Self {
+        err.anyhow
     }
 }

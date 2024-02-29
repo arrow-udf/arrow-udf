@@ -635,10 +635,19 @@ def neg(x):
     )
     .unwrap();
 
-    let err = runtime.call("neg", &input).unwrap_err();
+    let output = runtime.call("neg", &input).unwrap();
     assert_eq!(
-        err.to_string(),
-        "TypeError: neg() missing 1 required positional argument: 'x'"
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-----+--------------------------------------------------------------+
+| neg | error                                                        |
++-----+--------------------------------------------------------------+
+|     | TypeError: neg() missing 1 required positional argument: 'x' |
++-----+--------------------------------------------------------------+
+"#
+        .trim()
     );
 
     // case3: arguments mismatch
@@ -651,10 +660,19 @@ def neg(x):
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let err = runtime.call("neg", &input).unwrap_err();
+    let output = runtime.call("neg", &input).unwrap();
     assert_eq!(
-        err.to_string(),
-        "TypeError: neg() takes 1 positional argument but 2 were given"
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-----+---------------------------------------------------------------+
+| neg | error                                                         |
++-----+---------------------------------------------------------------+
+|     | TypeError: neg() takes 1 positional argument but 2 were given |
++-----+---------------------------------------------------------------+
+"#
+        .trim()
     );
 }
 

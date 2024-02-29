@@ -25,9 +25,7 @@ use arrow_array::{
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
 use arrow_udf::function;
-use arrow_udf::types::{Interval, StructType};
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
-use rust_decimal::Decimal;
+use arrow_udf::types::*;
 
 // test no return value
 #[function("null()")]

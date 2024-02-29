@@ -22,7 +22,7 @@ Add the following lines to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-arrow-udf = "0.1"
+arrow-udf = "0.2"
 ```
 
 Define your functions with the `#[function]` macro:

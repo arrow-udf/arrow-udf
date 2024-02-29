@@ -12,9 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Data types for user-defined functions.
+
 use arrow_array::builder::StructBuilder;
 use arrow_schema::Fields;
 pub use arrow_udf_macros::StructType;
+
+// re-export common types
+pub use chrono;
+#[doc(no_inline)]
+pub use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+pub use rust_decimal;
+#[doc(no_inline)]
+pub use rust_decimal::Decimal;
+pub use serde_json;
 
 /// Interval type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

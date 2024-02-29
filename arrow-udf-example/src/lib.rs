@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use arrow_udf::{function, types::StructType};
+use arrow_udf::{function, types::*};
 
 #[function("gcd(int, int) -> int")]
 fn gcd(mut a: i32, mut b: i32) -> i32 {
@@ -50,6 +50,21 @@ fn create_file() {
 fn sleep(second: i32) -> i32 {
     std::thread::sleep(std::time::Duration::from_secs(second as u64));
     0
+}
+
+#[function("decimal_add(decimal, decimal) -> decimal")]
+fn decimal_add(a: Decimal, b: Decimal) -> Decimal {
+    a + b
+}
+
+#[function("datetime(date, time) -> timestamp")]
+fn datetime(date: NaiveDate, time: NaiveTime) -> NaiveDateTime {
+    NaiveDateTime::new(date, time)
+}
+
+#[function("jsonb_access(json, int) -> json")]
+fn jsonb_access(json: serde_json::Value, index: i32) -> Option<serde_json::Value> {
+    json.get(index as usize).cloned()
 }
 
 #[function("length(varchar) -> int")]

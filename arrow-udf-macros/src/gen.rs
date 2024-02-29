@@ -446,6 +446,7 @@ impl FunctionAttr {
         let body = quote! {
             use ::std::sync::Arc;
             use ::arrow_udf::{Result, Error};
+            use ::arrow_udf::codegen::arrow_array;
             use ::arrow_udf::codegen::arrow_array::RecordBatch;
             use ::arrow_udf::codegen::arrow_array::array::*;
             use ::arrow_udf::codegen::arrow_array::builder::*;

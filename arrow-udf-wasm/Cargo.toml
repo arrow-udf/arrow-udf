@@ -21,8 +21,8 @@ base64 = "0.21"
 genawaiter = "0.99"
 lazy_static = "1"
 tempfile = { version = "3", optional = true }
-wasmtime = "17"
-wasmtime-wasi = "17"
+wasi-common = "18"
+wasmtime = "18"
 
 [dev-dependencies]
 arrow-arith = "50"

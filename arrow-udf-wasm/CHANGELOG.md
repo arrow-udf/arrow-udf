@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update `wasmtime` to v18.
 - `build` now use arrow-udf v0.2 by default.
 
 ## [0.1.3] - 2024-02-04

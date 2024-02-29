@@ -19,8 +19,8 @@ use arrow_array::RecordBatch;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::sync::Mutex;
+use wasi_common::{sync::WasiCtxBuilder, WasiCtx};
 use wasmtime::*;
-use wasmtime_wasi::{sync::WasiCtxBuilder, WasiCtx};
 
 #[cfg(feature = "build")]
 pub mod build;
@@ -239,7 +239,7 @@ impl Instance {
         let module = &rt.module;
         let engine = module.engine();
         let mut linker = Linker::new(engine);
-        wasmtime_wasi::add_to_linker(&mut linker, |(wasi, _)| wasi)?;
+        wasi_common::sync::add_to_linker(&mut linker, |(wasi, _)| wasi)?;
 
         // Create a WASI context and put it in a Store; all instances in the store
         // share this context. `WasiCtxBuilder` provides a number of ways to

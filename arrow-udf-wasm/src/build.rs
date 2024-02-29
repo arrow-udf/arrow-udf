@@ -1,6 +1,7 @@
 //! Build WASM binaries from source.
 
 use anyhow::{Context, Result};
+use std::path::PathBuf;
 use std::process::Command;
 
 /// Build a wasm binary from a Rust UDF script.
@@ -53,6 +54,12 @@ pub struct BuildOpts {
     pub offline: bool,
     /// The toolchain to use.
     pub toolchain: Option<String>,
+    /// The version of the `arrow-udf` crate to use.
+    /// If not specified, 0.2 will be used.
+    pub arrow_udf_version: Option<String>,
+    /// The temporary directory to use.
+    /// If not specified, a random temporary directory will be used.
+    pub tempdir: Option<PathBuf>,
 }
 
 /// Build a wasm binary with options.
@@ -90,20 +97,29 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies.arrow-udf]
-version = "0.1"
+version = "{}"
 
 [dependencies.genawaiter]
 version = "0.99"
 
 {}"#,
+        opts.arrow_udf_version.as_deref().unwrap_or("0.2"),
         opts.manifest
     );
 
-    // create a new cargo package at temporary directory
-    let dir = tempfile::tempdir()?;
-    std::fs::create_dir(dir.path().join("src"))?;
-    std::fs::write(dir.path().join("src/lib.rs"), &opts.script)?;
-    std::fs::write(dir.path().join("Cargo.toml"), manifest)?;
+    // create a temporary directory if not specified
+    let tempdir = if opts.tempdir.is_some() {
+        None
+    } else {
+        Some(tempfile::tempdir().context("failed to create tempdir")?)
+    };
+    let dir = match &opts.tempdir {
+        Some(dir) => dir,
+        None => tempdir.as_ref().unwrap().path(),
+    };
+    std::fs::create_dir_all(dir.join("src"))?;
+    std::fs::write(dir.join("src/lib.rs"), &opts.script)?;
+    std::fs::write(dir.join("Cargo.toml"), manifest)?;
 
     let mut command = Command::new("cargo");
     if let Some(toolchain) = &opts.toolchain {
@@ -114,7 +130,7 @@ version = "0.99"
         .arg("--release")
         .arg("--target")
         .arg("wasm32-wasi")
-        .current_dir(dir.path());
+        .current_dir(dir);
     if opts.offline {
         command.arg("--offline");
     }
@@ -127,7 +143,7 @@ version = "0.99"
             String::from_utf8_lossy(&output.stderr)
         ));
     }
-    let binary_path = dir.path().join("target/wasm32-wasi/release/udf.wasm");
+    let binary_path = dir.join("target/wasm32-wasi/release/udf.wasm");
     // strip the wasm binary if wasm-strip exists
     if Command::new("wasm-strip").arg("--version").output().is_ok() {
         let output = Command::new("wasm-strip")

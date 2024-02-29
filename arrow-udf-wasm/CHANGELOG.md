@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.4] - 2024-02-08
+## [0.2.0] - 2024-02-29
 
 ### Added
 
 - Support arrow-udf v0.2.
-- Allow specifying the Rust toolchain to build the wasm binary.
+- Add more options to `build`.
+
+### Changed
+
+- `build` now use arrow-udf v0.2 by default.
 
 ## [0.1.3] - 2024-02-04
 

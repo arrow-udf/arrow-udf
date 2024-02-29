@@ -26,8 +26,8 @@
 
 use self::interpreter::SubInterpreter;
 use anyhow::{Context, Result};
-use arrow_array::builder::Int32Builder;
-use arrow_array::{Array, RecordBatch};
+use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
+use arrow_array::{Array, ArrayRef, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use pyo3::types::{PyIterator, PyModule, PyTuple};
 use pyo3::{Py, PyObject};
@@ -221,8 +221,9 @@ impl Runtime {
     pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let function = self.functions.get(name).context("function not found")?;
         // convert each row to python objects and call the function
-        let array = self.interpreter.with_gil(|py| {
+        let (output, error) = self.interpreter.with_gil(|py| {
             let mut results = Vec::with_capacity(input.num_rows());
+            let mut errors = vec![];
             let mut row = Vec::with_capacity(input.num_columns());
             for i in 0..input.num_rows() {
                 row.clear();
@@ -237,14 +238,28 @@ impl Runtime {
                     continue;
                 }
                 let args = PyTuple::new(py, row.drain(..));
-                let result = function.function.call1(py, args)?;
-                results.push(result);
+                match function.function.call1(py, args) {
+                    Ok(result) => results.push(result),
+                    Err(e) => {
+                        results.push(py.None());
+                        errors.push((i, e.to_string()));
+                    }
+                }
             }
-            let result = pyarrow::build_array(&function.return_type, py, &results)?;
-            Ok(result)
+            let output = pyarrow::build_array(&function.return_type, py, &results)?;
+            let error = build_error_array(input.num_rows(), errors);
+            Ok((output, error))
         })?;
-        let schema = Schema::new(vec![Field::new(name, array.data_type().clone(), true)]);
-        Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
+        if let Some(error) = error {
+            let schema = Schema::new(vec![
+                Field::new(name, function.return_type.clone(), true),
+                Field::new("error", DataType::Utf8, true),
+            ]);
+            Ok(RecordBatch::try_new(Arc::new(schema), vec![output, error])?)
+        } else {
+            let schema = Schema::new(vec![Field::new(name, output.data_type().clone(), true)]);
+            Ok(RecordBatch::try_new(Arc::new(schema), vec![output])?)
+        }
     }
 
     /// Call a table function.
@@ -300,6 +315,7 @@ impl RecordBatchIter<'_> {
         let batch = self.interpreter.with_gil(|py| {
             let mut indexes = Int32Builder::with_capacity(self.chunk_size);
             let mut results = Vec::with_capacity(self.input.num_rows());
+            let mut errors = vec![];
             let mut row = Vec::with_capacity(self.input.num_columns());
             while self.row < self.input.num_rows() && results.len() < self.chunk_size {
                 let generator = if let Some(g) = self.generator.as_ref() {
@@ -318,17 +334,37 @@ impl RecordBatchIter<'_> {
                         continue;
                     }
                     let args = PyTuple::new(py, row.drain(..));
-                    let result = self.function.function.call1(py, args)?;
-                    let iter = result.as_ref(py).iter()?.into();
-                    self.generator.insert(iter)
+                    match self.function.function.as_ref(py).call1(args) {
+                        Ok(result) => {
+                            let iter = result.iter()?.into();
+                            self.generator.insert(iter)
+                        }
+                        Err(e) => {
+                            // append a row with null value and error message
+                            indexes.append_value(self.row as i32);
+                            results.push(py.None());
+                            errors.push((indexes.len(), e.to_string()));
+                            self.row += 1;
+                            continue;
+                        }
+                    }
                 };
-                if let Some(value) = generator.as_ref(py).next() {
-                    let value: PyObject = value?.into();
-                    indexes.append_value(self.row as i32);
-                    results.push(value);
-                } else {
-                    self.row += 1;
-                    self.generator = None;
+                match generator.as_ref(py).next() {
+                    Some(Ok(value)) => {
+                        indexes.append_value(self.row as i32);
+                        results.push(value.into());
+                    }
+                    Some(Err(e)) => {
+                        indexes.append_value(self.row as i32);
+                        results.push(py.None());
+                        errors.push((indexes.len(), e.to_string()));
+                        self.row += 1;
+                        self.generator = None;
+                    }
+                    None => {
+                        self.row += 1;
+                        self.generator = None;
+                    }
                 }
             }
 
@@ -336,11 +372,22 @@ impl RecordBatchIter<'_> {
                 return Ok(None);
             }
             let indexes = Arc::new(indexes.finish());
-            let array = pyarrow::build_array(&self.function.return_type, py, &results)
+            let output = pyarrow::build_array(&self.function.return_type, py, &results)
                 .context("failed to build arrow array from return values")?;
-            Ok(Some(
-                RecordBatch::try_new(self.schema.clone(), vec![indexes, array]).unwrap(),
-            ))
+            let error = build_error_array(indexes.len(), errors);
+            if let Some(error) = error {
+                Ok(Some(
+                    RecordBatch::try_new(
+                        Arc::new(append_error_to_schema(&self.schema)),
+                        vec![indexes, output, error],
+                    )
+                    .unwrap(),
+                ))
+            } else {
+                Ok(Some(
+                    RecordBatch::try_new(self.schema.clone(), vec![indexes, output]).unwrap(),
+                ))
+            }
         })?;
         Ok(batch)
     }
@@ -386,4 +433,29 @@ impl Drop for Runtime {
             Ok(())
         });
     }
+}
+
+fn build_error_array(num_rows: usize, errors: Vec<(usize, String)>) -> Option<ArrayRef> {
+    if errors.is_empty() {
+        return None;
+    }
+    let data_capacity = errors.iter().map(|(i, _)| i).sum();
+    let mut builder = StringBuilder::with_capacity(num_rows, data_capacity);
+    for (i, msg) in errors {
+        while builder.len() + 1 < i {
+            builder.append_null();
+        }
+        builder.append_value(&msg);
+    }
+    while builder.len() < num_rows {
+        builder.append_null();
+    }
+    Some(Arc::new(builder.finish()))
+}
+
+/// Append an error field to the schema.
+fn append_error_to_schema(schema: &Schema) -> Schema {
+    let mut fields = schema.fields().to_vec();
+    fields.push(Arc::new(Field::new("error", DataType::Utf8, true)));
+    Schema::new(fields)
 }

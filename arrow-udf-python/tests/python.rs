@@ -425,6 +425,85 @@ def range1(n: int):
     );
 }
 
+#[test]
+fn test_error() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_function(
+            "div",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def div(a: int, b: int) -> int:
+    return a // b
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("x", DataType::Int32, true),
+        Field::new("y", DataType::Int32, true),
+    ]);
+    let arg0 = Int32Array::from(vec![1, 2]);
+    let arg1 = Int32Array::from(vec![0, 1]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let output = runtime.call("div", &input).unwrap();
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-----+-------------------------------------------------------+
+| div | error                                                 |
++-----+-------------------------------------------------------+
+|     | ZeroDivisionError: integer division or modulo by zero |
+| 2   |                                                       |
++-----+-------------------------------------------------------+
+"#
+        .trim()
+    );
+
+    runtime
+        .add_function(
+            "range1",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def range1(n: int):
+    for i in range(n):
+        if i == 1:
+            raise ValueError("i is 1")
+        yield i
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![0, 2, 1]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let mut outputs = runtime.call_table_function("range1", &input, 10).unwrap();
+    let output = outputs.next().unwrap().unwrap();
+
+    assert_eq!(
+        pretty_format_batches(std::slice::from_ref(&output))
+            .unwrap()
+            .to_string(),
+        r#"
++-----+--------+--------------------+
+| row | range1 | error              |
++-----+--------+--------------------+
+| 1   | 0      |                    |
+| 1   |        | ValueError: i is 1 |
+| 2   | 0      |                    |
++-----+--------+--------------------+
+"#
+        .trim()
+    );
+}
+
 /// Test there is no GIL contention across threads.
 #[test]
 fn test_no_gil() {

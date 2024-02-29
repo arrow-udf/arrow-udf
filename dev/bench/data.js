@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1709048242803,
+  "lastUpdate": 1709180666841,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -3767,6 +3767,96 @@ window.BENCHMARK_DATA = {
             "name": "decimal/js",
             "value": 573225,
             "range": "± 1413",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "1d4fb6c7ff5ab5b4db1d8b0e6bdae5e9e4bbefc4",
+          "message": "add `find_function_by_inlined_signature`\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-02-29T12:14:35+08:00",
+          "tree_id": "7251f5c4f8d0d1c4d6849666407e8c5948ddf61b",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/1d4fb6c7ff5ab5b4db1d8b0e6bdae5e9e4bbefc4"
+        },
+        "date": 1709180666295,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3870,
+            "range": "± 23",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4005,
+            "range": "± 14",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23821,
+            "range": "± 1525",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 176014,
+            "range": "± 654",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 262758,
+            "range": "± 22012",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 89134,
+            "range": "± 1028",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 422996,
+            "range": "± 26543",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5730769,
+            "range": "± 103379",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1093423,
+            "range": "± 15027",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 59039,
+            "range": "± 814",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 564603,
+            "range": "± 18253",
             "unit": "ns/iter"
           }
         ]

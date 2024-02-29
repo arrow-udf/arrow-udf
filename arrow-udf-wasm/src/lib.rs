@@ -133,6 +133,44 @@ impl Runtime {
         self.types.iter().map(|(k, v)| (k.as_str(), v.as_str()))
     }
 
+    /// Given a function signature that inlines struct types, find the function name.
+    ///
+    /// # Example
+    ///
+    /// ```text
+    /// types = { "KeyValue": "key:varchar,value:varchar" }
+    /// input = "keyvalue(varchar, varchar) -> struct<key:varchar,value:varchar>"
+    /// output = "keyvalue(varchar, varchar) -> struct KeyValue"
+    /// ```
+    pub fn find_function_by_inlined_signature(&self, s: &str) -> Option<&str> {
+        self.functions
+            .iter()
+            .find(|f| self.inline_types(f) == s)
+            .map(|f| f.as_str())
+    }
+
+    /// Inline types in function signature.
+    ///
+    /// # Example
+    ///
+    /// ```text
+    /// types = { "KeyValue": "key:varchar,value:varchar" }
+    /// input = "keyvalue(varchar, varchar) -> struct KeyValue"
+    /// output = "keyvalue(varchar, varchar) -> struct<key:varchar,value:varchar>"
+    /// ```
+    fn inline_types(&self, s: &str) -> String {
+        let mut inlined = s.to_string();
+        loop {
+            let replaced = inlined.clone();
+            for (k, v) in self.types.iter() {
+                inlined = inlined.replace(&format!("struct {k}"), &format!("struct<{v}>"));
+            }
+            if replaced == inlined {
+                return inlined;
+            }
+        }
+    }
+
     /// Call a function.
     pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         if !self.functions.contains(name) {

@@ -1,6 +1,6 @@
 [package]
 name = "arrow-udf-js"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "JavaScript runtime for Arrow UDFs."
 repository = "https://github.com/risingwavelabs/arrow-udf"

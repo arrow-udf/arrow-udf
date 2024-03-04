@@ -54,9 +54,9 @@ struct Function {
     mode: CallMode,
 }
 
-// XXX: to make `Runtime` Send and Sync. not sure if this is safe.
-unsafe impl Send for Function {}
-unsafe impl Sync for Function {}
+// SAFETY: `rquickjs::Runtime` is `Send` and `Sync`
+unsafe impl Send for Runtime {}
+unsafe impl Sync for Runtime {}
 
 /// Whether the function will be called when some of its arguments are null.
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]

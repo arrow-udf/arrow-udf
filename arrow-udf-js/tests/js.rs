@@ -524,3 +524,10 @@ fn test_range() {
         .trim()
     );
 }
+
+/// assert Runtime is Send and Sync
+#[test]
+fn test_send_sync() {
+    fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<Runtime>();
+}

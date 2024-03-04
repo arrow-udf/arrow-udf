@@ -21,6 +21,7 @@ use arrow_array::{
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js::{CallMode, Runtime};
+use expect_test::{expect, Expect};
 
 #[test]
 fn test_gcd() {
@@ -55,19 +56,15 @@ fn test_gcd() {
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("gcd", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----+
-| gcd |
-+-----+
-| 5   |
-|     |
-+-----+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----+
+        | gcd |
+        +-----+
+        | 5   |
+        |     |
+        +-----+"#]],
     );
 }
 
@@ -97,19 +94,15 @@ fn test_to_string() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("to_string", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----------+
-| to_string |
-+-----------+
-| 5         |
-| null      |
-+-----------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----------+
+        | to_string |
+        +-----------+
+        | 5         |
+        | null      |
+        +-----------+"#]],
     );
 }
 
@@ -140,18 +133,14 @@ fn test_concat() {
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("concat", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+----------------------+
-| concat               |
-+----------------------+
-| 68656c6c6f776f726c64 |
-+----------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +----------------------+
+        | concat               |
+        +----------------------+
+        | 68656c6c6f776f726c64 |
+        +----------------------+"#]],
     );
 }
 
@@ -182,18 +171,14 @@ fn test_json_array_access() {
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("json_array_access", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-------------------+
-| json_array_access |
-+-------------------+
-| 1                 |
-+-------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-------------------+
+        | json_array_access |
+        +-------------------+
+        | 1                 |
+        +-------------------+"#]],
     );
 }
 
@@ -219,18 +204,14 @@ fn test_json_stringify() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("json_stringify", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+----------------+
-| json_stringify |
-+----------------+
-| [1,null,""]    |
-+----------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +----------------+
+        | json_stringify |
+        +----------------+
+        | [1,null,""]    |
+        +----------------+"#]],
     );
 }
 
@@ -261,18 +242,14 @@ fn test_decimal_add() {
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("decimal_add", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+--------------+
-| decimal_add  |
-+--------------+
-| 302e30303033 |
-+--------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +--------------+
+        | decimal_add  |
+        +--------------+
+        | 302e30303033 |
+        +--------------+"#]],
     );
 }
 
@@ -356,20 +333,16 @@ fn test_return_array() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("to_array", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+----------+
-| to_array |
-+----------+
-| [1]      |
-|          |
-| [3]      |
-+----------+
-    "#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +----------+
+        | to_array |
+        +----------+
+        | [1]      |
+        |          |
+        | [3]      |
+        +----------+"#]],
     );
 }
 
@@ -402,18 +375,14 @@ fn test_key_value() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("key_value", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+--------------------+
-| key_value          |
-+--------------------+
-| {key: a, value: b} |
-+--------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +--------------------+
+        | key_value          |
+        +--------------------+
+        | {key: a, value: b} |
+        +--------------------+"#]],
     );
 }
 
@@ -458,19 +427,15 @@ fn test_struct_to_json() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("to_json", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+---------------------------+
-| to_json                   |
-+---------------------------+
-| {"key":"a","value":"b"}   |
-| {"key":null,"value":null} |
-+---------------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +---------------------------+
+        | to_json                   |
+        +---------------------------+
+        | {"key":"a","value":"b"}   |
+        | {"key":null,"value":null} |
+        +---------------------------+"#]],
     );
 }
 
@@ -509,19 +474,17 @@ fn test_range() {
     assert_eq!(o2.num_rows(), 2);
     assert!(outputs.next().is_none());
 
-    assert_eq!(
-        pretty_format_batches(&[o1, o2]).unwrap().to_string(),
-        r#"
-+-----+-------+
-| row | range |
-+-----+-------+
-| 0   | 0     |
-| 2   | 0     |
-| 2   | 1     |
-| 2   | 2     |
-+-----+-------+
-"#
-        .trim()
+    check(
+        &[o1, o2],
+        expect![[r#"
+        +-----+-------+
+        | row | range |
+        +-----+-------+
+        | 0   | 0     |
+        | 2   | 0     |
+        | 2   | 1     |
+        | 2   | 2     |
+        +-----+-------+"#]],
     );
 }
 
@@ -530,4 +493,10 @@ fn test_range() {
 fn test_send_sync() {
     fn assert_send_sync<T: Send + Sync>() {}
     assert_send_sync::<Runtime>();
+}
+
+/// Compare the actual output with the expected output.
+#[track_caller]
+fn check(actual: &[RecordBatch], expect: Expect) {
+    expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
 }

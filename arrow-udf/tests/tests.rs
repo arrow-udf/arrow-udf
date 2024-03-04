@@ -26,6 +26,7 @@ use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
 use arrow_udf::function;
 use arrow_udf::types::*;
+use expect_test::{expect, Expect};
 
 // test no return value
 #[function("null()")]
@@ -341,19 +342,15 @@ fn test_neg() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = neg_int4_int4_eval(&input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----+
-| neg |
-+-----+
-| -1  |
-|     |
-+-----+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----+
+        | neg |
+        +-----+
+        | -1  |
+        |     |
+        +-----+"#]],
     );
 }
 
@@ -369,20 +366,16 @@ fn test_div() {
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = div_int4_int4_int4_eval(&input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----+------------------+
-| div | error            |
-+-----+------------------+
-|     | division by zero |
-| 1   |                  |
-|     |                  |
-+-----+------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----+------------------+
+        | div | error            |
+        +-----+------------------+
+        |     | division by zero |
+        | 1   |                  |
+        |     |                  |
+        +-----+------------------+"#]],
     );
 }
 
@@ -393,19 +386,15 @@ fn test_key_value() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = key_value_varchar_struct_KeyValue_eval(&input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+--------------------+
-| key_value          |
-+--------------------+
-| {key: a, value: b} |
-|                    |
-+--------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +--------------------+
+        | key_value          |
+        +--------------------+
+        | {key: a, value: b} |
+        |                    |
+        +--------------------+"#]],
     );
 }
 
@@ -416,18 +405,14 @@ fn test_struct_of_all() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = struct_of_all_struct_StructOfAll_eval(&input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| struct_of_all                                                                                                                                                                                                                                                  |
-+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| {b: , c: 1, d: 2, e: 3, f: 4.0, g: 5.0, h: 302e303036, i: 2022-04-08, j: 12:34:56.789012, k: 2022-04-08T12:34:56.789012, l: 0 years 7 mons 8 days 0 hours 0 mins 0.000000009 secs, m: {"key":"value"}, n: string, o: 0a0b0c, p: [a, b], q: {key: a, value: b}} |
-+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+        | struct_of_all                                                                                                                                                                                                                                                  |
+        +----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+        | {b: , c: 1, d: 2, e: 3, f: 4.0, g: 5.0, h: 302e303036, i: 2022-04-08, j: 12:34:56.789012, k: 2022-04-08T12:34:56.789012, l: 0 years 7 mons 8 days 0 hours 0 mins 0.000000009 secs, m: {"key":"value"}, n: string, o: 0a0b0c, p: [a, b], q: {key: a, value: b}} |
+        +----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+"#]],
     );
 }
 
@@ -438,18 +423,14 @@ fn test_split() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = split_varchar_varchararray_eval(&input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+--------+
-| split  |
-+--------+
-| [a, b] |
-+--------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | split  |
+        +--------+
+        | [a, b] |
+        +--------+"#]],
     );
 }
 
@@ -465,21 +446,17 @@ fn test_option_add() {
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = option_add_int4_int4_int4_eval(&input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+------------+
-| option_add |
-+------------+
-| 2          |
-| 1          |
-|            |
-|            |
-+------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +------------+
+        | option_add |
+        +------------+
+        | 2          |
+        | 1          |
+        |            |
+        |            |
+        +------------+"#]],
     );
 }
 
@@ -499,21 +476,17 @@ fn test_array_sum() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = array_sum_int4array_int4_eval(&input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----------+
-| array_sum |
-+-----------+
-| 3         |
-|           |
-| 8         |
-| 13        |
-+-----------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----------+
+        | array_sum |
+        +-----------+
+        | 3         |
+        |           |
+        | 8         |
+        | 13        |
+        +-----------+"#]],
     );
 }
 
@@ -533,18 +506,14 @@ fn test_temporal() {
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = datetime_date_time_timestamp_eval(&input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+----------------------------+
-| datetime                   |
-+----------------------------+
-| 2022-04-08T12:34:56.789012 |
-+----------------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +----------------------------+
+        | datetime                   |
+        +----------------------------+
+        | 2022-04-08T12:34:56.789012 |
+        +----------------------------+"#]],
     );
 }
 
@@ -555,18 +524,14 @@ fn test_decimal() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = identity_decimal_decimal_eval(&input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+------------+
-| identity   |
-+------------+
-| 302e303031 |
-+------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +------------+
+        | identity   |
+        +------------+
+        | 302e303031 |
+        +------------+"#]],
     );
 }
 
@@ -577,19 +542,15 @@ fn test_json() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = to_json_int4_json_eval(&input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+---------+
-| to_json |
-+---------+
-| 1       |
-| null    |
-+---------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +---------+
+        | to_json |
+        +---------+
+        | 1       |
+        | null    |
+        +---------+"#]],
     );
 }
 
@@ -600,21 +561,17 @@ fn test_range() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = range_int4_int4_eval(&input).unwrap().next().unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----+-------+
-| row | range |
-+-----+-------+
-| 0   | 0     |
-| 2   | 0     |
-| 2   | 1     |
-| 2   | 2     |
-+-----+-------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----+-------+
+        | row | range |
+        +-----+-------+
+        | 0   | 0     |
+        | 2   | 0     |
+        | 2   | 1     |
+        | 2   | 2     |
+        +-----+-------+"#]],
     );
 
     let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
@@ -646,20 +603,22 @@ fn test_json_array_elements() {
         .unwrap()
         .next()
         .unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----+---------------------+--------------+
-| row | json_array_elements | error        |
-+-----+---------------------+--------------+
-| 0   | null                |              |
-| 0   | 1                   |              |
-| 0   | ""                  |              |
-| 1   |                     | not an array |
-+-----+---------------------+--------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----+---------------------+--------------+
+        | row | json_array_elements | error        |
+        +-----+---------------------+--------------+
+        | 0   | null                |              |
+        | 0   | 1                   |              |
+        | 0   | ""                  |              |
+        | 1   |                     | not an array |
+        +-----+---------------------+--------------+"#]],
     );
+}
+
+/// Compare the actual output with the expected output.
+#[track_caller]
+fn check(actual: &[RecordBatch], expect: Expect) {
+    expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
 }

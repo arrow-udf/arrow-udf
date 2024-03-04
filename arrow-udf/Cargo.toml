@@ -30,3 +30,4 @@ thiserror = "1"
 
 [dev-dependencies]
 arrow-cast = { version = "50", features = ["prettyprint"] }
+expect-test = "1"

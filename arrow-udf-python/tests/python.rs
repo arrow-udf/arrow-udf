@@ -18,6 +18,7 @@ use arrow_array::*;
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_python::{CallMode, Runtime};
+use expect_test::{expect, Expect};
 
 #[test]
 fn test_gcd() {
@@ -46,19 +47,15 @@ def gcd(a: int, b: int) -> int:
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("gcd", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----+
-| gcd |
-+-----+
-| 5   |
-|     |
-+-----+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----+
+        | gcd |
+        +-----+
+        | 5   |
+        |     |
+        +-----+"#]],
     );
 
     runtime.del_function("gcd").unwrap();
@@ -93,19 +90,15 @@ def max_handler(a: int, b: int) -> int:
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("max_py", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+--------+
-| max_py |
-+--------+
-| 25     |
-|        |
-+--------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | max_py |
+        +--------+
+        | 25     |
+        |        |
+        +--------+"#]],
     );
 
     runtime.del_function("max_py").unwrap();
@@ -134,18 +127,14 @@ def fib(n: int) -> int:
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("fib", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+--------+
-| fib    |
-+--------+
-| 832040 |
-+--------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | fib    |
+        +--------+
+        | 832040 |
+        +--------+"#]],
     );
 }
 
@@ -175,18 +164,14 @@ def decimal_add(a, b):
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("decimal_add", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+--------------+
-| decimal_add  |
-+--------------+
-| 302e30303033 |
-+--------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +--------------+
+        | decimal_add  |
+        +--------------+
+        | 302e30303033 |
+        +--------------+"#]],
     );
 }
 
@@ -216,18 +201,14 @@ def json_array_access(array, i):
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("json_array_access", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-------------------+
-| json_array_access |
-+-------------------+
-| 1                 |
-+-------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-------------------+
+        | json_array_access |
+        +-------------------+
+        | 1                 |
+        +-------------------+"#]],
     );
 }
 
@@ -255,20 +236,16 @@ def to_array(x):
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("to_array", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+----------+
-| to_array |
-+----------+
-| [1]      |
-|          |
-| [3]      |
-+----------+
-    "#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +----------+
+        | to_array |
+        +----------+
+        | [1]      |
+        |          |
+        | [3]      |
+        +----------+"#]],
     );
 }
 
@@ -305,18 +282,14 @@ def key_value(s: str):
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("key_value", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+--------------------+
-| key_value          |
-+--------------------+
-| {key: a, value: b} |
-+--------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +--------------------+
+        | key_value          |
+        +--------------------+
+        | {key: a, value: b} |
+        +--------------------+"#]],
     );
 }
 
@@ -360,19 +333,15 @@ def to_json(object):
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("to_json", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+------------------------------+
-| to_json                      |
-+------------------------------+
-| {"key": "a", "value": "b"}   |
-| {"key": null, "value": null} |
-+------------------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +------------------------------+
+        | to_json                      |
+        +------------------------------+
+        | {"key": "a", "value": "b"}   |
+        | {"key": null, "value": null} |
+        +------------------------------+"#]],
     );
 }
 
@@ -409,19 +378,17 @@ def range1(n: int):
     assert_eq!(o2.num_rows(), 2);
     assert!(outputs.next().is_none());
 
-    assert_eq!(
-        pretty_format_batches(&[o1, o2]).unwrap().to_string(),
-        r#"
-+-----+--------+
-| row | range1 |
-+-----+--------+
-| 0   | 0      |
-| 2   | 0      |
-| 2   | 1      |
-| 2   | 2      |
-+-----+--------+
-"#
-        .trim()
+    check(
+        &[o1, o2],
+        expect![[r#"
+        +-----+--------+
+        | row | range1 |
+        +-----+--------+
+        | 0   | 0      |
+        | 2   | 0      |
+        | 2   | 1      |
+        | 2   | 2      |
+        +-----+--------+"#]],
     );
 }
 
@@ -450,19 +417,15 @@ def div(a: int, b: int) -> int:
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("div", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----+-------------------------------------------------------+
-| div | error                                                 |
-+-----+-------------------------------------------------------+
-|     | ZeroDivisionError: integer division or modulo by zero |
-| 2   |                                                       |
-+-----+-------------------------------------------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----+-------------------------------------------------------+
+        | div | error                                                 |
+        +-----+-------------------------------------------------------+
+        |     | ZeroDivisionError: integer division or modulo by zero |
+        | 2   |                                                       |
+        +-----+-------------------------------------------------------+"#]],
     );
 
     runtime
@@ -487,20 +450,16 @@ def range1(n: int):
     let mut outputs = runtime.call_table_function("range1", &input, 10).unwrap();
     let output = outputs.next().unwrap().unwrap();
 
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----+--------+--------------------+
-| row | range1 | error              |
-+-----+--------+--------------------+
-| 1   | 0      |                    |
-| 1   |        | ValueError: i is 1 |
-| 2   | 0      |                    |
-+-----+--------+--------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----+--------+--------------------+
+        | row | range1 | error              |
+        +-----+--------+--------------------+
+        | 1   | 0      |                    |
+        | 1   |        | ValueError: i is 1 |
+        | 2   | 0      |                    |
+        +-----+--------+--------------------+"#]],
     );
 }
 
@@ -636,18 +595,14 @@ def neg(x):
     .unwrap();
 
     let output = runtime.call("neg", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----+--------------------------------------------------------------+
-| neg | error                                                        |
-+-----+--------------------------------------------------------------+
-|     | TypeError: neg() missing 1 required positional argument: 'x' |
-+-----+--------------------------------------------------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----+--------------------------------------------------------------+
+        | neg | error                                                        |
+        +-----+--------------------------------------------------------------+
+        |     | TypeError: neg() missing 1 required positional argument: 'x' |
+        +-----+--------------------------------------------------------------+"#]],
     );
 
     // case3: arguments mismatch
@@ -661,18 +616,14 @@ def neg(x):
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("neg", &input).unwrap();
-    assert_eq!(
-        pretty_format_batches(std::slice::from_ref(&output))
-            .unwrap()
-            .to_string(),
-        r#"
-+-----+---------------------------------------------------------------+
-| neg | error                                                         |
-+-----+---------------------------------------------------------------+
-|     | TypeError: neg() takes 1 positional argument but 2 were given |
-+-----+---------------------------------------------------------------+
-"#
-        .trim()
+    check(
+        &[output],
+        expect![[r#"
+        +-----+---------------------------------------------------------------+
+        | neg | error                                                         |
+        +-----+---------------------------------------------------------------+
+        |     | TypeError: neg() takes 1 positional argument but 2 were given |
+        +-----+---------------------------------------------------------------+"#]],
     );
 }
 
@@ -695,4 +646,10 @@ def neg(x):
     })
     .join()
     .unwrap();
+}
+
+/// Compare the actual output with the expected output.
+#[track_caller]
+fn check(actual: &[RecordBatch], expect: Expect) {
+    expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
 }

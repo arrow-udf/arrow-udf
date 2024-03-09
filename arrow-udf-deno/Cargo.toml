@@ -1,0 +1,44 @@
+[package]
+name = "arrow-udf-deno"
+version = "0.0.1"
+edition = "2021"
+description = "Deno engine for Arrow UDFs."
+repository = "https://github.com/risingwavelabs/arrow-udf"
+keywords = ["arrow", "udf", "deno"]
+license = "Apache-2.0"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["with-dayjs", "with-fetch"]
+with-fetch = ["arrow-udf-deno-runtime/with-fetch"]
+with-dayjs = ["arrow-udf-deno-runtime/with-dayjs"]
+
+[dependencies]
+anyhow = "1"
+arrow-udf-deno-runtime = { version = "0.0.1", path = "../arrow-udf-deno-runtime" }
+arrow-array = "50"
+arrow-buffer = "50"
+arrow-data = "50"
+arrow-schema = "50"
+async-trait = "0.1"
+deno_core = "0.269.0"
+futures = "0.3.24"
+futures-util = "0.3.24"
+libc = "0.2"
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+v8 = "0.83.2"
+
+[build-dependencies]
+arrow-udf-deno-runtime = { version = "0.0.1", path = "../arrow-udf-deno-runtime" }
+deno_core = "0.269.0"
+
+
+[dev-dependencies]
+arrow-cast = { version = "50", features = ["prettyprint"] }
+chrono = { version = "0.4", default-features = false }
+criterion = { version = "0.5", features = ["async_tokio", "async_futures"] }
+expect-test = "1"
+httpmock = "0.6"
+tokio = { version = "1", features = ["full"] }

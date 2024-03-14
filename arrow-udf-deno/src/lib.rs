@@ -12,7 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc, task::Poll};
+use std::fmt::Debug;
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    rc::Rc,
+    sync::Arc,
+    task::Poll,
+};
 
 use anyhow::{Context, Result};
 use arrow_array::{builder::Int32Builder, RecordBatch};
@@ -158,6 +165,15 @@ unsafe impl Send for RecordBatchIterInternal {}
 
 pub struct Runtime {
     local_pool: tokio_spawn_pinned::LocalPoolHandle,
+    functions: HashSet<String>,
+}
+
+impl Debug for Runtime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Runtime")
+            .field("functions", &self.functions)
+            .finish()
+    }
 }
 
 impl Runtime {
@@ -171,6 +187,7 @@ impl Runtime {
                     .build()
                     .expect("Failed to start a pinned worker thread runtime")
             }),
+            functions: HashSet::new(),
         }
     }
 
@@ -204,7 +221,7 @@ impl Runtime {
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
-        if let Ok(current) = tokio::runtime::Handle::try_current() {
+        let result = if let Ok(current) = tokio::runtime::Handle::try_current() {
             if current.runtime_flavor() == tokio::runtime::RuntimeFlavor::CurrentThread {
                 let runtime = THREAD_ISOLATE.with(|isolate| isolate.clone());
                 let mut runtime = runtime.borrow_mut();
@@ -222,6 +239,13 @@ impl Runtime {
             }
         } else {
             Err(anyhow::anyhow!("No tokio runtime found"))
+        };
+        match result {
+            Ok(()) => {
+                self.functions.insert(name.to_string());
+                Ok(())
+            }
+            Err(e) => Err(e),
         }
     }
 

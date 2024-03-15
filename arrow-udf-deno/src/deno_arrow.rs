@@ -899,6 +899,7 @@ pub fn build_array(
 pub fn get_jsvalue<'s>(
     scope: &mut v8::HandleScope<'s>,
     array: &dyn Array,
+    big_decimal: &v8::Global<v8::Function>,
     i: usize,
 ) -> anyhow::Result<v8::Local<'s, v8::Value>> {
     if array.is_null(i) {
@@ -1116,10 +1117,26 @@ pub fn get_jsvalue<'s>(
         DataType::LargeBinary => {
             let array = array.as_any().downcast_ref::<LargeBinaryArray>().unwrap();
             let str = std::str::from_utf8(array.value(i))?;
-            let source = format!("new BigDecimal('{}')", str);
-            let script =
-                V8::compile_script(scope, "numberValue", &source)?.expect("should compile script");
-            Ok(script.run(scope).context("should run script")?)
+            let val = v8::String::new(scope, str).context("Couldn't create a string")?;
+            let bigdecimal = v8::Local::new(scope, big_decimal);
+            let recv = v8::undefined(scope);
+            let try_catch = &mut v8::TryCatch::new(scope);
+            let result = bigdecimal.new_instance(try_catch, &[val.into()]);
+
+            match result {
+                Some(r) => Ok(r.into()),
+                None => {
+                    assert!(try_catch.has_caught());
+                    //Avoids killing the isolate even if it was requested
+                    if try_catch.is_execution_terminating() {
+                        try_catch.cancel_terminate_execution();
+                        anyhow::bail!("Execution was terminated");
+                    }
+                    let exception = try_catch.exception().unwrap();
+
+                    crate::v8::V8::exception_to_err_result(try_catch, exception, false)
+                }
+            }
         }
         DataType::Utf8 => {
             let array = array.as_any().downcast_ref::<StringArray>().unwrap();
@@ -1157,7 +1174,7 @@ pub fn get_jsvalue<'s>(
                 _ => {
                     let array = v8::Array::new(scope, list.len() as i32);
                     for j in 0..list.len() {
-                        let val = get_jsvalue(scope, list.as_ref(), j)?;
+                        let val = get_jsvalue(scope, list.as_ref(), big_decimal, j)?;
                         array.set_index(scope, j as u32, val);
                     }
                     Ok(array.into())
@@ -1170,7 +1187,7 @@ pub fn get_jsvalue<'s>(
             let array = array.as_any().downcast_ref::<StructArray>().unwrap();
             let object = v8::Object::new(scope);
             for (j, field) in fields.iter().enumerate() {
-                let value = get_jsvalue(scope, array.column(j).as_ref(), i)?;
+                let value = get_jsvalue(scope, array.column(j).as_ref(), big_decimal, i)?;
                 let name =
                     v8::String::new(scope, field.name()).context("Couldn't create a string")?;
                 if !object.set(scope, name.into(), value).unwrap_or_default() {

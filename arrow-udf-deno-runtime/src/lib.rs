@@ -302,7 +302,7 @@ pub fn bootstrap(runtime: &mut JsRuntime, options: &BootstrapOptions) {
     }
     result.expect("Failed to execute bootstrap script");
 
-    let decimal_code = include_str!("../js/decimal/decimal.js");
+    let decimal_code = include_str!("../js/decimal/big.decimal.js");
 
     let result = runtime.execute_script("decimal.js", decimal_code);
     result.expect("Failed to execute decimal script");

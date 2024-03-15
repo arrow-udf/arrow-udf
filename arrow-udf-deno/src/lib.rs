@@ -61,6 +61,7 @@ pub enum CallMode {
 pub struct InternalRuntime {
     functions: HashMap<String, Function>,
     deno_runtime: Rc<RefCell<deno_runtime::DenoRuntime>>,
+    big_decimal: ::v8::Global<::v8::Function>,
 }
 
 #[derive(Clone)]
@@ -139,6 +140,7 @@ pub(crate) type GeneratorState =
 pub(crate) struct RecordBatchIterInternal {
     input: RecordBatch,
     function: Function,
+    big_decimal: ::v8::Global<::v8::Function>,
     schema: SchemaRef,
     chunk_size: usize,
     promise: Rc<RefCell<Option<::v8::Global<::v8::Promise>>>>,
@@ -273,11 +275,25 @@ impl Runtime {
 impl InternalRuntime {
     pub fn new() -> Self {
         let snapshot = include_bytes!(concat!(env!("OUT_DIR"), "/ARROW_DENO_RUNTIME.snap"));
+        let deno_runtime = Rc::new(RefCell::new(arrow_udf_deno_runtime::create_runtime(
+            snapshot,
+        )));
+        let big_decimal = {
+            let mut runtime = deno_runtime.borrow_mut();
+            let js_runtime = runtime.get_js_runtime();
+            let scope = &mut js_runtime.handle_scope();
+            let context = scope.get_current_context();
+            let global = context.global(scope);
+            let key = ::v8::String::new(scope, "BigDecimal").unwrap();
+            let big_decimal = global.get(scope, key.into()).unwrap();
+            let big_decimal = ::v8::Local::<::v8::Function>::try_from(big_decimal).unwrap();
+            ::v8::Global::new(scope, big_decimal)
+        };
+
         Self {
             functions: HashMap::new(),
-            deno_runtime: Rc::new(RefCell::new(arrow_udf_deno_runtime::create_runtime(
-                snapshot,
-            ))),
+            deno_runtime,
+            big_decimal,
         }
     }
 
@@ -379,7 +395,7 @@ impl InternalRuntime {
             for i in 0..input.num_rows() {
                 args.clear();
                 for column in input.columns() {
-                    let val = deno_arrow::get_jsvalue(try_catch, column, i)
+                    let val = deno_arrow::get_jsvalue(try_catch, column, &self.big_decimal, i)
                         .context("failed to get jsvalue from arrow array")?;
                     args.push(val);
                 }
@@ -470,6 +486,7 @@ impl InternalRuntime {
                 Field::new("row", DataType::Int32, true),
                 Field::new(name, function.return_type.clone(), true),
             ])),
+            big_decimal: self.big_decimal.clone(),
             chunk_size,
             row: Rc::new(RefCell::new(0)),
             generator: Rc::new(RefCell::new(None)),
@@ -653,7 +670,7 @@ impl Stream for RecordBatchIterInternal {
                     row.clear();
                     for column in inner.input.columns() {
                         let r = inner.row.borrow();
-                        let val = get_jsvalue(scope, &column, *r)
+                        let val = get_jsvalue(scope, &column, &inner.big_decimal, *r)
                             .context("failed to get jsvalue from arrow array")?;
 
                         row.push(val);

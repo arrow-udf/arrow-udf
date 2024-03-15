@@ -1,4 +1,3 @@
-
 // Modified from <https://github.com/denoland/deno/blob/main/runtime/ops/signal.rs>
 // Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 #![allow(dead_code)]

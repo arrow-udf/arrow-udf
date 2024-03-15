@@ -9,9 +9,9 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::sync::oneshot;
 use tokio::task::{spawn_local, JoinHandle, LocalSet};
 
-/// Modified from the original version <https://github.com/tokio-rs/tokio/blob/master/tokio-util/src/task/spawn_pinned.rs> 
+/// Modified from the original version <https://github.com/tokio-rs/tokio/blob/master/tokio-util/src/task/spawn_pinned.rs>
 /// to support custom runtime creation.
-/// 
+///
 /// A cloneable handle to a local pool, used for spawning `!Send` tasks.
 ///
 /// Internally the local pool uses a [`tokio::task::LocalSet`] for each worker thread

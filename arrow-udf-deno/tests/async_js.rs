@@ -79,7 +79,7 @@ async fn test_range_async() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_range_async_iterator() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(

@@ -687,6 +687,14 @@ pub fn build_array(
                         }
                     }
                     builder.append_value(data);
+                } else if val.is_array_buffer() {
+                    let array = v8::Local::<v8::ArrayBuffer>::try_from(val)?;
+                    let store = array.get_backing_store();
+                    let data = store.data().unwrap().as_ptr() as *mut u8;
+                    let len = store.byte_length();
+                    let data = unsafe { std::slice::from_raw_parts(data, len) };
+
+                    builder.append_value(data);
                 } else {
                     let s = val.to_string(scope).context("Couldn't convert to string")?;
                     builder.append_value(s.to_rust_string_lossy(scope));

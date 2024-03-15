@@ -203,8 +203,10 @@ pub fn build_array(
                 for val in values {
                     let v = if val.is_none(py) {
                         py.None()
+                    } else if let Ok(value) = val.getattr(py, field.name().as_str()) {
+                        value
                     } else {
-                        val.as_ref(py).getattr(field.name().as_str())?.into()
+                        val.as_ref(py).get_item(field.name().as_str())?.into()
                     };
                     field_values.push(v);
                 }

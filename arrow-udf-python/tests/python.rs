@@ -291,6 +291,36 @@ def key_value(s: str):
         | {key: a, value: b} |
         +--------------------+"#]],
     );
+
+    runtime
+        .add_function(
+            "key_value2",
+            DataType::Struct(
+                vec![
+                    Field::new("key", DataType::Utf8, true),
+                    Field::new("value", DataType::Utf8, true),
+                ]
+                .into(),
+            ),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def key_value2(s: str):
+    key, value = s.split('=')
+    return {"key": key, "value": value}
+"#,
+        )
+        .unwrap();
+
+    let output = runtime.call("key_value2", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +--------------------+
+        | key_value2         |
+        +--------------------+
+        | {key: a, value: b} |
+        +--------------------+"#]],
+    );
 }
 
 #[test]

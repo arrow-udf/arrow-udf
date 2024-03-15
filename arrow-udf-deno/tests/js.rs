@@ -36,7 +36,7 @@ use expect_test::{expect, Expect};
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_gcd() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     let js_code = r#"
         export function gcd(a, b) {
@@ -82,7 +82,7 @@ async fn test_gcd() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_gcd_multithread() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     let js_code = r#"
         export function gcd(a, b) {
@@ -128,7 +128,7 @@ async fn test_gcd_multithread() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_to_string() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     let js_code = r#"
         export function to_string(a) {
@@ -167,7 +167,7 @@ async fn test_to_string() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_concat() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -207,7 +207,7 @@ async fn test_concat() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_json_array_access() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -246,7 +246,7 @@ async fn test_json_array_access() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_json_stringify() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -280,7 +280,7 @@ async fn test_json_stringify() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_decimal_add() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -319,7 +319,7 @@ async fn test_decimal_add() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_typed_array() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -375,7 +375,7 @@ async fn test_typed_array() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_return_array() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -414,7 +414,7 @@ async fn test_return_array() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_key_value() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -455,7 +455,7 @@ async fn test_key_value() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_struct_to_json() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -510,7 +510,7 @@ async fn test_struct_to_json() {
 #[tokio::test(flavor = "current_thread")]
 #[cfg(feature = "with-dayjs")]
 async fn test_temporal() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     let schema = Schema::new(vec![
         Field::new("date", DataType::Date32, true),
@@ -557,7 +557,7 @@ async fn test_temporal() {
 async fn test_interval() {
     use arrow_array::{IntervalDayTimeArray, IntervalMonthDayNanoArray, IntervalYearMonthArray};
 
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -683,7 +683,7 @@ async fn test_interval_identity() {
     ];
 
     for (input, unit) in cases.into_iter() {
-        let mut runtime = Runtime::new();
+        let runtime = Runtime::new();
 
         runtime
             .add_function(
@@ -740,7 +740,7 @@ async fn test_interval_identity() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_range() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -793,7 +793,7 @@ async fn test_range() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_range_multi() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(

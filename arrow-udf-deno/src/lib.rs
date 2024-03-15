@@ -13,13 +13,7 @@
 // limitations under the License.
 
 use std::fmt::Debug;
-use std::{
-    cell::RefCell,
-    collections::{HashMap, HashSet},
-    rc::Rc,
-    sync::Arc,
-    task::Poll,
-};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc, task::Poll};
 
 use anyhow::{Context, Result};
 use arrow_array::{builder::Int32Builder, RecordBatch};
@@ -36,6 +30,7 @@ mod values_future;
 
 thread_local! {
     static THREAD_ISOLATE: Rc<RefCell<InternalRuntime>>  = Rc::new(RefCell::new( InternalRuntime::new() ));
+    static THREAD_RUNTIME: Arc<Runtime>  = Arc::new( Runtime::new_internal() );
 }
 
 pub fn on_thread_stop() {
@@ -165,19 +160,20 @@ unsafe impl Send for RecordBatchIterInternal {}
 
 pub struct Runtime {
     local_pool: tokio_spawn_pinned::LocalPoolHandle,
-    functions: HashSet<String>,
 }
 
 impl Debug for Runtime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Runtime")
-            .field("functions", &self.functions)
-            .finish()
+        f.debug_struct("Runtime").finish()
     }
 }
 
 impl Runtime {
-    pub fn new() -> Self {
+    pub fn new() -> Arc<Self> {
+        THREAD_RUNTIME.with(|runtime| runtime.clone())
+    }
+
+    pub fn new_internal() -> Self {
         Self {
             local_pool: tokio_spawn_pinned::LocalPoolHandle::new_with_runtime_creator(1, || {
                 tokio::runtime::Builder::new_current_thread()
@@ -187,7 +183,6 @@ impl Runtime {
                     .build()
                     .expect("Failed to start a pinned worker thread runtime")
             }),
-            functions: HashSet::new(),
         }
     }
 
@@ -215,13 +210,13 @@ impl Runtime {
 
     /// Add a JS function.
     pub async fn add_function(
-        &mut self,
+        &self,
         name: &str,
         return_type: DataType,
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
-        let result = if let Ok(current) = tokio::runtime::Handle::try_current() {
+        if let Ok(current) = tokio::runtime::Handle::try_current() {
             if current.runtime_flavor() == tokio::runtime::RuntimeFlavor::CurrentThread {
                 let runtime = THREAD_ISOLATE.with(|isolate| isolate.clone());
                 let mut runtime = runtime.borrow_mut();
@@ -239,13 +234,6 @@ impl Runtime {
             }
         } else {
             Err(anyhow::anyhow!("No tokio runtime found"))
-        };
-        match result {
-            Ok(()) => {
-                self.functions.insert(name.to_string());
-                Ok(())
-            }
-            Err(e) => Err(e),
         }
     }
 
@@ -279,12 +267,6 @@ impl Runtime {
         } else {
             Err(anyhow::anyhow!("No tokio runtime found"))
         }
-    }
-}
-
-impl Default for Runtime {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

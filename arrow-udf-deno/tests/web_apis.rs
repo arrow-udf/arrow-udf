@@ -46,7 +46,7 @@ async fn test_fetch() {
     });
     let url = server.url("/api");
 
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -89,7 +89,7 @@ async fn test_fetch() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_crypto() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(

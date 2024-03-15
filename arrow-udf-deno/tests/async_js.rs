@@ -22,7 +22,7 @@ use expect_test::{expect, Expect};
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_range_async() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(
@@ -158,7 +158,7 @@ async fn test_range_async_iterator() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_range_async_iterator_async() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(

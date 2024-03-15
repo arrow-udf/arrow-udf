@@ -20,7 +20,7 @@ use arrow_udf_deno::{CallMode, Runtime};
 
 #[tokio::main]
 async fn main() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     runtime
         .add_function(

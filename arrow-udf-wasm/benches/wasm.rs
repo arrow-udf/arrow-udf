@@ -83,7 +83,7 @@ def gcd(a: int, b: int) -> int:
     });
 
     c.bench_function("gcd/deno", |bencher| {
-        let mut rt = DenoRuntime::new();
+        let rt = DenoRuntime::new();
         let tokio_runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
@@ -187,7 +187,7 @@ def range1(n: int):
     });
 
     c.bench_function("range/deno", |bencher| {
-        let mut rt = DenoRuntime::new();
+        let rt = DenoRuntime::new();
         let tokio_runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
@@ -271,7 +271,7 @@ def decimal(a):
     });
 
     c.bench_function("decimal/deno", |bencher| {
-        let mut rt = DenoRuntime::new();
+        let rt = DenoRuntime::new();
         let tokio_runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()

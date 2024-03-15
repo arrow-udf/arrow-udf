@@ -6,7 +6,7 @@ use arrow_udf_deno::{CallMode, Runtime};
 
 #[tokio::main]
 async fn main() {
-    let mut runtime = Runtime::new();
+    let runtime = Runtime::new();
 
     let original_code = include_str!("./sse/bundled/bundled.js");
 

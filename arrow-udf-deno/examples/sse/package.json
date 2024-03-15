@@ -2,7 +2,8 @@
   "name": "sse-example",
   "version": "1.0.0",
   "scripts": {
-    "build": "make-dir bundled dist && rm -f tsconfig.tsbuildinfo && tsc --build --verbose && node --preserve-symlinks --preserve-symlinks-main esbuild/bundler.js"
+    "build": "make-dir bundled dist && rm -f tsconfig.tsbuildinfo && tsc --build --verbose && node --preserve-symlinks --preserve-symlinks-main esbuild/bundler.js",
+    "build:table": "make-dir bundled dist && rm -f tsconfig.tsbuildinfo && tsc --build --verbose && node --preserve-symlinks --preserve-symlinks-main esbuild/bundler-table.js"
   },
   "devDependencies": {
     "esbuild": "^0.20.0",

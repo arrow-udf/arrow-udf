@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "es2019",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "removeComments": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedParameters": true,
+    "noUnusedLocals": true,
+    "useUnknownInCatchVariables": false,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitUseStrict": true,
+    "ignoreDeprecations": "5.0",
+    "outDir": "dist",
+    "rootDir": "./src",
+    "types": [
+      "node",
+    ],
+    "allowJs": true,
+    "strict": false
+  },
+
+  "exclude": ["dist", "bundled", "esbuild", "node_modules"]
+}

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1710944654115,
+  "lastUpdate": 1710955215264,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -4847,6 +4847,114 @@ window.BENCHMARK_DATA = {
             "name": "decimal/js",
             "value": 567207,
             "range": "± 16313",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "giovanny.gutierrez@commure.com",
+            "name": "Giovanny Gutiérrez",
+            "username": "bakjos"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "13818424f07d4494509ae82dfb4fab9ef105b90e",
+          "message": "feat: Add deno udf support (#7)\n\n* feat: Add arrow_udf_deno\r\n\r\n* feat(deno): Implement Debug interface\r\n\r\n* feat(deno): Convert from array buffer to Binary\r\n\r\n* feat(deno): Add table bundler to be used from a table\r\n\r\n* feat(deno): Single runtime per thread\r\n\r\n* chore: Fix fmt errors\r\n\r\n* feat: Update bigdecimal library\r\n\r\n* feat: Rename arrow-udf-deno to arrow-udf-js-deno\r\n\r\n* feat: Remove unneeded dependencies\r\n\r\n* feat: Remove warning showing the snapshot path and use a static snapshot",
+          "timestamp": "2024-03-21T01:05:30+08:00",
+          "tree_id": "5b86b24e1728e427d9eeb3c3fcd4c8e448e6b6ed",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/13818424f07d4494509ae82dfb4fab9ef105b90e"
+        },
+        "date": 1710955214882,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3872,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3983,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24046,
+            "range": "± 1244",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 168723,
+            "range": "± 10164",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 175730,
+            "range": "± 1168",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 260248,
+            "range": "± 22471",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 88110,
+            "range": "± 945",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 420196,
+            "range": "± 16759",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5715848,
+            "range": "± 88838",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9640976,
+            "range": "± 145466",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1063833,
+            "range": "± 7462",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 60060,
+            "range": "± 210",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 566818,
+            "range": "± 19486",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 813019,
+            "range": "± 5104",
             "unit": "ns/iter"
           }
         ]

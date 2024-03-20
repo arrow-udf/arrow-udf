@@ -28,6 +28,8 @@ pub mod tokio_spawn_pinned;
 mod v8;
 mod values_future;
 
+static SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/ARROW_DENO_RUNTIME.snap"));
+
 thread_local! {
     static THREAD_ISOLATE: Rc<RefCell<InternalRuntime>>  = Rc::new(RefCell::new( InternalRuntime::new() ));
     static THREAD_RUNTIME: Arc<Runtime>  = Arc::new( Runtime::new_internal() );
@@ -274,9 +276,8 @@ impl Runtime {
 
 impl InternalRuntime {
     pub fn new() -> Self {
-        let snapshot = include_bytes!(concat!(env!("OUT_DIR"), "/ARROW_DENO_RUNTIME.snap"));
         let deno_runtime = Rc::new(RefCell::new(arrow_udf_js_deno_runtime::create_runtime(
-            snapshot,
+            SNAPSHOT,
         )));
         let big_decimal = {
             let mut runtime = deno_runtime.borrow_mut();

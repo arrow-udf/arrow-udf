@@ -26,7 +26,6 @@ fn main() {
 
     let out_dir: PathBuf = env::var_os("OUT_DIR").expect("$OUT_DIR not set.").into();
 
-    println!("cargo:warning=generating snapshots {}", out_dir.display());
     let runtime_snapshot_path = out_dir.join("ARROW_DENO_RUNTIME.snap");
     build_snapshot(runtime_snapshot_path);
 

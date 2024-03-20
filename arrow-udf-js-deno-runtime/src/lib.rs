@@ -140,7 +140,7 @@ deno_core::extension!(runtime,
 
 pub fn create_runtime_snapshot() -> JsRuntimeForSnapshot {
     #[cfg(feature = "with-fetch")]
-    let user_agent = "arrow-udf-deno".to_owned();
+    let user_agent = "arrow-udf-js-deno".to_owned();
 
     let options = get_bootstrap_options();
     let options_clone = options.clone();
@@ -228,7 +228,7 @@ pub fn create_runtime_snapshot() -> JsRuntimeForSnapshot {
 
 pub fn create_runtime(snapshot: &'static [u8]) -> deno_runtime::DenoRuntime {
     #[cfg(feature = "with-fetch")]
-    let user_agent = "arrow-udf-deno".to_owned();
+    let user_agent = "arrow-udf-js-deno".to_owned();
 
     let options = get_bootstrap_options();
     let options_clone = options.clone();

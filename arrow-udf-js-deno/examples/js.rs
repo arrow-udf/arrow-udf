@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_deno::{CallMode, Runtime};
+use arrow_udf_js_deno::{CallMode, Runtime};
 
 #[tokio::main]
 async fn main() {

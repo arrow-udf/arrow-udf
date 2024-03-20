@@ -22,7 +22,7 @@ use arrow_schema::{DataType, Schema};
 #[cfg(feature = "with-fetch")]
 use arrow_schema::Field;
 
-use arrow_udf_deno::{CallMode, Runtime};
+use arrow_udf_js_deno::{CallMode, Runtime};
 
 #[cfg(feature = "with-fetch")]
 use expect_test::{expect, Expect};

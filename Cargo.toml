@@ -2,9 +2,9 @@
 resolver = "2"
 members = [
     "arrow-udf",
-    "arrow-udf-deno",
-    "arrow-udf-deno/examples/sse-server",
-    "arrow-udf-deno-runtime",
+    "arrow-udf-js-deno",
+    "arrow-udf-js-deno/examples/sse-server",
+    "arrow-udf-js-deno-runtime",
     "arrow-udf-macros",
     "arrow-udf-python",
     "arrow-udf-example",

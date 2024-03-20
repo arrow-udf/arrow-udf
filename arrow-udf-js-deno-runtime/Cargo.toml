@@ -1,5 +1,5 @@
 [package]
-name = "arrow-udf-deno-runtime"
+name = "arrow-udf-js-deno-runtime"
 version = "0.0.1"
 edition = "2021"
 description = "Deno runtime for Arrow UDFs."

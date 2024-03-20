@@ -18,7 +18,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc, task::Poll};
 use anyhow::{Context, Result};
 use arrow_array::{builder::Int32Builder, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
-use arrow_udf_deno_runtime::deno_runtime;
+use arrow_udf_js_deno_runtime::deno_runtime;
 use futures::{Future, Stream, StreamExt, TryStreamExt};
 
 use crate::deno_arrow::get_jsvalue;
@@ -275,7 +275,7 @@ impl Runtime {
 impl InternalRuntime {
     pub fn new() -> Self {
         let snapshot = include_bytes!(concat!(env!("OUT_DIR"), "/ARROW_DENO_RUNTIME.snap"));
-        let deno_runtime = Rc::new(RefCell::new(arrow_udf_deno_runtime::create_runtime(
+        let deno_runtime = Rc::new(RefCell::new(arrow_udf_js_deno_runtime::create_runtime(
             snapshot,
         )));
         let big_decimal = {

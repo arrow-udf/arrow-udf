@@ -27,7 +27,7 @@ use tokio::task::{spawn_local, JoinHandle, LocalSet};
 /// ```
 /// use std::rc::Rc;
 /// use tokio::{self, task };
-/// use arrow_udf_deno::tokio_spawn_pinned::LocalPoolHandle;
+/// use arrow_udf_js_deno::tokio_spawn_pinned::LocalPoolHandle;
 ///
 /// #[tokio::main(flavor = "current_thread")]
 /// async fn main() {
@@ -95,7 +95,7 @@ impl LocalPoolHandle {
     /// # Examples
     /// ```
     /// use std::rc::Rc;
-    /// use arrow_udf_deno::tokio_spawn_pinned::LocalPoolHandle;
+    /// use arrow_udf_js_deno::tokio_spawn_pinned::LocalPoolHandle;
     ///
     /// #[tokio::main]
     /// async fn main() {

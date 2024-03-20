@@ -6,7 +6,7 @@ use std::{
 use deno_core::JsRuntimeForSnapshot;
 
 pub fn build_snapshot(runtime_snapshot_path: PathBuf) {
-    let js_runtime = arrow_udf_deno_runtime::create_runtime_snapshot();
+    let js_runtime = arrow_udf_js_deno_runtime::create_runtime_snapshot();
     create_snapshot(js_runtime, runtime_snapshot_path.as_path());
 }
 

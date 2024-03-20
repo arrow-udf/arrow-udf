@@ -20,9 +20,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm install
-        working-directory: ./arrow-udf-deno/examples/sse/
+        working-directory: ./arrow-udf-js-deno/examples/sse/
       - run: npm run build
-        working-directory: ./arrow-udf-deno/examples/sse/
+        working-directory: ./arrow-udf-js-deno/examples/sse/
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -53,9 +53,9 @@ jobs:
         with:
           node-version: 18
       - run: npm install
-        working-directory: ./arrow-udf-deno/examples/sse/
+        working-directory: ./arrow-udf-js-deno/examples/sse/
       - run: npm run build
-        working-directory: ./arrow-udf-deno/examples/sse/
+        working-directory: ./arrow-udf-js-deno/examples/sse/
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal

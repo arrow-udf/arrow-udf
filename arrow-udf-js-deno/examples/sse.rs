@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use arrow_array::{RecordBatch, RecordBatchOptions};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_deno::{CallMode, Runtime};
+use arrow_udf_js_deno::{CallMode, Runtime};
 
 #[tokio::main]
 async fn main() {
@@ -10,7 +10,7 @@ async fn main() {
 
     let original_code = include_str!("./sse/bundled/bundled.js");
 
-    let code = original_code.replace("{{SERVER_URL}}", "http://localhost:4100/graphql/stream");
+    let code = original_code.replace("{{SERVER_URL}}", "http://127.0.0.1:4200/graphql/stream");
 
     runtime
         .add_function(

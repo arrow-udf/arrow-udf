@@ -27,7 +27,7 @@ use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::TimeUnit;
 
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_deno::{CallMode, Runtime};
+use arrow_udf_js_deno::{CallMode, Runtime};
 
 #[cfg(feature = "with-dayjs")]
 use chrono::{NaiveDate, NaiveTime};

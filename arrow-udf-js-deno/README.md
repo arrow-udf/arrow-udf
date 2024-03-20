@@ -1,7 +1,7 @@
 # Deno UDF for Apache Arrow
 
-[![Crate](https://img.shields.io/crates/v/arrow-udf-js.svg)](https://crates.io/crates/arrow-udf-deno)
-[![Docs](https://docs.rs/arrow-udf-js/badge.svg)](https://docs.rs/arrow-udf-deno)
+[![Crate](https://img.shields.io/crates/v/arrow-udf-js.svg)](https://crates.io/crates/arrow-udf-js-deno)
+[![Docs](https://docs.rs/arrow-udf-js/badge.svg)](https://docs.rs/arrow-udf-js-deno)
 
 ## Usage
 
@@ -9,14 +9,14 @@ Add the following lines to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-arrow-udf-deno = "0.0.1"
+arrow-udf-js-deno = "0.0.1"
 ```
 
 Create a `Runtime` and define your JS functions in string form.
 Note that the function must be exported and its name must match the one you pass to `add_function`.
 
 ```rust
-use arrow_udf_deno::{Runtime, CallMode};
+use arrow_udf_js_deno::{Runtime, CallMode};
 
 let mut runtime = Runtime::new();
 runtime
@@ -61,7 +61,7 @@ If you print the input and output batch, it will be like this:
 For set-returning functions (or so-called table functions), define the function as a generator:
 
 ```rust
-use arrow_udf_deno::{Runtime, CallMode};
+use arrow_udf_js_deno::{Runtime, CallMode};
 
 let mut runtime = Runtime::new();
 runtime
@@ -131,7 +131,7 @@ cargo run -p sse-server
 And finally, you can run the example by running:
 
 ```sh
-cargo run --example sse --package arrow-udf-deno
+cargo run --example sse --package arrow-udf-js-deno
 
 ```
 

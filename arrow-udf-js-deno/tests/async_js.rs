@@ -17,7 +17,7 @@ use std::sync::Arc;
 use arrow_array::{types::*, Int32Array, ListArray, RecordBatch};
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_deno::{CallMode, Runtime};
+use arrow_udf_js_deno::{CallMode, Runtime};
 use expect_test::{expect, Expect};
 
 #[tokio::test(flavor = "current_thread")]

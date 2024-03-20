@@ -48,7 +48,7 @@ async fn sse_handle(
 async fn main() {
     let router = axum::Router::new().route("/graphql/stream", axum::routing::post(sse_handle));
 
-    let listener = std::net::TcpListener::bind("127.0.0.1:4100").unwrap();
+    let listener = std::net::TcpListener::bind("127.0.0.1:4200").unwrap();
 
     let socket_addr = listener.local_addr().unwrap();
 

@@ -18,7 +18,7 @@ use arrow_arith::arity::binary;
 use arrow_array::{Int32Array, LargeBinaryArray, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf::function;
-use arrow_udf_deno::Runtime as DenoRuntime;
+use arrow_udf_js_deno::Runtime as DenoRuntime;
 use arrow_udf_js::Runtime as JsRuntime;
 use arrow_udf_python::Runtime as PythonRuntime;
 use arrow_udf_wasm::Runtime as WasmRuntime;
@@ -93,7 +93,7 @@ def gcd(a: int, b: int) -> int:
             .block_on(rt.add_function(
                 "gcd",
                 DataType::Int32,
-                arrow_udf_deno::CallMode::ReturnNullOnNullInput,
+                arrow_udf_js_deno::CallMode::ReturnNullOnNullInput,
                 js_code,
             ))
             .unwrap();
@@ -197,7 +197,7 @@ def range1(n: int):
             .block_on(rt.add_function(
                 "range",
                 DataType::Int32,
-                arrow_udf_deno::CallMode::ReturnNullOnNullInput,
+                arrow_udf_js_deno::CallMode::ReturnNullOnNullInput,
                 js_code,
             ))
             .unwrap();
@@ -281,7 +281,7 @@ def decimal(a):
             .block_on(rt.add_function(
                 "decimal",
                 DataType::LargeBinary,
-                arrow_udf_deno::CallMode::ReturnNullOnNullInput,
+                arrow_udf_js_deno::CallMode::ReturnNullOnNullInput,
                 js_code,
             ))
             .unwrap();

@@ -591,7 +591,7 @@ pub fn gen_append_value(ty: &str) -> TokenStream2 {
     } else if ty == "time" {
         quote! { builder.append_value(arrow_array::temporal_conversions::time_to_time64us(v)) }
     } else if ty == "timestamp" {
-        quote! { builder.append_value(v.timestamp_micros()) }
+        quote! { builder.append_value(v.and_utc().timestamp_micros()) }
     } else if ty == "interval" {
         quote! { builder.append_value({
             let v: arrow_udf::types::Interval = v.into();

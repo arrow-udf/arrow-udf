@@ -87,7 +87,7 @@ impl ::arrow_udf::types::StructType for Data {
                 .field_builder::<TimestampMicrosecondBuilder>(10usize)
                 .unwrap();
             let v = self.k;
-            builder.append_value(v.timestamp_micros())
+            builder.append_value(v.and_utc().timestamp_micros())
         }
         {
             let builder = builder

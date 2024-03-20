@@ -1205,13 +1205,6 @@ impl deno_websocket::WebSocketPermissions for PermissionsContainer {
     }
 }
 
-impl deno_napi::NapiPermissions for PermissionsContainer {
-    #[inline(always)]
-    fn check(&mut self, path: Option<&Path>) -> Result<(), AnyError> {
-        self.0.lock().ffi.check(path.unwrap(), None)
-    }
-}
-
 fn unit_permission_from_flag_bools(
     allow_flag: bool,
     deny_flag: bool,

@@ -190,7 +190,6 @@ pub fn create_runtime_snapshot() -> JsRuntimeForSnapshot {
         ops::permissions::deno_permissions::init_ops_and_esm(),
         ops::signal::deno_signal::init_ops_and_esm(),
         ops::tty::deno_tty::init_ops_and_esm(),
-        deno_napi::deno_napi::init_ops_and_esm::<PermissionsContainer>(),
         #[cfg(feature = "with-fetch")]
         deno_http::deno_http::init_ops_and_esm::<DefaultHttpPropertyExtractor>(),
         #[cfg(feature = "with-fetch")]
@@ -272,7 +271,6 @@ pub fn create_runtime(snapshot: &'static [u8]) -> deno_runtime::DenoRuntime {
         ops::permissions::deno_permissions::init_ops(),
         ops::signal::deno_signal::init_ops(),
         ops::tty::deno_tty::init_ops(),
-        deno_napi::deno_napi::init_ops::<PermissionsContainer>(),
         #[cfg(feature = "with-fetch")]
         deno_http::deno_http::init_ops::<DefaultHttpPropertyExtractor>(),
         #[cfg(feature = "with-fetch")]

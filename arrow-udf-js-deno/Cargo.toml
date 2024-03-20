@@ -27,7 +27,7 @@ futures-util = "0.3.24"
 libc = "0.2"
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt"] }
 v8 = "0.85.0"
 
 [build-dependencies]
@@ -41,4 +41,4 @@ chrono = { version = "0.4", default-features = false }
 criterion = { version = "0.5", features = ["async_tokio", "async_futures"] }
 expect-test = "1"
 httpmock = "0.6"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt"] }

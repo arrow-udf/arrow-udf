@@ -1,0 +1,26 @@
+[package]
+name = "arrow-udf-bench"
+version = "0.1.0"
+edition = "2021"
+description = "Benchmark Arrow UDFs for different languages"
+repository = "https://github.com/risingwavelabs/arrow-udf"
+keywords = ["arrow", "udf"]
+license = "Apache-2.0"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies]
+arrow-arith = ">=50"
+arrow-array = ">=50"
+arrow-cast = { version = ">=50", features = ["prettyprint"] }
+arrow-schema = ">=50"
+arrow-udf = { path = "../arrow-udf" }
+arrow-udf-js = { path = "../arrow-udf-js" }
+arrow-udf-js-deno = { path = "../arrow-udf-js-deno" }
+arrow-udf-python = { path = "../arrow-udf-python" }
+arrow-udf-wasm = { path = "../arrow-udf-wasm" }
+criterion = { version = "0.5", features = ["async_tokio", "async_futures"] }
+tokio = { version = "1", features = ["rt"] }
+
+[[bench]]
+name = "bench"
+harness = false

@@ -2,12 +2,13 @@
 resolver = "2"
 members = [
     "arrow-udf",
+    "arrow-udf-bench",
+    "arrow-udf-example",
+    "arrow-udf-js",
     "arrow-udf-js-deno",
-    "arrow-udf-js-deno/examples/sse-server",
     "arrow-udf-js-deno-runtime",
+    "arrow-udf-js-deno/examples/sse-server",
     "arrow-udf-macros",
     "arrow-udf-python",
-    "arrow-udf-example",
     "arrow-udf-wasm",
-    "arrow-udf-js",
 ]

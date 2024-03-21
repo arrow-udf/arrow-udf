@@ -25,15 +25,4 @@ wasi-common = "19"
 wasmtime = "19"
 
 [dev-dependencies]
-arrow-arith = ">=50"
 arrow-cast = { version = ">=50", features = ["prettyprint"] }
-arrow-udf = { path = "../arrow-udf" }
-arrow-udf-js-deno = { path = "../arrow-udf-js-deno" }
-arrow-udf-js = { path = "../arrow-udf-js" }
-arrow-udf-python = { path = "../arrow-udf-python" }
-criterion = { version = "0.5", features = ["async_tokio", "async_futures"] }
-tokio = { version = "1", features = ["full"] }
-
-[[bench]]
-name = "wasm"
-harness = false

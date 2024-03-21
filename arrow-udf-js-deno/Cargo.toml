@@ -16,10 +16,10 @@ with-dayjs = ["arrow-udf-js-deno-runtime/with-dayjs"]
 [dependencies]
 anyhow = "1"
 arrow-udf-js-deno-runtime = { version = "0.0.1", path = "../arrow-udf-js-deno-runtime" }
-arrow-array = "50"
-arrow-buffer = "50"
-arrow-data = "50"
-arrow-schema = "50"
+arrow-array = ">=50"
+arrow-buffer = ">=50"
+arrow-data = ">=50"
+arrow-schema = ">=50"
 async-trait = "0.1"
 deno_core = "0.270.0"
 futures = "0.3.24"
@@ -36,7 +36,7 @@ deno_core = "0.270.0"
 
 
 [dev-dependencies]
-arrow-cast = { version = "50", features = ["prettyprint"] }
+arrow-cast = { version = ">=50", features = ["prettyprint"] }
 chrono = { version = "0.4", default-features = false }
 criterion = { version = "0.5", features = ["async_tokio", "async_futures"] }
 expect-test = "1"

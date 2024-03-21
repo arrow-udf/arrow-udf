@@ -12,7 +12,7 @@ license = "Apache-2.0"
 proc-macro = true
 
 [dependencies]
-base64 = "0.21"
+base64 = "0.22"
 itertools = "0.12"
 proc-macro2 = "1"
 quote = "1"

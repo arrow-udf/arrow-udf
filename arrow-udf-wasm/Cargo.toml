@@ -14,19 +14,19 @@ build = ["tempfile"]
 
 [dependencies]
 anyhow = "1"
-arrow-array = "50"
-arrow-ipc = "50"
-arrow-schema = "50"
-base64 = "0.21"
+arrow-array = ">=50"
+arrow-ipc = ">=50"
+arrow-schema = ">=50"
+base64 = "0.22"
 genawaiter = "0.99"
 lazy_static = "1"
 tempfile = { version = "3", optional = true }
-wasi-common = "18"
-wasmtime = "18"
+wasi-common = "19"
+wasmtime = "19"
 
 [dev-dependencies]
-arrow-arith = "50"
-arrow-cast = { version = "50", features = ["prettyprint"] }
+arrow-arith = ">=50"
+arrow-cast = { version = ">=50", features = ["prettyprint"] }
 arrow-udf = { path = "../arrow-udf" }
 arrow-udf-js-deno = { path = "../arrow-udf-js-deno" }
 arrow-udf-js = { path = "../arrow-udf-js" }

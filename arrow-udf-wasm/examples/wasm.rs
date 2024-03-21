@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use arrow_array::{Int32Array, RecordBatch, RecordBatchOptions, StringArray};
+use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Fields, Schema};
 use arrow_udf_wasm::Runtime;
 
@@ -23,18 +23,6 @@ fn main() {
     let runtime = Runtime::new(&std::fs::read(filename).unwrap()).unwrap();
 
     println!("{runtime:#?}");
-
-    println!("\ncall oom");
-
-    let input = RecordBatch::try_new_with_options(
-        Arc::new(Schema::empty()),
-        vec![],
-        &RecordBatchOptions::default().with_row_count(Some(1)),
-    )
-    .unwrap();
-
-    let output = runtime.call("oom()->void", &input);
-    println!("{}", output.unwrap_err());
 
     println!("\ncall gcd");
 
@@ -51,34 +39,6 @@ fn main() {
     .unwrap();
 
     let output = runtime.call("gcd(int4,int4)->int4", &input).unwrap();
-    print(&input, &output);
-
-    println!("\ncall div");
-    let output = runtime.call("div(int4,int4)->int4", &input).unwrap();
-    print(&input, &output);
-
-    println!("\ncall length");
-
-    let input = RecordBatch::try_new(
-        Arc::new(Schema::new(vec![Field::new("s", DataType::Utf8, true)])),
-        vec![Arc::new(StringArray::from(vec!["rising", "wave"]))],
-    )
-    .unwrap();
-
-    let output = runtime.call("length(varchar)->int4", &input).unwrap();
-    print(&input, &output);
-
-    println!("\ncall key_value");
-
-    let input = RecordBatch::try_new(
-        Arc::new(Schema::new(vec![Field::new("s", DataType::Utf8, true)])),
-        vec![Arc::new(StringArray::from(vec!["rising=wave", "???"]))],
-    )
-    .unwrap();
-
-    let output = runtime
-        .call("key_value(varchar)->struct KeyValue", &input)
-        .unwrap();
     print(&input, &output);
 
     println!("\ncall range");

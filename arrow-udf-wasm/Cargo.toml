@@ -26,3 +26,4 @@ wasmtime = "19"
 
 [dev-dependencies]
 arrow-cast = { version = ">=50", features = ["prettyprint"] }
+expect-test = "1"

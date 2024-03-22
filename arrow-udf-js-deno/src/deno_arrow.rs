@@ -288,8 +288,11 @@ pub fn build_array(
                     builder.append_null();
                 } else if val.is_big_int() {
                     let val = val
-                        .integer_value(scope)
-                        .context("Couldn't convert to i64")?;
+                        .to_big_int(scope)
+                        .context("Couldn't convert to BigInt")?;
+
+                    let (val, _) = val.i64_value();
+
                     builder.append_value(val);
                 } else if val.is_number_object() || val.is_number() {
                     let number = v8::Local::<v8::Number>::try_from(val)?;

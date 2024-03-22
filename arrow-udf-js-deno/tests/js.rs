@@ -18,8 +18,8 @@ use std::sync::Arc;
 use arrow_array::{temporal_conversions::time_to_time32ms, Date32Array, Time32MillisecondArray};
 
 use arrow_array::{
-    types::*, ArrayRef, BinaryArray, Int32Array, Int64Array, LargeBinaryArray, LargeStringArray, ListArray,
-    RecordBatch, StringArray, StructArray,
+    types::*, ArrayRef, BinaryArray, Int32Array, Int64Array, LargeBinaryArray, LargeStringArray,
+    ListArray, RecordBatch, StringArray, StructArray,
 };
 use arrow_cast::pretty::pretty_format_batches;
 
@@ -317,7 +317,6 @@ async fn test_decimal_add() {
     );
 }
 
-
 #[tokio::test(flavor = "current_thread")]
 async fn test_big_int() {
     let runtime = Runtime::new();
@@ -336,12 +335,9 @@ async fn test_big_int() {
         .await
         .unwrap();
 
-    let schema = Schema::new(vec![
-        Field::new("a", DataType::Int64, true),
-    ]);
+    let schema = Schema::new(vec![Field::new("a", DataType::Int64, true)]);
     let arg0 = Int64Array::from(vec![9007199254740991_i64]);
-    let input =
-        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("bigint_type", input).await.unwrap();
     check(
@@ -392,8 +388,6 @@ async fn test_decimal_gc() {
         +------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+"#]],
     );
 }
-
-
 
 #[tokio::test(flavor = "current_thread")]
 async fn test_typed_array() {

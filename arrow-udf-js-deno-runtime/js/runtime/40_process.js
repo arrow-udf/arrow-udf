@@ -1,14 +1,14 @@
 // Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 
 import { core, internals, primordials } from "ext:core/mod.js";
-// const {
+// import {
 //   op_run,
 //   op_run_status,
 //   op_spawn_child,
 //   op_spawn_kill,
 //   op_spawn_sync,
 //   op_spawn_wait,
-// } = core.ensureFastOps();
+// } from "ext:core/ops";
 const {
   ArrayPrototypeMap,
   ArrayPrototypeSlice,

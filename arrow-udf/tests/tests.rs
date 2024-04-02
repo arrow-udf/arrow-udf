@@ -241,6 +241,14 @@ fn key_value(kv: &str) -> Option<KeyValue<'_>> {
     Some(KeyValue { key, value })
 }
 
+#[function("key_values(varchar) -> setof struct KeyValue")]
+fn key_values(kv: &str) -> impl Iterator<Item = KeyValue<'_>> {
+    kv.split(',').filter_map(|kv| {
+        kv.split_once('=')
+            .map(|(key, value)| KeyValue { key, value })
+    })
+}
+
 #[derive(StructType)]
 struct StructOfAll {
     // FIXME: panic on 'StructBuilder and field_builders are of unequal lengths.'
@@ -395,6 +403,28 @@ fn test_key_value() {
         | {key: a, value: b} |
         |                    |
         +--------------------+"#]],
+    );
+}
+
+#[test]
+fn test_key_values() {
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8, true)]);
+    let arg0 = StringArray::from(vec!["a=b,c=d"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = key_values_varchar_struct_KeyValue_eval(&input)
+        .unwrap()
+        .next()
+        .unwrap();
+    check(
+        &[output],
+        expect![[r#"
+            +-----+--------------------+
+            | row | key_values         |
+            +-----+--------------------+
+            | 0   | {key: a, value: b} |
+            | 0   | {key: c, value: d} |
+            +-----+--------------------+"#]],
     );
 }
 

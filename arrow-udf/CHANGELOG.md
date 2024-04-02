@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2024-04-02
+
 ### Changed
 
 - Update `arrow` version to >=50.
+
+### Fixed
+
+- Fix compile error when returning struct type in table functions.
 
 ## [0.2.1] - 2024-02-29
 

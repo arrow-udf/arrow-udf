@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1711985543378,
+  "lastUpdate": 1712062430771,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -5279,6 +5279,114 @@ window.BENCHMARK_DATA = {
             "name": "decimal/deno",
             "value": 802098,
             "range": "± 39806",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "distinct": true,
+          "id": "d134e73767956e015a7206e0902c8e5db742c69b",
+          "message": "fix compile error when returning struct type in table functions. release v0.2.2\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-04-02T20:38:57+08:00",
+          "tree_id": "2ea0f3250b50fdf7e0cb4e1857a6db16661a2aba",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/d134e73767956e015a7206e0902c8e5db742c69b"
+        },
+        "date": 1712062430148,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3895,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4013,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24246,
+            "range": "± 1382",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 158320,
+            "range": "± 9908",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 174776,
+            "range": "± 1103",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 265567,
+            "range": "± 21936",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 89843,
+            "range": "± 981",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 417011,
+            "range": "± 19199",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5639022,
+            "range": "± 44971",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9224607,
+            "range": "± 164102",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1087028,
+            "range": "± 29149",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 59783,
+            "range": "± 6452",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 556188,
+            "range": "± 44928",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 784589,
+            "range": "± 5589",
             "unit": "ns/iter"
           }
         ]

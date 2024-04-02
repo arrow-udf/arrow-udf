@@ -16,6 +16,7 @@ use std::{
     cell::RefCell,
     pin::Pin,
     rc::Rc,
+    sync::Arc,
     task::{Context, Poll},
 };
 

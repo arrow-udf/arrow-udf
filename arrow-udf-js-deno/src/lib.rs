@@ -13,12 +13,14 @@
 // limitations under the License.
 
 use std::fmt::Debug;
-use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc, task::Poll};
+use std::rc::Rc;
+use std::{cell::RefCell, collections::HashMap, sync::Arc, task::Poll};
 
 use anyhow::{Context, Result};
 use arrow_array::{builder::Int32Builder, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use arrow_udf_js_deno_runtime::deno_runtime;
+use deno_core::parking_lot::Mutex;
 use futures::{Future, Stream, StreamExt, TryStreamExt};
 
 use crate::deno_arrow::get_jsvalue;
@@ -31,18 +33,18 @@ mod values_future;
 static SNAPSHOT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/ARROW_DENO_RUNTIME.snap"));
 
 thread_local! {
-    static THREAD_ISOLATE: Rc<RefCell<InternalRuntime>>  = Rc::new(RefCell::new( InternalRuntime::new() ));
+    static THREAD_ISOLATE: Arc<Mutex<InternalRuntime>>  = Arc::new(Mutex::new( InternalRuntime::new() ));
     static THREAD_RUNTIME: Arc<Runtime>  = Arc::new( Runtime::new_internal() );
 }
 
 pub fn on_thread_stop() {
     THREAD_ISOLATE.with(|isolate| {
         //We need to drop the runtime to avoid a deadlock
-        isolate
-            .borrow_mut()
-            .deno_runtime
-            .borrow_mut()
-            .drop_runtime()
+        let isolate = isolate.lock();
+        {
+            let mut deno_runtime = isolate.deno_runtime.borrow_mut();
+            deno_runtime.drop_runtime()
+        }
     });
 }
 
@@ -151,7 +153,7 @@ pub(crate) struct RecordBatchIterInternal {
     // mutable states
     generator: GeneratorState,
     /// Current row index.
-    row: Rc<RefCell<usize>>,
+    row: Arc<RefCell<usize>>,
     state: RecordBatchIterState,
 }
 
@@ -192,19 +194,18 @@ impl Runtime {
         }
     }
 
-    #[allow(clippy::await_holding_refcell_ref)]
     pub async fn call(&self, name: &str, input: RecordBatch) -> Result<RecordBatch> {
         if let Ok(current) = tokio::runtime::Handle::try_current() {
             if current.runtime_flavor() == tokio::runtime::RuntimeFlavor::CurrentThread {
                 let runtime = THREAD_ISOLATE.with(|isolate| isolate.clone());
-                let runtime = runtime.borrow();
+                let runtime = runtime.lock();
                 runtime.call(name, &input).await
             } else {
                 let name = name.to_string();
                 self.local_pool
                     .spawn_pinned(|| async move {
                         let runtime = THREAD_ISOLATE.with(|isolate| isolate.clone());
-                        let runtime = runtime.borrow();
+                        let runtime = runtime.lock();
                         runtime.call(&name, &input).await
                     })
                     .await?
@@ -225,7 +226,7 @@ impl Runtime {
         if let Ok(current) = tokio::runtime::Handle::try_current() {
             if current.runtime_flavor() == tokio::runtime::RuntimeFlavor::CurrentThread {
                 let runtime = THREAD_ISOLATE.with(|isolate| isolate.clone());
-                let mut runtime = runtime.borrow_mut();
+                let mut runtime = runtime.lock();
                 runtime.add_function(name, return_type, mode, code)
             } else {
                 let name = name.to_string();
@@ -233,7 +234,7 @@ impl Runtime {
                 self.local_pool
                     .spawn_pinned(|| async move {
                         let runtime = THREAD_ISOLATE.with(|isolate| isolate.clone());
-                        let mut runtime = runtime.borrow_mut();
+                        let mut runtime = runtime.lock();
                         runtime.add_function(&name, return_type, mode, &code)
                     })
                     .await?
@@ -253,14 +254,14 @@ impl Runtime {
             let inner = if current.runtime_flavor() == tokio::runtime::RuntimeFlavor::CurrentThread
             {
                 let runtime = THREAD_ISOLATE.with(|isolate| isolate.clone());
-                let runtime = runtime.borrow();
+                let runtime = runtime.lock();
                 runtime.call_table_function(name, input, chunk_size)
             } else {
                 let name = name.to_string();
                 self.local_pool
                     .spawn_pinned(move || async move {
                         let runtime = THREAD_ISOLATE.with(|isolate| isolate.clone());
-                        let runtime = runtime.borrow();
+                        let runtime = runtime.lock();
                         runtime.call_table_function(&name, input, chunk_size)
                     })
                     .await?
@@ -482,7 +483,7 @@ impl InternalRuntime {
             ])),
             big_decimal: self.big_decimal.clone(),
             chunk_size,
-            row: Rc::new(RefCell::new(0)),
+            row: Arc::new(RefCell::new(0)),
             generator: Rc::new(RefCell::new(None)),
             promise: Rc::new(RefCell::new(None)),
             state: RecordBatchIterState::Processing,
@@ -575,7 +576,7 @@ impl Stream for RecordBatchIterInternal {
         let inner = self.get_mut();
 
         let runtime = THREAD_ISOLATE.with(|isolate| isolate.clone());
-        let runtime = runtime.borrow();
+        let runtime = runtime.lock();
 
         let mut deno_runtime = runtime.deno_runtime.borrow_mut();
         let js_runtime = deno_runtime.get_js_runtime();

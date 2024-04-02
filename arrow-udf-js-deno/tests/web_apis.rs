@@ -140,6 +140,56 @@ async fn test_crypto() {
     assert_eq!(result.len(), 32);
 }
 
+#[tokio::test(flavor = "current_thread")]
+#[cfg(feature = "with-fetch")]
+async fn test_fetch_error() {
+    let server = MockServer::start();
+
+    // Create a mock on the server.
+    let mock = server.mock(|when, then| {
+        when.method(GET).path("/api");
+        then.header("content-type", "application/json")
+            .body(r#"{ "error":  "Invalid credentials"}"#)
+            .status(401);
+    });
+    let url = server.url("/api");
+
+    let runtime = Runtime::new();
+
+    runtime
+        .add_function(
+            "from_fetch",
+            DataType::Struct(vec![Field::new("service", DataType::Utf8, true)].into()),
+            CallMode::ReturnNullOnNullInput,
+            &format!(
+                r#"
+            export async function from_fetch() {{
+                const response = await fetch("{}");
+                if (!response.ok) {{
+                    throw new Error(response.statusText);
+                }}
+                return await response.json();
+            }}
+            "#,
+                url
+            ),
+        )
+        .await
+        .unwrap();
+
+    let input = RecordBatch::try_new_with_options(
+        Arc::new(Schema::empty()),
+        vec![],
+        &RecordBatchOptions::default().with_row_count(Some(1)),
+    )
+    .unwrap();
+
+    let result = runtime.call("from_fetch", input).await;
+    let err = result.unwrap_err();
+    assert!(err.to_string().contains("Unauthorized"));
+    mock.assert();
+}
+
 /// Compare the actual output with the expected output.
 #[cfg(feature = "with-fetch")]
 #[track_caller]

@@ -213,16 +213,12 @@ pub fn create_runtime_snapshot() -> JsRuntimeForSnapshot {
         }
     }
 
-    let mut js_runtime = JsRuntimeForSnapshot::new(RuntimeOptions {
+    JsRuntimeForSnapshot::new(RuntimeOptions {
         module_loader: Some(Rc::new(NoopModuleLoader)),
         extensions,
         inspector: false,
         ..Default::default()
-    });
-
-    bootstrap(&mut js_runtime, &options);
-
-    js_runtime
+    })
 }
 
 pub fn create_runtime(snapshot: &'static [u8]) -> deno_runtime::DenoRuntime {
@@ -280,13 +276,15 @@ pub fn create_runtime(snapshot: &'static [u8]) -> deno_runtime::DenoRuntime {
         runtime::init_ops(),
     ];
 
-    let runtime = JsRuntime::new(RuntimeOptions {
+    let mut runtime = JsRuntime::new(RuntimeOptions {
         module_loader: Some(Rc::new(NoopModuleLoader)),
         startup_snapshot: Some(snapshot),
         extensions,
         inspector: false,
         ..Default::default()
     });
+
+    bootstrap(&mut runtime, &options);
 
     deno_runtime::DenoRuntime::new(runtime)
 }

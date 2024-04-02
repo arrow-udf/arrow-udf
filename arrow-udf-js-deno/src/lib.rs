@@ -372,18 +372,18 @@ impl InternalRuntime {
         anyhow::bail!("Function {} could not be added", name);
     }
 
-    #[allow(clippy::await_holding_refcell_ref)]
     pub async fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let function = self.functions.get(name).context("function not found")?;
-        let mut js_runtime = self.deno_runtime.borrow_mut();
-        js_runtime.v8_isolate().perform_microtask_checkpoint();
+
         let mut results = Vec::with_capacity(input.num_rows());
 
         let mut promises = Vec::with_capacity(input.num_rows());
 
-        let mut cancel_receiver: Option<tokio::sync::mpsc::Receiver<String>> = None;
+        let cancel_receiver: Option<Rc<RefCell<tokio::sync::mpsc::Receiver<String>>>> = None;
 
         let abort_controller = {
+            let mut js_runtime = self.deno_runtime.borrow_mut();
+            js_runtime.v8_isolate().perform_microtask_checkpoint();
             let scope = &mut js_runtime.handle_scope();
             let abort_controller = v8::V8::create_abort_controller_context(scope)?;
 
@@ -448,9 +448,9 @@ impl InternalRuntime {
                 values.push(promise);
             }
             let values_future = values_future::ValuesFuture::new(
-                js_runtime.get_js_runtime(),
+                self.deno_runtime.clone(),
                 Some(abort_controller),
-                &mut cancel_receiver,
+                cancel_receiver.clone(),
                 values,
             );
 
@@ -460,6 +460,7 @@ impl InternalRuntime {
             }
         }
 
+        let mut js_runtime = self.deno_runtime.borrow_mut();
         let scope = &mut js_runtime.handle_scope();
         let try_catch = &mut ::v8::TryCatch::new(scope);
 

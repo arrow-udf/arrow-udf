@@ -13,26 +13,28 @@
 // limitations under the License.
 
 use std::{
+    cell::RefCell,
     pin::Pin,
+    rc::Rc,
     task::{Context, Poll},
 };
 
-use deno_core::JsRuntime;
+use arrow_udf_js_deno_runtime::deno_runtime::DenoRuntime;
 use futures::Future;
 use tokio::sync::mpsc::Receiver;
 
-pub(super) struct ValuesFuture<'s> {
-    runtime: &'s mut JsRuntime,
+pub(super) struct ValuesFuture {
+    runtime: Rc<RefCell<DenoRuntime>>,
     promises: Vec<v8::Global<v8::Promise>>,
     abort_controller: Option<v8::Global<v8::Value>>,
-    cancel_receiver: &'s mut Option<Receiver<String>>,
+    cancel_receiver: Option<Rc<RefCell<Receiver<String>>>>,
 }
 
-impl<'s> ValuesFuture<'s> {
+impl ValuesFuture {
     pub(super) fn new(
-        runtime: &'s mut JsRuntime,
+        runtime: Rc<RefCell<DenoRuntime>>,
         abort_controller: Option<v8::Global<v8::Value>>,
-        cancel_receiver: &'s mut Option<Receiver<String>>,
+        cancel_receiver: Option<Rc<RefCell<Receiver<String>>>>,
         promises: Vec<v8::Global<v8::Promise>>,
     ) -> Self {
         Self {
@@ -44,7 +46,7 @@ impl<'s> ValuesFuture<'s> {
     }
 }
 
-impl<'s> Future for ValuesFuture<'s> {
+impl Future for ValuesFuture {
     type Output = anyhow::Result<Vec<v8::Global<v8::Value>>>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -52,11 +54,15 @@ impl<'s> Future for ValuesFuture<'s> {
 
         let mut cancel_executed = false;
         if let Some(abort_controller) = &s.abort_controller {
-            if let Some(cancel_receiver) = s.cancel_receiver.as_mut() {
+            if let Some(cancel_receiver) = s.cancel_receiver.clone() {
+                let mut cancel_receiver = cancel_receiver.borrow_mut();
                 if let Poll::Ready(Some(message)) = cancel_receiver.poll_recv(cx) {
                     // Execute the cancel method and throw an exeception
 
-                    let scope = &mut s.runtime.handle_scope();
+                    let mut runtime = s.runtime.borrow_mut();
+                    let js_runtime = runtime.get_js_runtime();
+
+                    let scope = &mut js_runtime.handle_scope();
                     let local = v8::Local::new(scope, abort_controller.clone());
 
                     if let Some(abort_function) = v8::Local::<v8::Object>::try_from(local)
@@ -75,8 +81,11 @@ impl<'s> Future for ValuesFuture<'s> {
             }
         }
 
-        let state = s.runtime.poll_event_loop(cx, Default::default());
-        let scope = &mut s.runtime.handle_scope();
+        let mut runtime = s.runtime.borrow_mut();
+        let js_runtime = runtime.get_js_runtime();
+
+        let state = js_runtime.poll_event_loop(cx, Default::default());
+        let scope = &mut js_runtime.handle_scope();
 
         if cancel_executed {
             s.cancel_receiver.take();

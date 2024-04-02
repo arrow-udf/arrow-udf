@@ -66,6 +66,8 @@ pub struct InternalRuntime {
     big_decimal: ::v8::Global<::v8::Function>,
 }
 
+unsafe impl Send for InternalRuntime {}
+
 #[derive(Clone)]
 struct Function {
     mode: CallMode,

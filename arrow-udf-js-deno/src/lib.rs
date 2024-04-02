@@ -378,14 +378,10 @@ impl InternalRuntime {
         let mut results = Vec::with_capacity(input.num_rows());
 
         let mut promises = Vec::with_capacity(input.num_rows());
-
-        let cancel_receiver: Option<Rc<RefCell<tokio::sync::mpsc::Receiver<String>>>> = None;
-
-        let abort_controller = {
+        {
             let mut js_runtime = self.deno_runtime.borrow_mut();
             js_runtime.v8_isolate().perform_microtask_checkpoint();
             let scope = &mut js_runtime.handle_scope();
-            let abort_controller = v8::V8::create_abort_controller_context(scope)?;
 
             let try_catch = &mut ::v8::TryCatch::new(scope);
 
@@ -437,8 +433,7 @@ impl InternalRuntime {
                     }
                 }
             }
-            abort_controller
-        };
+        }
 
         if !promises.is_empty() {
             let mut idx = Vec::with_capacity(promises.len());
@@ -447,12 +442,7 @@ impl InternalRuntime {
                 idx.push(i);
                 values.push(promise);
             }
-            let values_future = values_future::ValuesFuture::new(
-                self.deno_runtime.clone(),
-                Some(abort_controller),
-                cancel_receiver.clone(),
-                values,
-            );
+            let values_future = values_future::ValuesFuture::new(self.deno_runtime.clone(), values);
 
             let result_values = values_future.await?;
             for (i, result) in idx.into_iter().zip(result_values) {

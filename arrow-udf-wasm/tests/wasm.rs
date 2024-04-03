@@ -37,6 +37,23 @@ fn test_oom() {
     .unwrap();
 
     let output = RUNTIME.call("oom()->void", &input);
+    // panic message should be contained in the error message
+    assert!(output
+        .unwrap_err()
+        .to_string()
+        .contains("capacity overflow"));
+}
+
+#[test]
+#[ignore = "FIXME: sleep should not be allowed"]
+fn test_sleep() {
+    let input = RecordBatch::try_new(
+        Arc::new(Schema::new(vec![Field::new("x", DataType::Int32, true)])),
+        vec![Arc::new(Int32Array::from(vec![1]))],
+    )
+    .unwrap();
+
+    let output = RUNTIME.call("sleep(int4)->int4", &input);
     output.unwrap_err();
 }
 

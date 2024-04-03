@@ -16,6 +16,7 @@
 
 use anyhow::{anyhow, bail, ensure, Context};
 use arrow_array::RecordBatch;
+use ram_file::{RamFile, RamFileRef};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::sync::Mutex;
@@ -24,6 +25,7 @@ use wasmtime::*;
 
 #[cfg(feature = "build")]
 pub mod build;
+mod ram_file;
 
 /// The WASM UDF runtime.
 ///
@@ -46,6 +48,8 @@ pub struct Runtime {
 pub struct Config {
     /// Memory size limit in bytes.
     pub memory_size_limit: Option<usize>,
+    /// File size limit in bytes.
+    pub file_size_limit: Option<usize>,
 }
 
 struct Instance {
@@ -61,6 +65,8 @@ struct Instance {
     functions: HashMap<String, TypedFunc<(u32, u32, u32), i32>>,
     memory: Memory,
     store: Store<(WasiCtx, StoreLimits)>,
+    stdout: RamFileRef,
+    stderr: RamFileRef,
 }
 
 impl Debug for Runtime {
@@ -244,7 +250,13 @@ impl Instance {
         // Create a WASI context and put it in a Store; all instances in the store
         // share this context. `WasiCtxBuilder` provides a number of ways to
         // configure what the target program will have access to.
-        let wasi = WasiCtxBuilder::new().inherit_stdio().build();
+        let file_size_limit = rt.config.file_size_limit.unwrap_or(1024);
+        let stdout = RamFileRef::new(RamFile::with_size_limit(file_size_limit));
+        let stderr = RamFileRef::new(RamFile::with_size_limit(file_size_limit));
+        let wasi = WasiCtxBuilder::new()
+            .stdout(Box::new(stdout.clone()))
+            .stderr(Box::new(stderr.clone()))
+            .build();
         let limits = {
             let mut builder = StoreLimitsBuilder::new();
             if let Some(limit) = rt.config.memory_size_limit {
@@ -283,6 +295,8 @@ impl Instance {
             memory,
             store,
             functions,
+            stdout,
+            stderr,
         })
     }
 
@@ -314,7 +328,8 @@ impl Instance {
             .write(&mut self.store, in_ptr as usize, &input)?;
 
         // call the function
-        let errno = func.call(&mut self.store, (in_ptr, input.len() as u32, alloc_ptr))?;
+        let result = func.call(&mut self.store, (in_ptr, input.len() as u32, alloc_ptr));
+        let errno = self.append_stdio(result)?;
 
         // get return values
         let out_ptr = self.read_u32(alloc_ptr)?;
@@ -371,7 +386,8 @@ impl Instance {
             .write(&mut self.store, in_ptr as usize, &input)?;
 
         // call the function
-        let errno = func.call(&mut self.store, (in_ptr, input.len() as u32, alloc_ptr))?;
+        let result = func.call(&mut self.store, (in_ptr, input.len() as u32, alloc_ptr));
+        let errno = self.append_stdio(result)?;
 
         // get return values
         let out_ptr = self.read_u32(alloc_ptr)?;
@@ -441,7 +457,8 @@ impl Instance {
             type Item = Result<RecordBatch>;
 
             fn next(&mut self) -> Option<Self::Item> {
-                self.next().transpose()
+                let result = self.next();
+                self.instance.append_stdio(result).transpose()
             }
         }
 
@@ -473,6 +490,20 @@ impl Instance {
                 .try_into()
                 .unwrap(),
         ))
+    }
+
+    /// Take stdout and stderr, append to the error context.
+    fn append_stdio<T>(&self, result: Result<T>) -> Result<T> {
+        let stdout = self.stdout.take();
+        let stderr = self.stderr.take();
+        match result {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.context(format!(
+                "--- stdout\n{}\n--- stderr\n{}",
+                String::from_utf8_lossy(&stdout),
+                String::from_utf8_lossy(&stderr),
+            ))),
+        }
     }
 }
 

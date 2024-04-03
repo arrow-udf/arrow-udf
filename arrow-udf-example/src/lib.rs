@@ -45,7 +45,6 @@ fn create_file() {
     std::fs::File::create("test").unwrap();
 }
 
-// sleep is allowed for now
 #[function("sleep(int) -> int")]
 fn sleep(second: i32) -> i32 {
     std::thread::sleep(std::time::Duration::from_secs(second as u64));

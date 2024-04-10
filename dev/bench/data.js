@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1712580079539,
+  "lastUpdate": 1712767030334,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -5495,6 +5495,114 @@ window.BENCHMARK_DATA = {
             "name": "decimal/deno",
             "value": 784464,
             "range": "± 26661",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "giovanny.gutierrez@commure.com",
+            "name": "Giovanny Gutiérrez",
+            "username": "bakjos"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8b7c2f05b9f1dad03e6ce0e9f71bb05388f02f3e",
+          "message": "feat: Bootstrap at runtime instead of during snapshot (#12)",
+          "timestamp": "2024-04-11T00:22:17+08:00",
+          "tree_id": "3e8ccfb0c366788e75dda84e7cd7ee4422cc0dd7",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/8b7c2f05b9f1dad03e6ce0e9f71bb05388f02f3e"
+        },
+        "date": 1712767029207,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3898,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4017,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24540,
+            "range": "± 1486",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 165174,
+            "range": "± 4659",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 175170,
+            "range": "± 694",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 271957,
+            "range": "± 21489",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 87893,
+            "range": "± 801",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 418206,
+            "range": "± 17977",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5748889,
+            "range": "± 50881",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9329833,
+            "range": "± 154828",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1061915,
+            "range": "± 35398",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 59921,
+            "range": "± 1604",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 563294,
+            "range": "± 2789",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 775439,
+            "range": "± 5385",
             "unit": "ns/iter"
           }
         ]

@@ -14,7 +14,7 @@ with-dayjs = []
 
 [dependencies]
 anyhow = "1"
-deno_ast = { version = "0.32", features = ["cjs", "transpiling"] }
+deno_ast = { version = "0.34", features = ["cjs", "transpiling"] }
 deno_console = "0.144.0"
 deno_core = "0.272.0"
 deno_crypto = "0.158.0"

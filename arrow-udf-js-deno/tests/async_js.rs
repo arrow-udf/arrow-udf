@@ -20,8 +20,7 @@ use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js_deno::{CallMode, Runtime};
 use expect_test::{expect, Expect};
 
-#[tokio::test(flavor = "current_thread")]
-async fn test_range_async() {
+async fn test_range_async_internal() {
     let runtime = Runtime::new();
 
     runtime
@@ -75,6 +74,11 @@ async fn test_range_async() {
         | 2   | 2     |
         +-----+-------+"#]],
     );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn test_range_async() {
+    test_range_async_internal().await;
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -233,6 +237,42 @@ async fn test_range_async_iterator_async() {
         | 2   | 25    |
         +-----+-------+"#]],
     );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_parallel_execution() {
+    let mut handles = Vec::new();
+    for i in 0..10 {
+        handles.push(tokio::spawn(async move {
+            println!(
+                "Running test_range_async_internal {} for thread: {:?}",
+                i,
+                std::thread::current().id()
+            );
+            test_range_async_internal().await;
+        }));
+    }
+    _ = futures::future::join_all(handles).await;
+}
+
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_parallel_execution_with_initialization() {
+    // Run the initialization in the main thread
+    _ = Runtime::new();
+
+    let mut handles = Vec::new();
+    for i in 0..10 {
+        handles.push(tokio::spawn(async move {
+            println!(
+                "Running test_range_async_internal {} for thread: {:?}",
+                i,
+                std::thread::current().id()
+            );
+            test_range_async_internal().await;
+        }));
+    }
+    _ = futures::future::join_all(handles).await;
 }
 
 /// Compare the actual output with the expected output.

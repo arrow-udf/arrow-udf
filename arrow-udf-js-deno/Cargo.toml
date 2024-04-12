@@ -12,6 +12,7 @@ license = "Apache-2.0"
 default = ["with-dayjs", "with-fetch"]
 with-fetch = ["arrow-udf-js-deno-runtime/with-fetch"]
 with-dayjs = ["arrow-udf-js-deno-runtime/with-dayjs"]
+unsafe_runtime_options = ["arrow-udf-js-deno-runtime/unsafe_runtime_options"]
 
 [dependencies]
 anyhow = "1"

@@ -11,6 +11,7 @@ license = "Apache-2.0"
 default = []
 with-fetch = ["deno_fetch", "deno_http", "deno_websocket", "hyper"]
 with-dayjs = []
+unsafe_runtime_options = ["deno_core/unsafe_runtime_options"]
 
 [dependencies]
 anyhow = "1"

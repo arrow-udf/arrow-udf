@@ -255,7 +255,6 @@ async fn test_parallel_execution() {
     _ = futures::future::join_all(handles).await;
 }
 
-
 #[tokio::test(flavor = "multi_thread")]
 async fn test_parallel_execution_with_initialization() {
     // Run the initialization in the main thread

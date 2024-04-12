@@ -75,14 +75,14 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-features --no-fail-fast --package arrow-udf-js-deno --test async_js -- test_parallel_execution_with_initialization --exact --nocapture 
+          args: --all-features --no-fail-fast --package arrow-udf-js-deno --test async_js -- test_parallel_execution --exact --nocapture 
 
       - name: Test pku
         uses: actions-rs/cargo@v1
         with:
           command: test
           # This should crash
-          args: --all-features --no-fail-fast --package arrow-udf-js-deno --test async_js -- test_parallel_execution --exact --nocapture 
+          args: --all-features --no-fail-fast --package arrow-udf-js-deno --test async_js -- test_parallel_execution_with_initialization --exact --nocapture 
 
       - name: Test
         uses: actions-rs/cargo@v1

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1712767030334,
+  "lastUpdate": 1712901084138,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -5603,6 +5603,114 @@ window.BENCHMARK_DATA = {
             "name": "decimal/deno",
             "value": 775439,
             "range": "± 5385",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "giovanny.gutierrez@commure.com",
+            "name": "Giovanny Gutiérrez",
+            "username": "bakjos"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "23fe0dd41616f4646f9139e22a335518e6cc9a47",
+          "message": "feat(arrow-udf-js-deno): Disable PKU (#13)",
+          "timestamp": "2024-04-12T13:36:21+08:00",
+          "tree_id": "e259b19baadbc77577495b954c51c08a03f7fe7b",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/23fe0dd41616f4646f9139e22a335518e6cc9a47"
+        },
+        "date": 1712901083019,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3897,
+            "range": "± 30",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4074,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24931,
+            "range": "± 1530",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 160868,
+            "range": "± 3300",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 176406,
+            "range": "± 1251",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 278348,
+            "range": "± 21798",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 88090,
+            "range": "± 525",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 426667,
+            "range": "± 18891",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5734738,
+            "range": "± 176351",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9177027,
+            "range": "± 306030",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1071230,
+            "range": "± 18508",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 60036,
+            "range": "± 1532",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 570591,
+            "range": "± 2776",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 820179,
+            "range": "± 20062",
             "unit": "ns/iter"
           }
         ]

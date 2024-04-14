@@ -25,7 +25,7 @@ use anyhow::{anyhow, Context as _, Result};
 use arrow_array::{builder::Int32Builder, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
 use rquickjs::{
-    context::intrinsic::{BaseObjects, BigDecimal, Date, Eval, Json, TypedArrays},
+    context::intrinsic::All,
     function::Args,
     Context, Ctx, Object, Persistent, Value,
 };
@@ -43,6 +43,7 @@ pub struct Runtime {
     // NOTE: `functions` and `bigdecimal` must be put before the runtime and context to be dropped first.
     runtime: rquickjs::Runtime,
     context: Context,
+    pub converter: jsarrow::Converter,
     /// Timeout of each function call.
     timeout: Option<Duration>,
     /// Deadline of the current function call.
@@ -86,16 +87,14 @@ impl Runtime {
     /// Create a new JS UDF runtime from a JS code.
     pub fn new() -> Result<Self> {
         let runtime = rquickjs::Runtime::new().context("failed to create quickjs runtime")?;
-        // `Eval` is required to compile JS code.
         let context =
-            rquickjs::Context::custom::<(BaseObjects, Date, Eval, Json, BigDecimal, TypedArrays)>(
-                &runtime,
-            )
+            rquickjs::Context::custom::<All>(&runtime)
             .context("failed to create quickjs context")?;
         let bigdecimal = context.with(|ctx| {
             let bigdecimal: rquickjs::Function = ctx.eval("BigDecimal")?;
             Ok(Persistent::save(&ctx, bigdecimal)) as Result<_>
         })?;
+
         Ok(Self {
             functions: HashMap::new(),
             bigdecimal,
@@ -103,6 +102,7 @@ impl Runtime {
             context,
             timeout: None,
             deadline: Default::default(),
+            converter: jsarrow::Converter::new(),
         })
     }
 
@@ -179,8 +179,11 @@ impl Runtime {
             for i in 0..input.num_rows() {
                 row.clear();
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                    let val = jsarrow::get_jsvalue(&ctx, &bigdecimal, field, column, i)
+                    let val = self
+                        .converter
+                        .get_jsvalue(&ctx, &bigdecimal, field, column, i)
                         .context("failed to get jsvalue from arrow array")?;
+
                     row.push(val);
                 }
                 if function.mode == CallMode::ReturnNullOnNullInput
@@ -197,7 +200,10 @@ impl Runtime {
                     .context("failed to call function")?;
                 results.push(result);
             }
-            let array = jsarrow::build_array(&function.return_field, &ctx, results)
+
+            let array = self
+                .converter
+                .build_array(&function.return_field, &ctx, results)
                 .context("failed to build arrow array from return values")?;
             let schema = Schema::new(vec![function.return_field.clone()]);
             Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
@@ -226,6 +232,7 @@ impl Runtime {
             chunk_size,
             row: 0,
             generator: None,
+            converter: &self.converter,
         })
     }
 
@@ -255,6 +262,7 @@ pub struct RecordBatchIter<'a> {
     row: usize,
     /// Generator of the current row.
     generator: Option<Persistent<Object<'static>>>,
+    converter: &'a jsarrow::Converter,
 }
 
 // XXX: not sure if this is safe.
@@ -295,7 +303,9 @@ impl RecordBatchIter<'_> {
                     for (column, field) in
                         (self.input.columns().iter()).zip(self.input.schema().fields())
                     {
-                        let val = jsarrow::get_jsvalue(&ctx, &bigdecimal, field, column, self.row)
+                        let val = self
+                            .converter
+                            .get_jsvalue(&ctx, &bigdecimal, field, column, self.row)
                             .context("failed to get jsvalue from arrow array")?;
                         row.push(val);
                     }
@@ -341,7 +351,9 @@ impl RecordBatchIter<'_> {
                 return Ok(None);
             }
             let indexes = Arc::new(indexes.finish());
-            let array = jsarrow::build_array(&self.function.return_field, &ctx, results)
+            let array = self
+                .converter
+                .build_array(&self.function.return_field, &ctx, results)
                 .context("failed to build arrow array from return values")?;
             Ok(Some(RecordBatch::try_new(
                 self.schema.clone(),

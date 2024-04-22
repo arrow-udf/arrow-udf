@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow_array::{
-    types::*, ArrayRef, BinaryArray, Int32Array, LargeBinaryArray, LargeStringArray, ListArray,
-    RecordBatch, StringArray, StructArray,
+    types::*, ArrayRef, BinaryArray, Int32Array, ListArray, RecordBatch, StringArray, StructArray,
 };
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
@@ -151,7 +151,7 @@ fn test_json_array_access() {
     runtime
         .add_function(
             "json_array_access",
-            DataType::LargeUtf8,
+            Field::new("json", DataType::Utf8, true).with_metadata(json_extension()),
             CallMode::ReturnNullOnNullInput,
             r#"
             export function json_array_access(array, i) {
@@ -162,10 +162,10 @@ fn test_json_array_access() {
         .unwrap();
 
     let schema = Schema::new(vec![
-        Field::new("array", DataType::LargeUtf8, true),
+        Field::new("array", DataType::Utf8, true).with_metadata(json_extension()),
         Field::new("i", DataType::Int32, true),
     ]);
-    let arg0 = LargeStringArray::from(vec![r#"[1, null, ""]"#]);
+    let arg0 = StringArray::from(vec![r#"[1, null, ""]"#]);
     let arg1 = Int32Array::from(vec![0]);
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
@@ -174,11 +174,11 @@ fn test_json_array_access() {
     check(
         &[output],
         expect![[r#"
-        +-------------------+
-        | json_array_access |
-        +-------------------+
-        | 1                 |
-        +-------------------+"#]],
+            +------+
+            | json |
+            +------+
+            | 1    |
+            +------+"#]],
     );
 }
 
@@ -199,8 +199,10 @@ fn test_json_stringify() {
         )
         .unwrap();
 
-    let schema = Schema::new(vec![Field::new("json", DataType::LargeUtf8, true)]);
-    let arg0 = LargeStringArray::from(vec![r#"[1, null, ""]"#]);
+    let schema = Schema::new(vec![
+        Field::new("json", DataType::Utf8, true).with_metadata(json_extension())
+    ]);
+    let arg0 = StringArray::from(vec![r#"[1, null, ""]"#]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("json_stringify", &input).unwrap();
@@ -222,7 +224,7 @@ fn test_decimal_add() {
     runtime
         .add_function(
             "decimal_add",
-            DataType::LargeBinary,
+            Field::new("add", DataType::Utf8, true).with_metadata(decimal_extension()),
             CallMode::ReturnNullOnNullInput,
             r#"
             export function decimal_add(a, b) {
@@ -233,11 +235,11 @@ fn test_decimal_add() {
         .unwrap();
 
     let schema = Schema::new(vec![
-        Field::new("a", DataType::LargeBinary, true),
-        Field::new("b", DataType::LargeBinary, true),
+        Field::new("a", DataType::Utf8, true).with_metadata(decimal_extension()),
+        Field::new("b", DataType::Utf8, true).with_metadata(decimal_extension()),
     ]);
-    let arg0 = LargeBinaryArray::from(vec![b"0.0001".as_ref()]);
-    let arg1 = LargeBinaryArray::from(vec![b"0.0002".as_ref()]);
+    let arg0 = StringArray::from(vec!["0.0001"]);
+    let arg1 = StringArray::from(vec!["0.0002"]);
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
@@ -245,11 +247,11 @@ fn test_decimal_add() {
     check(
         &[output],
         expect![[r#"
-        +--------------+
-        | decimal_add  |
-        +--------------+
-        | 302e30303033 |
-        +--------------+"#]],
+            +--------+
+            | add    |
+            +--------+
+            | 0.0003 |
+            +--------+"#]],
     );
 }
 
@@ -393,7 +395,7 @@ fn test_struct_to_json() {
     runtime
         .add_function(
             "to_json",
-            DataType::LargeUtf8,
+            Field::new("to_json", DataType::Utf8, true).with_metadata(json_extension()),
             CallMode::ReturnNullOnNullInput,
             r#"
             export function to_json(object) {
@@ -499,4 +501,22 @@ fn test_send_sync() {
 #[track_caller]
 fn check(actual: &[RecordBatch], expect: Expect) {
     expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
+}
+
+/// Returns the metadata for JSON extension.
+fn json_extension() -> HashMap<String, String> {
+    [(
+        "ARROW:extension:name".to_string(),
+        "arrowudf.json".to_string(),
+    )]
+    .into()
+}
+
+/// Returns the metadata for decimal extension.
+fn decimal_extension() -> HashMap<String, String> {
+    [(
+        "ARROW:extension:name".to_string(),
+        "arrowudf.decimal".to_string(),
+    )]
+    .into()
 }

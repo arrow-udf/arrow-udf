@@ -72,14 +72,14 @@ def gcd(a: int, b: int) -> int:
     });
 
     c.bench_function("gcd/rust", |bencher| {
-        bencher.iter(|| gcd_int4_int4_int4_eval(&input).unwrap())
+        bencher.iter(|| gcd_int32_int32_int32_eval(&input).unwrap())
     });
 
     c.bench_function("gcd/wasm", |bencher| {
         let filepath = "../target/wasm32-wasi/release/arrow_udf_example.wasm";
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
-        bencher.iter(|| rt.call("gcd(int4,int4)->int4", &input).unwrap())
+        bencher.iter(|| rt.call("gcd(int32,int32)->int32", &input).unwrap())
     });
 
     c.bench_function("gcd/deno", |bencher| {
@@ -164,7 +164,7 @@ def range1(n: int):
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
         bencher.iter(|| {
-            rt.call_table_function("range(int4)->>int4", &input)
+            rt.call_table_function("range(int32)->>int32", &input)
                 .unwrap()
                 .for_each(|_| {})
         })

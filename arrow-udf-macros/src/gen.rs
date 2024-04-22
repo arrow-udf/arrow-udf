@@ -374,10 +374,10 @@ impl FunctionAttr {
             let builder = builder(&self.ret);
             // append the `output` to the `builder`
             let append_output = if user_fn.write {
-                if self.ret != "varchar" && self.ret != "bytea" {
+                if self.ret != "string" && self.ret != "binary" {
                     return Err(Error::new(
                         Span::call_site(),
-                        "`&mut Write` can only be used for functions that return `varchar` or `bytea`",
+                        "`&mut Write` can only be used for functions that return `string` or `binary`",
                     ));
                 }
                 quote! {{
@@ -514,18 +514,14 @@ pub fn data_type(ty: &str) -> TokenStream2 {
 /// Generate a builder for the given type.
 fn builder(ty: &str) -> TokenStream2 {
     match ty {
-        "varchar" => {
-            quote! { StringBuilder::with_capacity(input.num_rows(), 1024) }
-        }
-        "bytea" => {
-            quote! { BinaryBuilder::with_capacity(input.num_rows(), 1024) }
-        }
+        "string" => quote! { StringBuilder::with_capacity(input.num_rows(), 1024) },
+        "binary" => quote! { BinaryBuilder::with_capacity(input.num_rows(), 1024) },
+        "largestring" => quote! { LargeStringBuilder::with_capacity(input.num_rows(), 1024) },
+        "largebinary" => quote! { LargeBinaryBuilder::with_capacity(input.num_rows(), 1024) },
         "decimal" => {
-            quote! { LargeBinaryBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
+            quote! { StringBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
         }
-        "json" => {
-            quote! { LargeStringBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
-        }
+        "json" => quote! { StringBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) },
         s if s.ends_with("[]") => {
             let values_builder = builder(ty.strip_suffix("[]").unwrap());
             quote! { ListBuilder::<Box<dyn ArrayBuilder>>::with_capacity(Box::new(#values_builder), input.num_rows()) }
@@ -580,16 +576,16 @@ pub fn gen_append_value(ty: &str) -> TokenStream2 {
         }}
     } else if ty == "json" {
         quote! {{
-            // builder: LargeStringBuilder
+            // builder: StringBuilder
             use std::fmt::Write;
             write!(builder, "{}", v).expect("write json");
             builder.append_value("");
         }}
     } else if ty == "decimal" {
         quote! { builder.append_value(v.to_string()) }
-    } else if ty == "date" {
+    } else if ty == "date32" {
         quote! { builder.append_value(arrow_array::types::Date32Type::from_naive_date(v)) }
-    } else if ty == "time" {
+    } else if ty == "time64" {
         quote! { builder.append_value(arrow_array::temporal_conversions::time_to_time64us(v)) }
     } else if ty == "timestamp" {
         quote! { builder.append_value(v.and_utc().timestamp_micros()) }
@@ -598,7 +594,7 @@ pub fn gen_append_value(ty: &str) -> TokenStream2 {
             let v: arrow_udf::types::Interval = v.into();
             arrow_array::types::IntervalMonthDayNanoType::make_value(v.months, v.days, v.nanos)
         }) }
-    } else if ty == "void" {
+    } else if ty == "null" {
         quote! { builder.append_empty_value() }
     } else {
         quote! { builder.append_value(v) }
@@ -617,27 +613,34 @@ pub fn gen_append_null(ty: &str) -> TokenStream2 {
 
 /// Generate code to transform the input from the type got from arrow array to the type in the user function.
 ///
-/// | Data Type   | Arrow Value Type | User Function Type           |
-/// | ----------- | ---------------- | ---------------------------- |
-/// | `date`      | `i32`            | `chrono::NaiveDate`          |
-/// | `time`      | `i64`            | `chrono::NaiveTime`          |
-/// | `timestamp` | `i64`            | `chrono::NaiveDateTime`      |
-/// | `interval`  | `i128`           | `arrow_udf::types::Interval` |
-/// | `decimal`   | `&str`           | `rust_decimal::Decimal`      |
-/// | `json`      | `&str`           | `serde_json::Value`          |
-/// | `smallint[]`| `ArrayRef`       | `&[i16]`                     |
-/// | `int[]`     | `ArrayRef`       | `&[i32]`                     |
-/// | `bigint[]`  | `ArrayRef`       | `&[i64]`                     |
-/// | `real[]`    | `ArrayRef`       | `&[f32]`                     |
-/// | `float[]`   | `ArrayRef`       | `&[f64]`                     |
-/// | `varchar[]` | `ArrayRef`       | `arrow::array::StringArray`  |
-/// | `bytea[]`   | `ArrayRef`       | `arrow::array::BinaryArray`  |
+/// | Data Type       | Arrow Value Type | User Function Type               |
+/// | --------------- | ---------------- | -------------------------------- |
+/// | `date32`        | `i32`            | `chrono::NaiveDate`              |
+/// | `time64`        | `i64`            | `chrono::NaiveTime`              |
+/// | `timestamp`     | `i64`            | `chrono::NaiveDateTime`          |
+/// | `interval`      | `i128`           | `arrow_udf::types::Interval`     |
+/// | `decimal`       | `&str`           | `rust_decimal::Decimal`          |
+/// | `json`          | `&str`           | `serde_json::Value`              |
+/// | `int8[]`        | `ArrayRef`       | `&[i8]`                          |
+/// | `int16[]`       | `ArrayRef`       | `&[i16]`                         |
+/// | `int32[]`       | `ArrayRef`       | `&[i32]`                         |
+/// | `int64[]`       | `ArrayRef`       | `&[i64]`                         |
+/// | `uint8[]`       | `ArrayRef`       | `&[u8]`                          |
+/// | `uint16[]`      | `ArrayRef`       | `&[u16]`                         |
+/// | `uint32[]`      | `ArrayRef`       | `&[u32]`                         |
+/// | `uint64[]`      | `ArrayRef`       | `&[u64]`                         |
+/// | `float32[]`     | `ArrayRef`       | `&[f32]`                         |
+/// | `float64[]`     | `ArrayRef`       | `&[f64]`                         |
+/// | `string[]`      | `ArrayRef`       | `arrow::array::StringArray`      |
+/// | `binary[]`      | `ArrayRef`       | `arrow::array::BinaryArray`      |
+/// | `largestring[]` | `ArrayRef`       | `arrow::array::LargeStringArray` |
+/// | `largebinary[]` | `ArrayRef`       | `arrow::array::LargeBinaryArray` |
 fn transform_input(input: &Ident, ty: &str) -> TokenStream2 {
     if ty == "decimal" {
-        return quote! { std::str::from_utf8(#input).expect("invalid utf8 for decimal").parse::<rust_decimal::Decimal>().expect("invalid decimal") };
-    } else if ty == "date" {
+        return quote! { #input.parse::<rust_decimal::Decimal>().expect("invalid decimal") };
+    } else if ty == "date32" {
         return quote! { arrow_array::types::Date32Type::to_naive_date(#input) };
-    } else if ty == "time" {
+    } else if ty == "time64" {
         return quote! { arrow_array::temporal_conversions::as_time::<arrow_array::types::Time64MicrosecondType>(#input).expect("invalid time") };
     } else if ty == "timestamp" {
         return quote! { arrow_array::temporal_conversions::as_datetime::<arrow_array::types::TimestampMicrosecondType>(#input).expect("invalid timestamp") };
@@ -655,13 +658,21 @@ fn transform_input(input: &Ident, ty: &str) -> TokenStream2 {
                 let primitive_array: &#array_type = #input.as_primitive();
                 primitive_array.values().as_ref()
             }};
-        } else if elem_type == "varchar" {
+        } else if elem_type == "string" {
             return quote! {
                 #input.as_any().downcast_ref::<arrow_array::StringArray>().expect("string array")
             };
-        } else if elem_type == "bytea" {
+        } else if elem_type == "binary" {
             return quote! {
                 #input.as_any().downcast_ref::<arrow_array::BinaryArray>().expect("binary array")
+            };
+        } else if elem_type == "largestring" {
+            return quote! {
+                #input.as_any().downcast_ref::<arrow_array::LargeStringArray>().expect("large string array")
+            };
+        } else if elem_type == "largebinary" {
+            return quote! {
+                #input.as_any().downcast_ref::<arrow_array::LargeBinaryArray>().expect("large binary array")
             };
         } else {
             return quote! { #input };

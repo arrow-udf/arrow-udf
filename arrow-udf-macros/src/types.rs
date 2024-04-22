@@ -16,21 +16,28 @@
 
 //  name    primitive   rust type       array prefix            data type
 const TYPE_MATRIX: &str = "
-    void        _       ()              Null                    Null
+    null        _       ()              Null                    Null
     boolean     _       bool            Boolean                 Boolean
-    int2        y       i16             Int16                   Int16
-    int4        y       i32             Int32                   Int32
-    int8        y       i64             Int64                   Int64
-    float4      y       f32             Float32                 Float32
-    float8      y       f64             Float64                 Float64
-    decimal     _       Decimal         LargeBinary             LargeBinary
-    date        _       NaiveDate       Date32                  Date32
-    time        _       NaiveTime       Time64Microsecond       Time64(TimeUnit::Microsecond)
+    int8        y       i8              Int8                    Int8
+    int16       y       i16             Int16                   Int16
+    int32       y       i32             Int32                   Int32
+    int64       y       i64             Int64                   Int64
+    uint8       y       u8              UInt8                   UInt8
+    uint16      y       u16             UInt16                  UInt16
+    uint32      y       u32             UInt32                  UInt32
+    uint64      y       u64             UInt64                  UInt64
+    float32     y       f32             Float32                 Float32
+    float64     y       f64             Float64                 Float64
+    date32      _       NaiveDate       Date32                  Date32
+    time64      _       NaiveTime       Time64Microsecond       Time64(TimeUnit::Microsecond)
     timestamp   _       NaiveDateTime   TimestampMicrosecond    Timestamp(TimeUnit::Microsecond,None)
     interval    _       Interval        IntervalMonthDayNano    Interval(IntervalUnit::MonthDayNano)
-    json        _       Value           LargeString             LargeUtf8
-    varchar     _       String,str      String                  Utf8
-    bytea       _       Vec<u8>,[u8]    Binary                  Binary
+    decimal     _       Decimal         String                  Utf8
+    json        _       Value           String                  Utf8
+    string      _       String,str      String                  Utf8
+    binary      _       Vec<u8>,[u8]    Binary                  Binary
+    largestring _       String,str      LargeString             LargeUtf8
+    largebinary _       Vec<u8>,[u8]    LargeBinary             LargeBinary
     array       _       _               List                    List
     struct      _       _               Struct                  Struct
 ";
@@ -98,8 +105,8 @@ fn lookup_matrix(mut ty: &str, idx: usize) -> &str {
 ///
 /// # Examples
 /// ```text
-/// "int" => "int4"
-/// "int[]" => "int4[]"
+/// "int" => "int32"
+/// "int[]" => "int32[]"
 /// "struct  Key" => "struct Key"
 /// ```
 pub fn normalize_type(ty: &str) -> String {
@@ -111,14 +118,17 @@ pub fn normalize_type(ty: &str) -> String {
     }
     match ty {
         "bool" => "boolean",
-        "smallint" => "int2",
-        "int" | "integer" => "int4",
-        "bigint" => "int8",
-        "real" => "float4",
-        "double precision" => "float8",
+        "smallint" => "int16",
+        "int" | "integer" => "int32",
+        "bigint" => "int64",
+        "real" => "float32",
+        "double precision" => "float64",
         "numeric" => "decimal",
-        "character varying" => "varchar",
+        "varchar" | "character varying" => "string",
+        "bytea" => "binary",
         "jsonb" => "json",
+        "date" => "date32",
+        "time" => "time64",
         _ => ty,
     }
     .to_string()
@@ -131,10 +141,11 @@ pub fn expand_type_wildcard(ty: &str) -> Vec<&str> {
             .trim()
             .lines()
             .map(|l| l.split_whitespace().next().unwrap())
-            .filter(|l| *l != "any" && *l != "void")
+            .filter(|l| *l != "any" && *l != "null")
             .collect(),
-        "int*" => vec!["int2", "int4", "int8"],
-        "float*" => vec!["float4", "float8"],
+        "int*" => vec!["int8", "int16", "int32", "int64"],
+        "uint*" => vec!["uint8", "uint16", "uint32", "uint64"],
+        "float*" => vec!["float32", "float64"],
         _ => vec![ty],
     }
 }
@@ -146,15 +157,16 @@ mod tests {
     #[test]
     fn test_normalize_type() {
         assert_eq!(normalize_type("bool"), "boolean");
-        assert_eq!(normalize_type("smallint"), "int2");
-        assert_eq!(normalize_type("int"), "int4");
-        assert_eq!(normalize_type("bigint"), "int8");
-        assert_eq!(normalize_type("real"), "float4");
-        assert_eq!(normalize_type("double precision"), "float8");
+        assert_eq!(normalize_type("smallint"), "int16");
+        assert_eq!(normalize_type("int"), "int32");
+        assert_eq!(normalize_type("bigint"), "int64");
+        assert_eq!(normalize_type("real"), "float32");
+        assert_eq!(normalize_type("double precision"), "float64");
         assert_eq!(normalize_type("numeric"), "decimal");
-        assert_eq!(normalize_type("character varying"), "varchar");
+        assert_eq!(normalize_type("varchar"), "string");
+        assert_eq!(normalize_type("character varying"), "string");
         assert_eq!(normalize_type("jsonb"), "json");
-        assert_eq!(normalize_type("int[]"), "int4[]");
+        assert_eq!(normalize_type("int[]"), "int32[]");
         assert_eq!(normalize_type("struct   Key"), "struct Key");
     }
 }

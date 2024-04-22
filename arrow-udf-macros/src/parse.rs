@@ -30,7 +30,7 @@ impl Parse for FunctionAttr {
         let sig_str = sig.value();
         let (name_args, ret) = match sig_str.split_once("->") {
             Some((name_args, ret)) => (name_args, ret),
-            None => (sig_str.as_str(), "void"),
+            None => (sig_str.as_str(), "null"),
         };
         let (name, args) = name_args
             .split_once('(')

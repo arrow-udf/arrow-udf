@@ -16,8 +16,8 @@
 
 use arrow_array::{array::*, builder::*};
 use arrow_buffer::OffsetBuffer;
-use arrow_schema::DataType;
-use pyo3::{types::PyString, IntoPy, PyObject, PyResult, Python};
+use arrow_schema::{DataType, Field};
+use pyo3::{IntoPy, PyObject, PyResult, Python};
 use std::sync::Arc;
 
 macro_rules! get_pyobject {
@@ -28,7 +28,12 @@ macro_rules! get_pyobject {
 }
 
 /// Get array element as a python object.
-pub fn get_pyobject(py: Python<'_>, array: &dyn Array, i: usize) -> PyResult<PyObject> {
+pub fn get_pyobject(
+    py: Python<'_>,
+    field: &Field,
+    array: &dyn Array,
+    i: usize,
+) -> PyResult<PyObject> {
     if array.is_null(i) {
         return Ok(py.None());
     }
@@ -45,31 +50,36 @@ pub fn get_pyobject(py: Python<'_>, array: &dyn Array, i: usize) -> PyResult<PyO
         DataType::UInt64 => get_pyobject!(UInt64Array, py, array, i),
         DataType::Float32 => get_pyobject!(Float32Array, py, array, i),
         DataType::Float64 => get_pyobject!(Float64Array, py, array, i),
-        DataType::Utf8 => get_pyobject!(StringArray, py, array, i),
+        DataType::Utf8 => match field
+            .metadata()
+            .get("ARROW:extension:name")
+            .map(|s| s.as_str())
+        {
+            Some("arrowudf.json") => {
+                let array = array.as_any().downcast_ref::<StringArray>().unwrap();
+                let string = array.value(i);
+                // XXX: it is slow to call eval every time
+                let json_loads = py.eval("json.loads", None, None)?;
+                json_loads.call1((string,))?.into()
+            }
+            Some("arrowudf.decimal") => {
+                let array = array.as_any().downcast_ref::<StringArray>().unwrap();
+                let string = array.value(i);
+                // XXX: it is slow to call eval every time
+                let decimal_constructor = py.import("decimal")?.getattr("Decimal")?;
+                decimal_constructor.call1((string,))?.into()
+            }
+            _ => get_pyobject!(StringArray, py, array, i),
+        },
+        DataType::LargeUtf8 => get_pyobject!(LargeStringArray, py, array, i),
         DataType::Binary => get_pyobject!(BinaryArray, py, array, i),
-        // json type
-        DataType::LargeUtf8 => {
-            let array = array.as_any().downcast_ref::<LargeStringArray>().unwrap();
-            let json_str = PyString::new(py, array.value(i));
-            // XXX: it is slow to call eval every time
-            let json_loads = py.eval("json.loads", None, None)?;
-            json_loads.call1((json_str,))?.into()
-        }
-        // decimal type
-        DataType::LargeBinary => {
-            let array = array.as_any().downcast_ref::<LargeBinaryArray>().unwrap();
-            let string = std::str::from_utf8(array.value(i))?;
-            // XXX: it is slow to call eval every time
-            let decimal_constructor = py.import("decimal")?.getattr("Decimal")?;
-            decimal_constructor.call1((string,))?.into()
-        }
-        // list
-        DataType::List(_) => {
+        DataType::LargeBinary => get_pyobject!(LargeBinaryArray, py, array, i),
+        DataType::List(field) => {
             let array = array.as_any().downcast_ref::<ListArray>().unwrap();
             let list = array.value(i);
             let mut values = Vec::with_capacity(list.len());
             for j in 0..list.len() {
-                values.push(get_pyobject(py, list.as_ref(), j)?);
+                values.push(get_pyobject(py, field, list.as_ref(), j)?);
             }
             values.into_py(py)
         }
@@ -77,7 +87,7 @@ pub fn get_pyobject(py: Python<'_>, array: &dyn Array, i: usize) -> PyResult<PyO
             let array = array.as_any().downcast_ref::<StructArray>().unwrap();
             let object = py.eval("Struct()", None, None)?;
             for (j, field) in fields.iter().enumerate() {
-                let value = get_pyobject(py, array.column(j).as_ref(), i)?;
+                let value = get_pyobject(py, field, array.column(j).as_ref(), i)?;
                 object.setattr(field.name().as_str(), value)?;
             }
             object.into()
@@ -125,12 +135,8 @@ macro_rules! build_array {
 }
 
 /// Build arrow array from python objects.
-pub fn build_array(
-    data_type: &DataType,
-    py: Python<'_>,
-    values: &[PyObject],
-) -> PyResult<ArrayRef> {
-    match data_type {
+pub fn build_array(field: &Field, py: Python<'_>, values: &[PyObject]) -> PyResult<ArrayRef> {
+    match field.data_type() {
         DataType::Null => build_array!(NullBuilder, py, values),
         DataType::Boolean => build_array!(BooleanBuilder, py, values),
         DataType::Int8 => build_array!(Int8Builder, py, values),
@@ -143,34 +149,40 @@ pub fn build_array(
         DataType::UInt64 => build_array!(UInt64Builder, py, values),
         DataType::Float32 => build_array!(Float32Builder, py, values),
         DataType::Float64 => build_array!(Float64Builder, py, values),
-        DataType::Utf8 => build_array!(StringBuilder, &str, py, values),
-        DataType::Binary => build_array!(BinaryBuilder, &[u8], py, values),
-        // json type
-        DataType::LargeUtf8 => {
-            let json_dumps = py.eval("json.dumps", None, None)?;
-            let mut builder = LargeStringBuilder::with_capacity(values.len(), 1024);
-            for val in values {
-                if val.is_none(py) {
-                    builder.append_null();
-                    continue;
-                };
-                let json_str = json_dumps.call1((val,))?;
-                builder.append_value(json_str.extract::<&str>()?);
-            }
-            Ok(Arc::new(builder.finish()))
-        }
-        // decimal type
-        DataType::LargeBinary => {
-            let mut builder = LargeBinaryBuilder::with_capacity(values.len(), 1024);
-            for val in values {
-                if val.is_none(py) {
-                    builder.append_null();
-                } else {
-                    builder.append_value(val.to_string());
+        DataType::Utf8 => match field
+            .metadata()
+            .get("ARROW:extension:name")
+            .map(|s| s.as_str())
+        {
+            Some("arrowudf.json") => {
+                let json_dumps = py.eval("json.dumps", None, None)?;
+                let mut builder = StringBuilder::with_capacity(values.len(), 1024);
+                for val in values {
+                    if val.is_none(py) {
+                        builder.append_null();
+                        continue;
+                    };
+                    let json_str = json_dumps.call1((val,))?;
+                    builder.append_value(json_str.extract::<&str>()?);
                 }
+                Ok(Arc::new(builder.finish()))
             }
-            Ok(Arc::new(builder.finish()))
-        }
+            Some("arrowudf.decimal") => {
+                let mut builder = StringBuilder::with_capacity(values.len(), 1024);
+                for val in values {
+                    if val.is_none(py) {
+                        builder.append_null();
+                    } else {
+                        builder.append_value(val.to_string());
+                    }
+                }
+                Ok(Arc::new(builder.finish()))
+            }
+            _ => build_array!(StringBuilder, &str, py, values),
+        },
+        DataType::LargeUtf8 => build_array!(LargeStringBuilder, &str, py, values),
+        DataType::Binary => build_array!(BinaryBuilder, &[u8], py, values),
+        DataType::LargeBinary => build_array!(LargeBinaryBuilder, &[u8], py, values),
         // list
         DataType::List(inner) => {
             // flatten lists
@@ -187,7 +199,7 @@ pub fn build_array(
                 }
                 offsets.push(flatten_values.len() as i32);
             }
-            let values_array = build_array(inner.data_type(), py, &flatten_values)?;
+            let values_array = build_array(&inner, py, &flatten_values)?;
             let nulls = values.iter().map(|v| !v.is_none(py)).collect();
             Ok(Arc::new(ListArray::new(
                 inner.clone(),
@@ -210,7 +222,7 @@ pub fn build_array(
                     };
                     field_values.push(v);
                 }
-                arrays.push(build_array(field.data_type(), py, &field_values)?);
+                arrays.push(build_array(&field, py, &field_values)?);
             }
             let nulls = values.iter().map(|v| !v.is_none(py)).collect();
             Ok(Arc::new(StructArray::new(

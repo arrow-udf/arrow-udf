@@ -27,8 +27,9 @@
 use self::interpreter::SubInterpreter;
 use anyhow::{Context, Result};
 use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
-use arrow_array::{Array, ArrayRef, RecordBatch};
+use arrow_array::{ArrayRef, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
+use into_field::IntoField;
 use pyo3::types::{PyIterator, PyModule, PyTuple};
 use pyo3::{Py, PyObject};
 use std::collections::HashMap;
@@ -37,6 +38,7 @@ use std::sync::Arc;
 
 // #[cfg(Py_3_12)]
 mod interpreter;
+mod into_field;
 mod pyarrow;
 
 /// The Python UDF runtime.
@@ -58,7 +60,7 @@ impl Debug for Runtime {
 /// A user defined function.
 struct Function {
     function: PyObject,
-    return_type: DataType,
+    return_field: Field,
     mode: CallMode,
 }
 
@@ -177,7 +179,7 @@ impl Runtime {
     pub fn add_function(
         &mut self,
         name: &str,
-        return_type: DataType,
+        return_type: impl IntoField,
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
@@ -188,7 +190,7 @@ impl Runtime {
     pub fn add_function_with_handler(
         &mut self,
         name: &str,
-        return_type: DataType,
+        return_type: impl IntoField,
         mode: CallMode,
         code: &str,
         handler: &str,
@@ -200,7 +202,7 @@ impl Runtime {
         })?;
         let function = Function {
             function,
-            return_type,
+            return_field: return_type.into_field(name),
             mode,
         };
         self.functions.insert(name.to_string(), function);
@@ -227,8 +229,8 @@ impl Runtime {
             let mut row = Vec::with_capacity(input.num_columns());
             for i in 0..input.num_rows() {
                 row.clear();
-                for column in input.columns() {
-                    let pyobj = pyarrow::get_pyobject(py, column, i)?;
+                for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+                    let pyobj = pyarrow::get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
                 }
                 if function.mode == CallMode::ReturnNullOnNullInput
@@ -246,18 +248,18 @@ impl Runtime {
                     }
                 }
             }
-            let output = pyarrow::build_array(&function.return_type, py, &results)?;
+            let output = pyarrow::build_array(&function.return_field, py, &results)?;
             let error = build_error_array(input.num_rows(), errors);
             Ok((output, error))
         })?;
         if let Some(error) = error {
             let schema = Schema::new(vec![
-                Field::new(name, function.return_type.clone(), true),
+                function.return_field.clone(),
                 Field::new("error", DataType::Utf8, true),
             ]);
             Ok(RecordBatch::try_new(Arc::new(schema), vec![output, error])?)
         } else {
-            let schema = Schema::new(vec![Field::new(name, output.data_type().clone(), true)]);
+            let schema = Schema::new(vec![function.return_field.clone()]);
             Ok(RecordBatch::try_new(Arc::new(schema), vec![output])?)
         }
     }
@@ -279,7 +281,7 @@ impl Runtime {
             function,
             schema: Arc::new(Schema::new(vec![
                 Field::new("row", DataType::Int32, true),
-                Field::new(name, function.return_type.clone(), true),
+                function.return_field.clone(),
             ])),
             chunk_size,
             row: 0,
@@ -323,8 +325,10 @@ impl RecordBatchIter<'_> {
                 } else {
                     // call the table function to get a generator
                     row.clear();
-                    for column in self.input.columns() {
-                        let val = pyarrow::get_pyobject(py, column, self.row)?;
+                    for (column, field) in
+                        (self.input.columns().iter()).zip(self.input.schema().fields())
+                    {
+                        let val = pyarrow::get_pyobject(py, field, column, self.row)?;
                         row.push(val);
                     }
                     if self.function.mode == CallMode::ReturnNullOnNullInput
@@ -372,7 +376,7 @@ impl RecordBatchIter<'_> {
                 return Ok(None);
             }
             let indexes = Arc::new(indexes.finish());
-            let output = pyarrow::build_array(&self.function.return_type, py, &results)
+            let output = pyarrow::build_array(&self.function.return_field, py, &results)
                 .context("failed to build arrow array from return values")?;
             let error = build_error_array(indexes.len(), errors);
             if let Some(error) = error {

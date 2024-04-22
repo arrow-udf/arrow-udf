@@ -1,29 +1,41 @@
-#[export_name = "arrowudt_RGF0YT1hOnZvaWQsYjpib29sZWFuLGM6aW50MixkOmludDQsZTppbnQ4LGY6ZmxvYXQ0LGc6ZmxvYXQ4LGg6ZGVjaW1hbCxpOmRhdGUsajp0aW1lLGs6dGltZXN0YW1wLGw6aW50ZXJ2YWwsbTpqc29uLG46dmFyY2hhcixvOmJ5dGVhLHA6dmFyY2hhcltdLHE6c3RydWN0IEtleVZhbHVl"]
+#[export_name = "arrowudt_RGF0YT1udWxsOm51bGwsYm9vbGVhbjpib29sZWFuLGludDg6aW50OCxpbnQxNjppbnQxNixpbnQzMjppbnQzMixpbnQ2NDppbnQ2NCx1aW50ODp1aW50OCx1aW50MTY6dWludDE2LHVpbnQzMjp1aW50MzIsdWludDY0OnVpbnQ2NCxmbG9hdDMyOmZsb2F0MzIsZmxvYXQ2NDpmbG9hdDY0LGRlY2ltYWw6ZGVjaW1hbCxkYXRlOmRhdGUzMix0aW1lOnRpbWU2NCx0aW1lc3RhbXA6dGltZXN0YW1wLGludGVydmFsOmludGVydmFsLGpzb246anNvbixzdHJpbmc6c3RyaW5nLGJpbmFyeTpiaW5hcnksc3RyaW5nX2FycmF5OnN0cmluZ1tdLHN0cnVjdF86c3RydWN0IEtleVZhbHVl"]
 static DATA_METADATA: () = ();
 impl ::arrow_udf::types::StructType for Data {
     fn fields() -> ::arrow_udf::codegen::arrow_schema::Fields {
         use ::arrow_udf::codegen::arrow_schema::{self, Field, TimeUnit, IntervalUnit};
-        let fields: Vec<Field> = vec![
-            Field::new("a", arrow_schema::DataType::Null, true), Field::new("b",
-            arrow_schema::DataType::Boolean, true), Field::new("c",
-            arrow_schema::DataType::Int16, true), Field::new("d",
-            arrow_schema::DataType::Int32, true), Field::new("e",
-            arrow_schema::DataType::Int64, true), Field::new("f",
-            arrow_schema::DataType::Float32, true), Field::new("g",
-            arrow_schema::DataType::Float64, true), Field::new("h",
-            arrow_schema::DataType::LargeBinary, true), Field::new("i",
-            arrow_schema::DataType::Date32, true), Field::new("j",
-            arrow_schema::DataType::Time64(TimeUnit::Microsecond), true), Field::new("k",
+        vec![
+            arrow_schema::Field::new("null", arrow_schema::DataType::Null, true),
+            arrow_schema::Field::new("boolean", arrow_schema::DataType::Boolean, true),
+            arrow_schema::Field::new("int8", arrow_schema::DataType::Int8, true),
+            arrow_schema::Field::new("int16", arrow_schema::DataType::Int16, true),
+            arrow_schema::Field::new("int32", arrow_schema::DataType::Int32, true),
+            arrow_schema::Field::new("int64", arrow_schema::DataType::Int64, true),
+            arrow_schema::Field::new("uint8", arrow_schema::DataType::UInt8, true),
+            arrow_schema::Field::new("uint16", arrow_schema::DataType::UInt16, true),
+            arrow_schema::Field::new("uint32", arrow_schema::DataType::UInt32, true),
+            arrow_schema::Field::new("uint64", arrow_schema::DataType::UInt64, true),
+            arrow_schema::Field::new("float32", arrow_schema::DataType::Float32, true),
+            arrow_schema::Field::new("float64", arrow_schema::DataType::Float64, true),
+            arrow_schema::Field::new("decimal", arrow_schema::DataType::Utf8, true)
+            .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())]
+            .into()), arrow_schema::Field::new("date", arrow_schema::DataType::Date32,
+            true), arrow_schema::Field::new("time",
+            arrow_schema::DataType::Time64(TimeUnit::Microsecond), true),
+            arrow_schema::Field::new("timestamp",
             arrow_schema::DataType::Timestamp(TimeUnit::Microsecond, None), true),
-            Field::new("l", arrow_schema::DataType::Interval(IntervalUnit::MonthDayNano),
-            true), Field::new("m", arrow_schema::DataType::LargeUtf8, true),
-            Field::new("n", arrow_schema::DataType::Utf8, true), Field::new("o",
-            arrow_schema::DataType::Binary, true), Field::new("p",
+            arrow_schema::Field::new("interval",
+            arrow_schema::DataType::Interval(IntervalUnit::MonthDayNano), true),
+            arrow_schema::Field::new("json", arrow_schema::DataType::Utf8, true)
+            .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())]
+            .into()), arrow_schema::Field::new("string", arrow_schema::DataType::Utf8,
+            true), arrow_schema::Field::new("binary", arrow_schema::DataType::Binary,
+            true), arrow_schema::Field::new("string_array",
             arrow_schema::DataType::List(Arc::new(arrow_schema::Field::new("item",
-            arrow_schema::DataType::Utf8, true))), true), Field::new("q",
-            arrow_schema::DataType::Struct(KeyValue::fields()), true),
-        ];
-        fields.into()
+            arrow_schema::DataType::Utf8, true))), true),
+            arrow_schema::Field::new("struct_",
+            arrow_schema::DataType::Struct(KeyValue::fields()), true)
+        ]
+            .into()
     }
     fn append_to(
         self,
@@ -32,68 +44,93 @@ impl ::arrow_udf::types::StructType for Data {
         use ::arrow_udf::codegen::arrow_array::builder::*;
         {
             let builder = builder.field_builder::<NullBuilder>(0usize).unwrap();
-            let v = self.a;
+            let v = self.null;
             builder.append_empty_value()
         }
         {
             let builder = builder.field_builder::<BooleanBuilder>(1usize).unwrap();
-            let v = self.b;
+            let v = self.boolean;
             builder.append_value(v)
         }
         {
-            let builder = builder.field_builder::<Int16Builder>(2usize).unwrap();
-            let v = self.c;
+            let builder = builder.field_builder::<Int8Builder>(2usize).unwrap();
+            let v = self.int8;
             builder.append_value(v)
         }
         {
-            let builder = builder.field_builder::<Int32Builder>(3usize).unwrap();
-            let v = self.d;
+            let builder = builder.field_builder::<Int16Builder>(3usize).unwrap();
+            let v = self.int16;
             builder.append_value(v)
         }
         {
-            let builder = builder.field_builder::<Int64Builder>(4usize).unwrap();
-            let v = self.e;
+            let builder = builder.field_builder::<Int32Builder>(4usize).unwrap();
+            let v = self.int32;
             builder.append_value(v)
         }
         {
-            let builder = builder.field_builder::<Float32Builder>(5usize).unwrap();
-            let v = self.f;
+            let builder = builder.field_builder::<Int64Builder>(5usize).unwrap();
+            let v = self.int64;
             builder.append_value(v)
         }
         {
-            let builder = builder.field_builder::<Float64Builder>(6usize).unwrap();
-            let v = self.g;
+            let builder = builder.field_builder::<UInt8Builder>(6usize).unwrap();
+            let v = self.uint8;
             builder.append_value(v)
         }
         {
-            let builder = builder.field_builder::<LargeBinaryBuilder>(7usize).unwrap();
-            let v = self.h;
+            let builder = builder.field_builder::<UInt16Builder>(7usize).unwrap();
+            let v = self.uint16;
+            builder.append_value(v)
+        }
+        {
+            let builder = builder.field_builder::<UInt32Builder>(8usize).unwrap();
+            let v = self.uint32;
+            builder.append_value(v)
+        }
+        {
+            let builder = builder.field_builder::<UInt64Builder>(9usize).unwrap();
+            let v = self.uint64;
+            builder.append_value(v)
+        }
+        {
+            let builder = builder.field_builder::<Float32Builder>(10usize).unwrap();
+            let v = self.float32;
+            builder.append_value(v)
+        }
+        {
+            let builder = builder.field_builder::<Float64Builder>(11usize).unwrap();
+            let v = self.float64;
+            builder.append_value(v)
+        }
+        {
+            let builder = builder.field_builder::<StringBuilder>(12usize).unwrap();
+            let v = self.decimal;
             builder.append_value(v.to_string())
         }
         {
-            let builder = builder.field_builder::<Date32Builder>(8usize).unwrap();
-            let v = self.i;
+            let builder = builder.field_builder::<Date32Builder>(13usize).unwrap();
+            let v = self.date;
             builder.append_value(arrow_array::types::Date32Type::from_naive_date(v))
         }
         {
             let builder = builder
-                .field_builder::<Time64MicrosecondBuilder>(9usize)
+                .field_builder::<Time64MicrosecondBuilder>(14usize)
                 .unwrap();
-            let v = self.j;
+            let v = self.time;
             builder.append_value(arrow_array::temporal_conversions::time_to_time64us(v))
         }
         {
             let builder = builder
-                .field_builder::<TimestampMicrosecondBuilder>(10usize)
+                .field_builder::<TimestampMicrosecondBuilder>(15usize)
                 .unwrap();
-            let v = self.k;
+            let v = self.timestamp;
             builder.append_value(v.and_utc().timestamp_micros())
         }
         {
             let builder = builder
-                .field_builder::<IntervalMonthDayNanoBuilder>(11usize)
+                .field_builder::<IntervalMonthDayNanoBuilder>(16usize)
                 .unwrap();
-            let v = self.l;
+            let v = self.interval;
             builder
                 .append_value({
                     let v: arrow_udf::types::Interval = v.into();
@@ -105,8 +142,8 @@ impl ::arrow_udf::types::StructType for Data {
                 })
         }
         {
-            let builder = builder.field_builder::<LargeStringBuilder>(12usize).unwrap();
-            let v = self.m;
+            let builder = builder.field_builder::<StringBuilder>(17usize).unwrap();
+            let v = self.json;
             {
                 use std::fmt::Write;
                 write!(builder, "{}", v).expect("write json");
@@ -114,20 +151,20 @@ impl ::arrow_udf::types::StructType for Data {
             }
         }
         {
-            let builder = builder.field_builder::<StringBuilder>(13usize).unwrap();
-            let v = self.n;
+            let builder = builder.field_builder::<StringBuilder>(18usize).unwrap();
+            let v = self.string;
             builder.append_value(v)
         }
         {
-            let builder = builder.field_builder::<BinaryBuilder>(14usize).unwrap();
-            let v = self.o;
+            let builder = builder.field_builder::<BinaryBuilder>(19usize).unwrap();
+            let v = self.binary;
             builder.append_value(v)
         }
         {
             let builder = builder
-                .field_builder::<ListBuilder<Box<dyn ArrayBuilder>>>(15usize)
+                .field_builder::<ListBuilder<Box<dyn ArrayBuilder>>>(20usize)
                 .unwrap();
-            let v = self.p;
+            let v = self.string_array;
             {
                 let value_builder = builder
                     .values()
@@ -139,8 +176,8 @@ impl ::arrow_udf::types::StructType for Data {
             }
         }
         {
-            let builder = builder.field_builder::<StructBuilder>(16usize).unwrap();
-            let v = self.q;
+            let builder = builder.field_builder::<StructBuilder>(21usize).unwrap();
+            let v = self.struct_;
             {
                 v.append_to(builder);
             }
@@ -160,71 +197,91 @@ impl ::arrow_udf::types::StructType for Data {
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<Int16Builder>(2usize).unwrap();
+            let builder = builder.field_builder::<Int8Builder>(2usize).unwrap();
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<Int32Builder>(3usize).unwrap();
+            let builder = builder.field_builder::<Int16Builder>(3usize).unwrap();
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<Int64Builder>(4usize).unwrap();
+            let builder = builder.field_builder::<Int32Builder>(4usize).unwrap();
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<Float32Builder>(5usize).unwrap();
+            let builder = builder.field_builder::<Int64Builder>(5usize).unwrap();
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<Float64Builder>(6usize).unwrap();
+            let builder = builder.field_builder::<UInt8Builder>(6usize).unwrap();
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<LargeBinaryBuilder>(7usize).unwrap();
+            let builder = builder.field_builder::<UInt16Builder>(7usize).unwrap();
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<Date32Builder>(8usize).unwrap();
+            let builder = builder.field_builder::<UInt32Builder>(8usize).unwrap();
+            builder.append_null()
+        }
+        {
+            let builder = builder.field_builder::<UInt64Builder>(9usize).unwrap();
+            builder.append_null()
+        }
+        {
+            let builder = builder.field_builder::<Float32Builder>(10usize).unwrap();
+            builder.append_null()
+        }
+        {
+            let builder = builder.field_builder::<Float64Builder>(11usize).unwrap();
+            builder.append_null()
+        }
+        {
+            let builder = builder.field_builder::<StringBuilder>(12usize).unwrap();
+            builder.append_null()
+        }
+        {
+            let builder = builder.field_builder::<Date32Builder>(13usize).unwrap();
             builder.append_null()
         }
         {
             let builder = builder
-                .field_builder::<Time64MicrosecondBuilder>(9usize)
+                .field_builder::<Time64MicrosecondBuilder>(14usize)
                 .unwrap();
             builder.append_null()
         }
         {
             let builder = builder
-                .field_builder::<TimestampMicrosecondBuilder>(10usize)
+                .field_builder::<TimestampMicrosecondBuilder>(15usize)
                 .unwrap();
             builder.append_null()
         }
         {
             let builder = builder
-                .field_builder::<IntervalMonthDayNanoBuilder>(11usize)
+                .field_builder::<IntervalMonthDayNanoBuilder>(16usize)
                 .unwrap();
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<LargeStringBuilder>(12usize).unwrap();
+            let builder = builder.field_builder::<StringBuilder>(17usize).unwrap();
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<StringBuilder>(13usize).unwrap();
+            let builder = builder.field_builder::<StringBuilder>(18usize).unwrap();
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<BinaryBuilder>(14usize).unwrap();
+            let builder = builder.field_builder::<BinaryBuilder>(19usize).unwrap();
             builder.append_null()
         }
         {
             let builder = builder
-                .field_builder::<ListBuilder<Box<dyn ArrayBuilder>>>(15usize)
+                .field_builder::<ListBuilder<Box<dyn ArrayBuilder>>>(20usize)
                 .unwrap();
             builder.append_null()
         }
         {
-            let builder = builder.field_builder::<StructBuilder>(16usize).unwrap();
+            let builder = builder.field_builder::<StructBuilder>(21usize).unwrap();
             KeyValue::append_null(builder)
         }
         builder.append_null();

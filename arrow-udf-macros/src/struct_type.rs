@@ -34,8 +34,7 @@ pub fn gen(tokens: TokenStream) -> Result<TokenStream> {
         .map(Field::parse)
         .collect::<Result<Vec<Field>>>()?;
 
-    let names = fields.iter().map(|f| &f.name);
-    let types = fields.iter().map(|f| gen::data_type(&f.type_));
+    let fields0 = fields.iter().map(|f| gen::field(&f.name, &f.type_));
     let append_values = fields.iter().enumerate().map(|(i, f)| {
         let field = &f.ident;
         let append_value = gen::gen_append_value(&f.type_);
@@ -67,7 +66,7 @@ pub fn gen(tokens: TokenStream) -> Result<TokenStream> {
     let static_name = format_ident!("{}_METADATA", struct_name.to_string().to_uppercase());
     let export_name = format!(
         "arrowudt_{}",
-        // example: "KeyValue=key:varchar,value:varchar"
+        // example: "KeyValue=key:string,value:string"
         gen::base64_encode(&format!(
             "{}={}",
             struct_name,
@@ -86,10 +85,7 @@ pub fn gen(tokens: TokenStream) -> Result<TokenStream> {
         impl #generics ::arrow_udf::types::StructType for #struct_name #generics {
             fn fields() -> ::arrow_udf::codegen::arrow_schema::Fields {
                 use ::arrow_udf::codegen::arrow_schema::{self, Field, TimeUnit, IntervalUnit};
-                let fields: Vec<Field> = vec![
-                    #(Field::new(#names, #types, true),)*
-                ];
-                fields.into()
+                vec![#(#fields0),*].into()
             }
             fn append_to(self, builder: &mut ::arrow_udf::codegen::arrow_array::builder::StructBuilder) {
                 use ::arrow_udf::codegen::arrow_array::builder::*;

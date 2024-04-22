@@ -567,6 +567,7 @@ fn test_decimal_add() {
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = add_decimal_decimal_decimal_eval(&input).unwrap();
+    assert_eq!(output.schema().field(0), &decimal_field("add"));
     check(
         &[output],
         expect![[r#"
@@ -585,6 +586,7 @@ fn test_json() {
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = to_json_int32_json_eval(&input).unwrap();
+    assert_eq!(output.schema().field(0), &json_field("to_json"));
     check(
         &[output],
         expect![[r#"

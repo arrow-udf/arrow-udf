@@ -31,7 +31,7 @@
 //! ```
 
 use super::{ScalarFunction, TableFunction};
-use arrow_schema::DataType;
+use arrow_schema::{DataType, Field, Fields};
 use std::collections::HashMap;
 
 /// A function signature.
@@ -40,13 +40,13 @@ pub struct FunctionSignature {
     pub name: String,
 
     /// The argument types.
-    pub arg_types: Vec<SigDataType>,
+    pub arg_types: Fields,
 
     /// Whether the function is variadic.
     pub variadic: bool,
 
     /// The return type.
-    pub return_type: SigDataType,
+    pub return_type: Field,
 
     /// The function
     pub function: FunctionKind,
@@ -86,26 +86,19 @@ impl FunctionKind {
     }
 }
 
-/// An extended data type that can be used to declare a function's argument or result type.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum SigDataType {
-    /// Exact data type
-    Exact(DataType),
-    /// Accepts any data type
-    Any,
-}
-
 impl FunctionSignature {
     /// Check if the function signature matches the given argument types and return type.
-    fn matches(&self, arg_types: &[DataType], return_type: &DataType) -> bool {
-        if !self.return_type.matches(return_type) {
+    fn matches(&self, arg_types: &[Field], return_type: &Field) -> bool {
+        if !(self.return_type.data_type() == return_type.data_type()
+            && self.return_type.metadata() == return_type.metadata())
+        {
             return false;
         }
         if arg_types.len() < self.arg_types.len() {
             return false;
         }
         for (target, ty) in self.arg_types.iter().zip(arg_types) {
-            if !target.matches(ty) {
+            if !(target.data_type() == ty.data_type() && target.metadata() == ty.metadata()) {
                 return false;
             }
         }
@@ -114,22 +107,6 @@ impl FunctionSignature {
         } else {
             arg_types.len() == self.arg_types.len()
         }
-    }
-}
-
-impl SigDataType {
-    /// Check if the data type matches the signature data type.
-    fn matches(&self, data_type: &DataType) -> bool {
-        match self {
-            Self::Exact(ty) => ty == data_type,
-            Self::Any => true,
-        }
-    }
-}
-
-impl From<DataType> for SigDataType {
-    fn from(dt: DataType) -> Self {
-        Self::Exact(dt)
     }
 }
 
@@ -161,8 +138,8 @@ impl FunctionRegistry {
     pub fn get(
         &self,
         name: &str,
-        arg_types: &[DataType],
-        return_type: &DataType,
+        arg_types: &[Field],
+        return_type: &Field,
     ) -> Option<&FunctionSignature> {
         let sigs = self.signatures.get(name)?;
         sigs.iter().find(|sig| sig.matches(arg_types, return_type))

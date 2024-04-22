@@ -44,50 +44,6 @@ impl FunctionAttr {
         attrs
     }
 
-    /// Generate the type infer function.
-    #[allow(dead_code)]
-    fn generate_type_infer_fn(&self) -> Result<TokenStream2> {
-        if let Some(func) = &self.type_infer {
-            if func == "panic" {
-                return Ok(quote! { |_| panic!("type inference function is not implemented") });
-            }
-            // use the user defined type inference function
-            return Ok(func.parse().unwrap());
-        } else if self.ret == "any" {
-            // TODO: if there are multiple "any", they should be the same type
-            if let Some(i) = self.args.iter().position(|t| t == "any") {
-                // infer as the type of "any" argument
-                return Ok(quote! { |args| Ok(args[#i].clone()) });
-            }
-            if let Some(i) = self.args.iter().position(|t| t == "anyarray") {
-                // infer as the element type of "anyarray" argument
-                return Ok(quote! { |args| Ok(args[#i].as_list().clone()) });
-            }
-        } else if self.ret == "anyarray" {
-            if let Some(i) = self.args.iter().position(|t| t == "anyarray") {
-                // infer as the type of "anyarray" argument
-                return Ok(quote! { |args| Ok(args[#i].clone()) });
-            }
-            if let Some(i) = self.args.iter().position(|t| t == "any") {
-                // infer as the array type of "any" argument
-                return Ok(quote! { |args| Ok(DataType::List(Box::new(args[#i].clone()))) });
-            }
-        } else if self.ret == "struct" {
-            if let Some(i) = self.args.iter().position(|t| t == "struct") {
-                // infer as the type of "struct" argument
-                return Ok(quote! { |args| Ok(args[#i].clone()) });
-            }
-        } else {
-            // the return type is fixed
-            let ty = data_type(&self.ret);
-            return Ok(quote! { |_| Ok(#ty) });
-        }
-        Err(Error::new(
-            Span::call_site(),
-            "type inference function is required",
-        ))
-    }
-
     /// Generate a descriptor of the scalar or table function.
     ///
     /// The types of arguments and return value should not contain wildcard.
@@ -99,9 +55,9 @@ impl FunctionAttr {
             false => &self.args[..],
         }
         .iter()
-        .map(|ty| sig_data_type(ty))
+        .map(|ty| field("", ty))
         .collect_vec();
-        let ret = sig_data_type(&self.ret);
+        let ret = field(&self.name, &self.ret);
 
         let eval_name = match &self.output {
             Some(output) => format_ident!("{}", output),
@@ -154,7 +110,6 @@ impl FunctionAttr {
         let variadic = matches!(self.args.last(), Some(t) if t == "...");
         let num_args = self.args.len() - if variadic { 1 } else { 0 };
         let user_fn_name = format_ident!("{}", user_fn.name);
-        let fn_name = &self.name;
 
         let children_indices = (0..num_args).collect_vec();
 
@@ -171,7 +126,7 @@ impl FunctionAttr {
             .iter()
             .map(|i| format_ident!("{}", types::array_type(&self.args[*i])));
         let ret_array_type = format_ident!("{}", types::array_type(&self.ret));
-        let ret_data_type = data_type(&self.ret);
+        let ret_data_type = field(&self.name, &self.ret);
 
         let variadic_args = variadic.then(|| quote! { variadic_row, });
         let context = user_fn.context.then(|| quote! { &self.context, });
@@ -306,7 +261,7 @@ impl FunctionAttr {
                 lazy_static! {
                     static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![
                         Field::new("row", DataType::Int32, true),
-                        Field::new(#fn_name, #ret_data_type, true),
+                        #ret_data_type,
                         #error_field
                     ]));
                 }
@@ -424,10 +379,7 @@ impl FunctionAttr {
                 #eval
 
                 lazy_static! {
-                    static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![
-                        Field::new(#fn_name, #ret_data_type, true),
-                        #error_field
-                    ]));
+                    static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![#ret_data_type, #error_field]));
                 }
                 Ok(RecordBatch::try_new(SCHEMA.clone(), vec![array, #error_array]).unwrap())
             }
@@ -487,28 +439,30 @@ impl FunctionAttr {
     }
 }
 
-fn sig_data_type(ty: &str) -> TokenStream2 {
-    match ty {
-        "any" => quote! { SigDataType::Any },
-        _ => {
-            let datatype = data_type(ty);
-            quote! { SigDataType::Exact(#datatype) }
-        }
-    }
-}
-
-/// Returns a `DataType` from type name.
-pub fn data_type(ty: &str) -> TokenStream2 {
-    if let Some(ty) = ty.strip_suffix("[]") {
-        let inner_type = data_type(ty);
-        return quote! { arrow_schema::DataType::List(Arc::new(arrow_schema::Field::new("item", #inner_type, true))) };
-    }
-    if let Some(s) = ty.strip_prefix("struct ") {
+/// Returns a `Field` from type name.
+pub fn field(name: &str, ty: &str) -> TokenStream2 {
+    let data_type = if let Some(ty) = ty.strip_suffix("[]") {
+        let inner = field("item", ty);
+        quote! { arrow_schema::DataType::List(Arc::new(#inner)) }
+    } else if let Some(s) = ty.strip_prefix("struct ") {
         let struct_type = format_ident!("{}", s);
-        return quote! { arrow_schema::DataType::Struct(#struct_type::fields()) };
+        quote! { arrow_schema::DataType::Struct(#struct_type::fields()) }
+    } else {
+        let variant: TokenStream2 = types::data_type(ty).parse().unwrap();
+        quote! { arrow_schema::DataType::#variant }
+    };
+    let with_metadata = match ty {
+        "json" => {
+            quote! { .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into()) }
+        }
+        "decimal" => {
+            quote! { .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into()) }
+        }
+        _ => quote! {},
+    };
+    quote! {
+        arrow_schema::Field::new(#name, #data_type, true) #with_metadata
     }
-    let variant: TokenStream2 = types::data_type(ty).parse().unwrap();
-    quote! { arrow_schema::DataType::#variant }
 }
 
 /// Generate a builder for the given type.

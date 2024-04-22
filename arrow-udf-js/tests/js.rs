@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow_array::{
@@ -151,7 +150,7 @@ fn test_json_array_access() {
     runtime
         .add_function(
             "json_array_access",
-            Field::new("json", DataType::Utf8, true).with_metadata(json_extension()),
+            json_field("json"),
             CallMode::ReturnNullOnNullInput,
             r#"
             export function json_array_access(array, i) {
@@ -162,7 +161,7 @@ fn test_json_array_access() {
         .unwrap();
 
     let schema = Schema::new(vec![
-        Field::new("array", DataType::Utf8, true).with_metadata(json_extension()),
+        json_field("array"),
         Field::new("i", DataType::Int32, true),
     ]);
     let arg0 = StringArray::from(vec![r#"[1, null, ""]"#]);
@@ -199,9 +198,7 @@ fn test_json_stringify() {
         )
         .unwrap();
 
-    let schema = Schema::new(vec![
-        Field::new("json", DataType::Utf8, true).with_metadata(json_extension())
-    ]);
+    let schema = Schema::new(vec![json_field("json")]);
     let arg0 = StringArray::from(vec![r#"[1, null, ""]"#]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
@@ -224,7 +221,7 @@ fn test_decimal_add() {
     runtime
         .add_function(
             "decimal_add",
-            Field::new("add", DataType::Utf8, true).with_metadata(decimal_extension()),
+            decimal_field("add"),
             CallMode::ReturnNullOnNullInput,
             r#"
             export function decimal_add(a, b) {
@@ -234,10 +231,7 @@ fn test_decimal_add() {
         )
         .unwrap();
 
-    let schema = Schema::new(vec![
-        Field::new("a", DataType::Utf8, true).with_metadata(decimal_extension()),
-        Field::new("b", DataType::Utf8, true).with_metadata(decimal_extension()),
-    ]);
+    let schema = Schema::new(vec![decimal_field("a"), decimal_field("b")]);
     let arg0 = StringArray::from(vec!["0.0001"]);
     let arg1 = StringArray::from(vec!["0.0002"]);
     let input =
@@ -395,7 +389,7 @@ fn test_struct_to_json() {
     runtime
         .add_function(
             "to_json",
-            Field::new("to_json", DataType::Utf8, true).with_metadata(json_extension()),
+            json_field("to_json"),
             CallMode::ReturnNullOnNullInput,
             r#"
             export function to_json(object) {
@@ -503,20 +497,14 @@ fn check(actual: &[RecordBatch], expect: Expect) {
     expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
 }
 
-/// Returns the metadata for JSON extension.
-fn json_extension() -> HashMap<String, String> {
-    [(
-        "ARROW:extension:name".to_string(),
-        "arrowudf.json".to_string(),
-    )]
-    .into()
+/// Returns a field with JSON type.
+fn json_field(name: &str) -> Field {
+    Field::new(name, DataType::Utf8, true)
+        .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into())
 }
 
-/// Returns the metadata for decimal extension.
-fn decimal_extension() -> HashMap<String, String> {
-    [(
-        "ARROW:extension:name".to_string(),
-        "arrowudf.decimal".to_string(),
-    )]
-    .into()
+/// Returns a field with decimal type.
+fn decimal_field(name: &str) -> Field {
+    Field::new(name, DataType::Utf8, true)
+        .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into())
 }

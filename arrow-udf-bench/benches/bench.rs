@@ -15,7 +15,7 @@
 use std::sync::Arc;
 
 use arrow_arith::arity::binary;
-use arrow_array::{Int32Array, LargeBinaryArray, RecordBatch};
+use arrow_array::{Int32Array, RecordBatch, StringArray};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf::function;
 use arrow_udf_js::Runtime as JsRuntime;
@@ -245,12 +245,8 @@ def decimal(a):
     "#;
 
     let input = RecordBatch::try_new(
-        Arc::new(Schema::new(vec![Field::new(
-            "a",
-            DataType::LargeBinary,
-            true,
-        )])),
-        vec![Arc::new(LargeBinaryArray::from(vec![&b"0.0"[..]; 1024]))],
+        Arc::new(Schema::new(vec![decimal_field("a")])),
+        vec![Arc::new(StringArray::from(vec!["0.0"; 1024]))],
     )
     .unwrap();
 
@@ -262,7 +258,7 @@ def decimal(a):
         let mut rt = JsRuntime::new().unwrap();
         rt.add_function(
             "decimal",
-            DataType::LargeBinary,
+            decimal_field("decimal"),
             arrow_udf_js::CallMode::ReturnNullOnNullInput,
             js_code,
         )
@@ -294,7 +290,7 @@ def decimal(a):
         let mut rt = PythonRuntime::new().unwrap();
         rt.add_function(
             "decimal",
-            DataType::LargeBinary,
+            decimal_field("decimal"),
             arrow_udf_python::CallMode::ReturnNullOnNullInput,
             python_code,
         )
@@ -310,3 +306,9 @@ criterion_group!(
     bench_eval_decimal
 );
 criterion_main!(benches);
+
+/// Returns a field with decimal type.
+fn decimal_field(name: &str) -> Field {
+    Field::new(name, DataType::Utf8, true)
+        .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into())
+}

@@ -13,7 +13,8 @@
 // limitations under the License.
 
 use std::iter::Sum;
-use std::{ops::Neg, sync::Arc};
+use std::ops::{Add, Neg};
+use std::sync::Arc;
 
 use arrow_array::cast::AsArray;
 use arrow_array::temporal_conversions::time_to_time64us;
@@ -54,6 +55,11 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
         (a, b) = (b, a % b);
     }
     a
+}
+
+#[function("add(decimal, decimal) -> decimal")]
+fn add<T: Add<Output = T>>(x: T, y: T) -> T {
+    x + y
 }
 
 #[function("identity(boolean) -> boolean")]
@@ -424,12 +430,12 @@ fn test_key_values() {
     check(
         &[output],
         expect![[r#"
-            +-----+--------------------+
-            | row | key_values         |
-            +-----+--------------------+
-            | 0   | {key: a, value: b} |
-            | 0   | {key: c, value: d} |
-            +-----+--------------------+"#]],
+        +-----+--------------------+
+        | row | key_values         |
+        +-----+--------------------+
+        | 0   | {key: a, value: b} |
+        | 0   | {key: c, value: d} |
+        +-----+--------------------+"#]],
     );
 }
 
@@ -443,11 +449,11 @@ fn test_struct_of_all() {
     check(
         &[output],
         expect![[r#"
-            +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-            | struct_of_all                                                                                                                                                                                                                                                                               |
-            +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-            | {b: , a: 0, c: 1, d: 2, e: 3, aa: 4, cc: 5, dd: 6, ee: 7, f: 4.0, g: 5.0, h: 0.006, i: 2022-04-08, j: 12:34:56.789012, k: 2022-04-08T12:34:56.789012, l: 0 years 7 mons 8 days 0 hours 0 mins 0.000000009 secs, m: {"key":"value"}, n: string, o: 0a0b0c, p: [a, b], q: {key: a, value: b}} |
-            +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+"#]],
+        +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+        | struct_of_all                                                                                                                                                                                                                                                                               |
+        +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+        | {b: , a: 0, c: 1, d: 2, e: 3, aa: 4, cc: 5, dd: 6, ee: 7, f: 4.0, g: 5.0, h: 0.006, i: 2022-04-08, j: 12:34:56.789012, k: 2022-04-08T12:34:56.789012, l: 0 years 7 mons 8 days 0 hours 0 mins 0.000000009 secs, m: {"key":"value"}, n: string, o: 0a0b0c, p: [a, b], q: {key: a, value: b}} |
+        +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+"#]],
     );
 }
 
@@ -553,20 +559,22 @@ fn test_temporal() {
 }
 
 #[test]
-fn test_decimal() {
-    let schema = Schema::new(vec![Field::new("d", DataType::Utf8, true)]);
-    let arg0 = StringArray::from(vec!["0.001"]);
-    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+fn test_decimal_add() {
+    let schema = Schema::new(vec![decimal_field("a"), decimal_field("b")]);
+    let arg0 = StringArray::from(vec!["0.0001"]);
+    let arg1 = StringArray::from(vec!["0.0002"]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = identity_decimal_decimal_eval(&input).unwrap();
+    let output = add_decimal_decimal_decimal_eval(&input).unwrap();
     check(
         &[output],
         expect![[r#"
-            +----------+
-            | identity |
-            +----------+
-            | 0.001    |
-            +----------+"#]],
+        +--------+
+        | add    |
+        +--------+
+        | 0.0003 |
+        +--------+"#]],
     );
 }
 
@@ -630,7 +638,7 @@ fn test_range() {
 
 #[test]
 fn test_json_array_elements() {
-    let schema = Schema::new(vec![Field::new("d", DataType::Utf8, true)]);
+    let schema = Schema::new(vec![json_field("d")]);
     let arg0 = StringArray::from(vec![r#"[null,1,""]"#, "1"]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
@@ -656,4 +664,16 @@ fn test_json_array_elements() {
 #[track_caller]
 fn check(actual: &[RecordBatch], expect: Expect) {
     expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
+}
+
+/// Returns a field with JSON type.
+fn json_field(name: &str) -> Field {
+    Field::new(name, DataType::Utf8, true)
+        .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into())
+}
+
+/// Returns a field with decimal type.
+fn decimal_field(name: &str) -> Field {
+    Field::new(name, DataType::Utf8, true)
+        .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into())
 }

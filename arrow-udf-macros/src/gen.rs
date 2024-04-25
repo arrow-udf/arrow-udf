@@ -44,50 +44,6 @@ impl FunctionAttr {
         attrs
     }
 
-    /// Generate the type infer function.
-    #[allow(dead_code)]
-    fn generate_type_infer_fn(&self) -> Result<TokenStream2> {
-        if let Some(func) = &self.type_infer {
-            if func == "panic" {
-                return Ok(quote! { |_| panic!("type inference function is not implemented") });
-            }
-            // use the user defined type inference function
-            return Ok(func.parse().unwrap());
-        } else if self.ret == "any" {
-            // TODO: if there are multiple "any", they should be the same type
-            if let Some(i) = self.args.iter().position(|t| t == "any") {
-                // infer as the type of "any" argument
-                return Ok(quote! { |args| Ok(args[#i].clone()) });
-            }
-            if let Some(i) = self.args.iter().position(|t| t == "anyarray") {
-                // infer as the element type of "anyarray" argument
-                return Ok(quote! { |args| Ok(args[#i].as_list().clone()) });
-            }
-        } else if self.ret == "anyarray" {
-            if let Some(i) = self.args.iter().position(|t| t == "anyarray") {
-                // infer as the type of "anyarray" argument
-                return Ok(quote! { |args| Ok(args[#i].clone()) });
-            }
-            if let Some(i) = self.args.iter().position(|t| t == "any") {
-                // infer as the array type of "any" argument
-                return Ok(quote! { |args| Ok(DataType::List(Box::new(args[#i].clone()))) });
-            }
-        } else if self.ret == "struct" {
-            if let Some(i) = self.args.iter().position(|t| t == "struct") {
-                // infer as the type of "struct" argument
-                return Ok(quote! { |args| Ok(args[#i].clone()) });
-            }
-        } else {
-            // the return type is fixed
-            let ty = data_type(&self.ret);
-            return Ok(quote! { |_| Ok(#ty) });
-        }
-        Err(Error::new(
-            Span::call_site(),
-            "type inference function is required",
-        ))
-    }
-
     /// Generate a descriptor of the scalar or table function.
     ///
     /// The types of arguments and return value should not contain wildcard.
@@ -99,9 +55,9 @@ impl FunctionAttr {
             false => &self.args[..],
         }
         .iter()
-        .map(|ty| sig_data_type(ty))
+        .map(|ty| field("", ty))
         .collect_vec();
-        let ret = sig_data_type(&self.ret);
+        let ret = field(&self.name, &self.ret);
 
         let eval_name = match &self.output {
             Some(output) => format_ident!("{}", output),
@@ -131,12 +87,13 @@ impl FunctionAttr {
             #[cfg(feature = "global_registry")]
             #[::arrow_udf::codegen::linkme::distributed_slice(::arrow_udf::sig::SIGNATURES)]
             fn #sig_name() -> ::arrow_udf::sig::FunctionSignature {
-                use ::arrow_udf::sig::{FunctionSignature, FunctionKind, SigDataType};
-                use ::arrow_udf::codegen::arrow_schema::{self, TimeUnit, IntervalUnit};
+                use ::arrow_udf::sig::{FunctionSignature, FunctionKind};
+                use ::arrow_udf::codegen::arrow_schema::{self, TimeUnit, IntervalUnit, Field};
 
+                let args: Vec<Field> = vec![#(#args),*];
                 FunctionSignature {
                     name: #name.into(),
-                    arg_types: vec![#(#args),*],
+                    arg_types: args.into(),
                     variadic: #variadic,
                     return_type: #ret,
                     function: FunctionKind::#kind(#eval_name),
@@ -154,7 +111,6 @@ impl FunctionAttr {
         let variadic = matches!(self.args.last(), Some(t) if t == "...");
         let num_args = self.args.len() - if variadic { 1 } else { 0 };
         let user_fn_name = format_ident!("{}", user_fn.name);
-        let fn_name = &self.name;
 
         let children_indices = (0..num_args).collect_vec();
 
@@ -171,7 +127,7 @@ impl FunctionAttr {
             .iter()
             .map(|i| format_ident!("{}", types::array_type(&self.args[*i])));
         let ret_array_type = format_ident!("{}", types::array_type(&self.ret));
-        let ret_data_type = data_type(&self.ret);
+        let ret_data_type = field(&self.name, &self.ret);
 
         let variadic_args = variadic.then(|| quote! { variadic_row, });
         let context = user_fn.context.then(|| quote! { &self.context, });
@@ -306,7 +262,7 @@ impl FunctionAttr {
                 lazy_static! {
                     static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![
                         Field::new("row", DataType::Int32, true),
-                        Field::new(#fn_name, #ret_data_type, true),
+                        #ret_data_type,
                         #error_field
                     ]));
                 }
@@ -374,10 +330,10 @@ impl FunctionAttr {
             let builder = builder(&self.ret);
             // append the `output` to the `builder`
             let append_output = if user_fn.write {
-                if self.ret != "varchar" && self.ret != "bytea" {
+                if self.ret != "string" && self.ret != "binary" {
                     return Err(Error::new(
                         Span::call_site(),
-                        "`&mut Write` can only be used for functions that return `varchar` or `bytea`",
+                        "`&mut Write` can only be used for functions that return `string` or `binary`",
                     ));
                 }
                 quote! {{
@@ -424,10 +380,7 @@ impl FunctionAttr {
                 #eval
 
                 lazy_static! {
-                    static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![
-                        Field::new(#fn_name, #ret_data_type, true),
-                        #error_field
-                    ]));
+                    static ref SCHEMA: SchemaRef = Arc::new(Schema::new(vec![#ret_data_type, #error_field]));
                 }
                 Ok(RecordBatch::try_new(SCHEMA.clone(), vec![array, #error_array]).unwrap())
             }
@@ -487,45 +440,43 @@ impl FunctionAttr {
     }
 }
 
-fn sig_data_type(ty: &str) -> TokenStream2 {
-    match ty {
-        "any" => quote! { SigDataType::Any },
-        _ => {
-            let datatype = data_type(ty);
-            quote! { SigDataType::Exact(#datatype) }
-        }
-    }
-}
-
-/// Returns a `DataType` from type name.
-pub fn data_type(ty: &str) -> TokenStream2 {
-    if let Some(ty) = ty.strip_suffix("[]") {
-        let inner_type = data_type(ty);
-        return quote! { arrow_schema::DataType::List(Arc::new(arrow_schema::Field::new("item", #inner_type, true))) };
-    }
-    if let Some(s) = ty.strip_prefix("struct ") {
+/// Returns a `Field` from type name.
+pub fn field(name: &str, ty: &str) -> TokenStream2 {
+    let data_type = if let Some(ty) = ty.strip_suffix("[]") {
+        let inner = field("item", ty);
+        quote! { arrow_schema::DataType::List(Arc::new(#inner)) }
+    } else if let Some(s) = ty.strip_prefix("struct ") {
         let struct_type = format_ident!("{}", s);
-        return quote! { arrow_schema::DataType::Struct(#struct_type::fields()) };
+        quote! { arrow_schema::DataType::Struct(#struct_type::fields()) }
+    } else {
+        let variant: TokenStream2 = types::data_type(ty).parse().unwrap();
+        quote! { arrow_schema::DataType::#variant }
+    };
+    let with_metadata = match ty {
+        "json" => {
+            quote! { .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into()) }
+        }
+        "decimal" => {
+            quote! { .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into()) }
+        }
+        _ => quote! {},
+    };
+    quote! {
+        arrow_schema::Field::new(#name, #data_type, true) #with_metadata
     }
-    let variant: TokenStream2 = types::data_type(ty).parse().unwrap();
-    quote! { arrow_schema::DataType::#variant }
 }
 
 /// Generate a builder for the given type.
 fn builder(ty: &str) -> TokenStream2 {
     match ty {
-        "varchar" => {
-            quote! { StringBuilder::with_capacity(input.num_rows(), 1024) }
-        }
-        "bytea" => {
-            quote! { BinaryBuilder::with_capacity(input.num_rows(), 1024) }
-        }
+        "string" => quote! { StringBuilder::with_capacity(input.num_rows(), 1024) },
+        "binary" => quote! { BinaryBuilder::with_capacity(input.num_rows(), 1024) },
+        "largestring" => quote! { LargeStringBuilder::with_capacity(input.num_rows(), 1024) },
+        "largebinary" => quote! { LargeBinaryBuilder::with_capacity(input.num_rows(), 1024) },
         "decimal" => {
-            quote! { LargeBinaryBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
+            quote! { StringBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
         }
-        "json" => {
-            quote! { LargeStringBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) }
-        }
+        "json" => quote! { StringBuilder::with_capacity(input.num_rows(), input.num_rows() * 8) },
         s if s.ends_with("[]") => {
             let values_builder = builder(ty.strip_suffix("[]").unwrap());
             quote! { ListBuilder::<Box<dyn ArrayBuilder>>::with_capacity(Box::new(#values_builder), input.num_rows()) }
@@ -580,16 +531,16 @@ pub fn gen_append_value(ty: &str) -> TokenStream2 {
         }}
     } else if ty == "json" {
         quote! {{
-            // builder: LargeStringBuilder
+            // builder: StringBuilder
             use std::fmt::Write;
             write!(builder, "{}", v).expect("write json");
             builder.append_value("");
         }}
     } else if ty == "decimal" {
         quote! { builder.append_value(v.to_string()) }
-    } else if ty == "date" {
+    } else if ty == "date32" {
         quote! { builder.append_value(arrow_array::types::Date32Type::from_naive_date(v)) }
-    } else if ty == "time" {
+    } else if ty == "time64" {
         quote! { builder.append_value(arrow_array::temporal_conversions::time_to_time64us(v)) }
     } else if ty == "timestamp" {
         quote! { builder.append_value(v.and_utc().timestamp_micros()) }
@@ -598,7 +549,7 @@ pub fn gen_append_value(ty: &str) -> TokenStream2 {
             let v: arrow_udf::types::Interval = v.into();
             arrow_array::types::IntervalMonthDayNanoType::make_value(v.months, v.days, v.nanos)
         }) }
-    } else if ty == "void" {
+    } else if ty == "null" {
         quote! { builder.append_empty_value() }
     } else {
         quote! { builder.append_value(v) }
@@ -617,27 +568,34 @@ pub fn gen_append_null(ty: &str) -> TokenStream2 {
 
 /// Generate code to transform the input from the type got from arrow array to the type in the user function.
 ///
-/// | Data Type   | Arrow Value Type | User Function Type           |
-/// | ----------- | ---------------- | ---------------------------- |
-/// | `date`      | `i32`            | `chrono::NaiveDate`          |
-/// | `time`      | `i64`            | `chrono::NaiveTime`          |
-/// | `timestamp` | `i64`            | `chrono::NaiveDateTime`      |
-/// | `interval`  | `i128`           | `arrow_udf::types::Interval` |
-/// | `decimal`   | `&str`           | `rust_decimal::Decimal`      |
-/// | `json`      | `&str`           | `serde_json::Value`          |
-/// | `smallint[]`| `ArrayRef`       | `&[i16]`                     |
-/// | `int[]`     | `ArrayRef`       | `&[i32]`                     |
-/// | `bigint[]`  | `ArrayRef`       | `&[i64]`                     |
-/// | `real[]`    | `ArrayRef`       | `&[f32]`                     |
-/// | `float[]`   | `ArrayRef`       | `&[f64]`                     |
-/// | `varchar[]` | `ArrayRef`       | `arrow::array::StringArray`  |
-/// | `bytea[]`   | `ArrayRef`       | `arrow::array::BinaryArray`  |
+/// | Data Type       | Arrow Value Type | User Function Type               |
+/// | --------------- | ---------------- | -------------------------------- |
+/// | `date32`        | `i32`            | `chrono::NaiveDate`              |
+/// | `time64`        | `i64`            | `chrono::NaiveTime`              |
+/// | `timestamp`     | `i64`            | `chrono::NaiveDateTime`          |
+/// | `interval`      | `i128`           | `arrow_udf::types::Interval`     |
+/// | `decimal`       | `&str`           | `rust_decimal::Decimal`          |
+/// | `json`          | `&str`           | `serde_json::Value`              |
+/// | `int8[]`        | `ArrayRef`       | `&[i8]`                          |
+/// | `int16[]`       | `ArrayRef`       | `&[i16]`                         |
+/// | `int32[]`       | `ArrayRef`       | `&[i32]`                         |
+/// | `int64[]`       | `ArrayRef`       | `&[i64]`                         |
+/// | `uint8[]`       | `ArrayRef`       | `&[u8]`                          |
+/// | `uint16[]`      | `ArrayRef`       | `&[u16]`                         |
+/// | `uint32[]`      | `ArrayRef`       | `&[u32]`                         |
+/// | `uint64[]`      | `ArrayRef`       | `&[u64]`                         |
+/// | `float32[]`     | `ArrayRef`       | `&[f32]`                         |
+/// | `float64[]`     | `ArrayRef`       | `&[f64]`                         |
+/// | `string[]`      | `ArrayRef`       | `arrow::array::StringArray`      |
+/// | `binary[]`      | `ArrayRef`       | `arrow::array::BinaryArray`      |
+/// | `largestring[]` | `ArrayRef`       | `arrow::array::LargeStringArray` |
+/// | `largebinary[]` | `ArrayRef`       | `arrow::array::LargeBinaryArray` |
 fn transform_input(input: &Ident, ty: &str) -> TokenStream2 {
     if ty == "decimal" {
-        return quote! { std::str::from_utf8(#input).expect("invalid utf8 for decimal").parse::<rust_decimal::Decimal>().expect("invalid decimal") };
-    } else if ty == "date" {
+        return quote! { #input.parse::<rust_decimal::Decimal>().expect("invalid decimal") };
+    } else if ty == "date32" {
         return quote! { arrow_array::types::Date32Type::to_naive_date(#input) };
-    } else if ty == "time" {
+    } else if ty == "time64" {
         return quote! { arrow_array::temporal_conversions::as_time::<arrow_array::types::Time64MicrosecondType>(#input).expect("invalid time") };
     } else if ty == "timestamp" {
         return quote! { arrow_array::temporal_conversions::as_datetime::<arrow_array::types::TimestampMicrosecondType>(#input).expect("invalid timestamp") };
@@ -655,13 +613,21 @@ fn transform_input(input: &Ident, ty: &str) -> TokenStream2 {
                 let primitive_array: &#array_type = #input.as_primitive();
                 primitive_array.values().as_ref()
             }};
-        } else if elem_type == "varchar" {
+        } else if elem_type == "string" {
             return quote! {
                 #input.as_any().downcast_ref::<arrow_array::StringArray>().expect("string array")
             };
-        } else if elem_type == "bytea" {
+        } else if elem_type == "binary" {
             return quote! {
                 #input.as_any().downcast_ref::<arrow_array::BinaryArray>().expect("binary array")
+            };
+        } else if elem_type == "largestring" {
+            return quote! {
+                #input.as_any().downcast_ref::<arrow_array::LargeStringArray>().expect("large string array")
+            };
+        } else if elem_type == "largebinary" {
+            return quote! {
+                #input.as_any().downcast_ref::<arrow_array::LargeBinaryArray>().expect("large binary array")
             };
         } else {
             return quote! { #input };

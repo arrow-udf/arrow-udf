@@ -20,7 +20,7 @@ use anyhow::{Context, Ok};
 use arrow_array::{array::*, builder::*};
 use arrow_buffer::{Buffer, MutableBuffer, OffsetBuffer};
 use arrow_data::ArrayData;
-use arrow_schema::DataType;
+use arrow_schema::{DataType, Field};
 use libc::c_void;
 
 use crate::v8::V8;
@@ -200,11 +200,11 @@ unsafe extern "C" fn backing_store_deleter_callback(
 
 /// Build arrow array from JS objects.
 pub fn build_array(
-    data_type: &DataType,
+    field: &Field,
     scope: &mut v8::HandleScope<'_>,
     values: Vec<v8::Global<v8::Value>>,
 ) -> anyhow::Result<ArrayRef> {
-    match data_type {
+    match field.data_type() {
         DataType::Null => {
             let mut builder = NullBuilder::with_capacity(values.len());
             for val in values {
@@ -714,42 +714,76 @@ pub fn build_array(
             Ok(Arc::new(builder.finish()))
         }
         DataType::FixedSizeBinary(_) => todo!(),
-        // decimal type
-        DataType::LargeBinary => {
-            let mut builder = LargeBinaryBuilder::with_capacity(values.len(), 1024);
+        DataType::Utf8 => match field
+            .metadata()
+            .get("ARROW:extension:name")
+            .map(|s| s.as_str())
+        {
+            Some("arrowudf.json") => {
+                let mut builder = StringBuilder::with_capacity(values.len(), 1024);
+                for val in values {
+                    let val = v8::Local::new(scope, val);
+                    if val.is_null() || val.is_undefined() {
+                        builder.append_null();
+                    } else if let Some(s) = v8::json::stringify(scope, val) {
+                        builder.append_value(s.to_rust_string_lossy(scope));
+                    } else {
+                        builder.append_null();
+                    }
+                }
+                Ok(Arc::new(builder.finish()))
+            }
+            Some("arrowudf.decimal") => {
+                let mut builder = StringBuilder::with_capacity(values.len(), 1024);
 
-            for val in values {
-                let val = v8::Local::new(scope, val);
-                if val.is_null() || val.is_undefined() {
-                    builder.append_null();
-                } else {
-                    if let std::result::Result::Ok(obj) = v8::Local::<v8::Object>::try_from(val) {
-                        let key = v8::String::new(scope, "toString")
-                            .context("Can not allocate a new string")?;
-                        if let Some(func) = obj.get(scope, key.into()) {
-                            if let std::result::Result::Ok(func) =
-                                v8::Local::<v8::Function>::try_from(func)
-                            {
-                                if let Some(val) = func.call(scope, obj.into(), &[]) {
-                                    let val = val
-                                        .to_string(scope)
-                                        .context("Couldn't convert to string")?;
-                                    builder.append_value(val.to_rust_string_lossy(scope));
-                                    continue;
+                for val in values {
+                    let val = v8::Local::new(scope, val);
+                    if val.is_null() || val.is_undefined() {
+                        builder.append_null();
+                    } else {
+                        if let std::result::Result::Ok(obj) = v8::Local::<v8::Object>::try_from(val)
+                        {
+                            let key = v8::String::new(scope, "toString")
+                                .context("Can not allocate a new string")?;
+                            if let Some(func) = obj.get(scope, key.into()) {
+                                if let std::result::Result::Ok(func) =
+                                    v8::Local::<v8::Function>::try_from(func)
+                                {
+                                    if let Some(val) = func.call(scope, obj.into(), &[]) {
+                                        let val = val
+                                            .to_string(scope)
+                                            .context("Couldn't convert to string")?;
+                                        builder.append_value(val.to_rust_string_lossy(scope));
+                                        continue;
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    let number = val.to_number(scope).context("Couldn't convert to number")?;
-                    let value = number.value();
-                    builder.append_value(value.to_string());
+                        let number = val.to_number(scope).context("Couldn't convert to number")?;
+                        let value = number.value();
+                        builder.append_value(value.to_string());
+                    }
                 }
+                Ok(Arc::new(builder.finish()))
             }
-            Ok(Arc::new(builder.finish()))
-        }
-        DataType::Utf8 => {
-            let mut builder = StringBuilder::with_capacity(values.len(), 1024);
+            _ => {
+                // normal utf8
+                let mut builder = StringBuilder::with_capacity(values.len(), 1024);
+                for val in values {
+                    let val = v8::Local::new(scope, val);
+                    if val.is_null() || val.is_undefined() {
+                        builder.append_null();
+                    } else {
+                        let s = val.to_string(scope).context("Couldn't convert to string")?;
+                        builder.append_value(s.to_rust_string_lossy(scope));
+                    }
+                }
+                Ok(Arc::new(builder.finish()))
+            }
+        },
+        DataType::LargeUtf8 => {
+            let mut builder = LargeStringBuilder::with_capacity(values.len(), 1024);
             for val in values {
                 let val = v8::Local::new(scope, val);
                 if val.is_null() || val.is_undefined() {
@@ -757,20 +791,6 @@ pub fn build_array(
                 } else {
                     let s = val.to_string(scope).context("Couldn't convert to string")?;
                     builder.append_value(s.to_rust_string_lossy(scope));
-                }
-            }
-            Ok(Arc::new(builder.finish()))
-        }
-        DataType::LargeUtf8 => {
-            let mut builder = LargeStringBuilder::with_capacity(values.len(), 1024);
-            for val in values {
-                let val = v8::Local::new(scope, val);
-                if val.is_null() || val.is_undefined() {
-                    builder.append_null();
-                } else if let Some(s) = v8::json::stringify(scope, val) {
-                    builder.append_value(s.to_rust_string_lossy(scope));
-                } else {
-                    builder.append_null();
                 }
             }
             Ok(Arc::new(builder.finish()))
@@ -849,7 +869,7 @@ pub fn build_array(
                 return Ok(Arc::new(list_array));
             }
 
-            let values_array = build_array(inner.data_type(), scope, flatten_values)?;
+            let values_array = build_array(inner, scope, flatten_values)?;
             let nulls = values
                 .iter()
                 .map(|v| {
@@ -882,7 +902,7 @@ pub fn build_array(
                     };
                     field_values.push(v8::Global::new(scope, v));
                 }
-                arrays.push(build_array(field.data_type(), scope, field_values)?);
+                arrays.push(build_array(field, scope, field_values)?);
             }
             let nulls = values
                 .iter()
@@ -909,6 +929,7 @@ pub fn build_array(
 
 pub fn get_jsvalue<'s>(
     scope: &mut v8::HandleScope<'s>,
+    field: &Field,
     array: &dyn Array,
     big_decimal: &v8::Global<v8::Function>,
     i: usize,
@@ -1123,43 +1144,60 @@ pub fn get_jsvalue<'s>(
 
             Ok(u8array.into())
         }
-        DataType::FixedSizeBinary(_) => todo!(),
-        // decimal type
         DataType::LargeBinary => {
             let array = array.as_any().downcast_ref::<LargeBinaryArray>().unwrap();
-            let str = std::str::from_utf8(array.value(i))?;
-            let val = v8::String::new(scope, str).context("Couldn't create a string")?;
-            let bigdecimal = v8::Local::new(scope, big_decimal);
-            let recv = v8::undefined(scope);
-            let try_catch = &mut v8::TryCatch::new(scope);
-            let result = bigdecimal.new_instance(try_catch, &[val.into()]);
+            let bytes = array.value(i).to_vec();
+            let len = bytes.len();
+            let backing_store = v8::ArrayBuffer::new_backing_store_from_vec(bytes).make_shared();
+            let buffer = v8::ArrayBuffer::with_backing_store(scope, &backing_store);
+            let u8array = v8::Uint8Array::new(scope, buffer, 0, len)
+                .context("Couldn't create a Uint8Array")?;
 
-            match result {
-                Some(r) => Ok(r.into()),
-                None => {
-                    assert!(try_catch.has_caught());
-                    //Avoids killing the isolate even if it was requested
-                    if try_catch.is_execution_terminating() {
-                        try_catch.cancel_terminate_execution();
-                        anyhow::bail!("Execution was terminated");
-                    }
-                    let exception = try_catch.exception().unwrap();
-
-                    crate::v8::V8::exception_to_err_result(try_catch, exception, false)
-                }
-            }
+            Ok(u8array.into())
         }
+        DataType::FixedSizeBinary(_) => todo!(),
         DataType::Utf8 => {
             let array = array.as_any().downcast_ref::<StringArray>().unwrap();
             let string =
                 v8::String::new(scope, array.value(i)).context("Couldn't create a string")?;
-            Ok(string.into())
+            match field
+                .metadata()
+                .get("ARROW:extension:name")
+                .map(|s| s.as_str())
+            {
+                Some("arrowudf.json") => {
+                    let array = array.as_any().downcast_ref::<StringArray>().unwrap();
+                    Ok(v8::json::parse(scope, string).context("Couldn't parse the json string")?)
+                }
+                Some("arrowudf.decimal") => {
+                    let bigdecimal = v8::Local::new(scope, big_decimal);
+                    let recv = v8::undefined(scope);
+                    let try_catch = &mut v8::TryCatch::new(scope);
+                    let result = bigdecimal.new_instance(try_catch, &[string.into()]);
+
+                    match result {
+                        Some(r) => Ok(r.into()),
+                        None => {
+                            assert!(try_catch.has_caught());
+                            // Avoids killing the isolate even if it was requested
+                            if try_catch.is_execution_terminating() {
+                                try_catch.cancel_terminate_execution();
+                                anyhow::bail!("Execution was terminated");
+                            }
+                            let exception = try_catch.exception().unwrap();
+
+                            crate::v8::V8::exception_to_err_result(try_catch, exception, false)
+                        }
+                    }
+                }
+                _ => Ok(string.into()),
+            }
         }
         DataType::LargeUtf8 => {
             let array = array.as_any().downcast_ref::<LargeStringArray>().unwrap();
-            let json_string =
+            let string =
                 v8::String::new(scope, array.value(i)).context("Couldn't create a string")?;
-            Ok(v8::json::parse(scope, json_string).context("Couldn't parse the json string")?)
+            Ok(string.into())
         }
         DataType::List(inner) => {
             let array = array.as_any().downcast_ref::<ListArray>().unwrap();
@@ -1185,7 +1223,7 @@ pub fn get_jsvalue<'s>(
                 _ => {
                     let array = v8::Array::new(scope, list.len() as i32);
                     for j in 0..list.len() {
-                        let val = get_jsvalue(scope, list.as_ref(), big_decimal, j)?;
+                        let val = get_jsvalue(scope, inner, list.as_ref(), big_decimal, j)?;
                         array.set_index(scope, j as u32, val);
                     }
                     Ok(array.into())
@@ -1198,7 +1236,7 @@ pub fn get_jsvalue<'s>(
             let array = array.as_any().downcast_ref::<StructArray>().unwrap();
             let object = v8::Object::new(scope);
             for (j, field) in fields.iter().enumerate() {
-                let value = get_jsvalue(scope, array.column(j).as_ref(), big_decimal, i)?;
+                let value = get_jsvalue(scope, field, array.column(j).as_ref(), big_decimal, i)?;
                 let name =
                     v8::String::new(scope, field.name()).context("Couldn't create a string")?;
                 if !object.set(scope, name.into(), value).unwrap_or_default() {

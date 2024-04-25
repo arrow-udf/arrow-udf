@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2024-04-25
+
+### Added
+
+- Add support for `int8`, `uint8`, `uint16`, `uint32`, `uint64`, `largestring`, and `largebinary` type.
+
+### Breaking Changes
+
+- The following types are renamed to align with Arrow:
+    - `void` -> `null`
+    - `int2` -> `int16`
+    - `int4` -> `int32`
+    - `int8` -> `int64`
+    - `float4` -> `float32`
+    - `float8` -> `float64`
+    - `date` -> `date32`
+    - `time` -> `time64`
+    - `varchar` -> `string`
+    - `bytea` -> `binary`
+
+- `json` and `decimal` type are no longer mapped to `LargeString` and `LargeBinary` respectively. They are now mapped to [extension types](https://arrow.apache.org/docs/format/Columnar.html#format-metadata-extension-types) with `String` as the storage type.
+    - `json`: `ARROW:extension:name` = `arrorudf.json`
+    - `decimal`: `ARROW:extension:name` = `arrowudf.decimal`
+
 ## [0.2.2] - 2024-04-02
 
 ### Changed

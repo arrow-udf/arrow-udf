@@ -40,6 +40,8 @@ pub struct Runtime {
     types: HashMap<String, String>,
     /// Instance pool.
     instances: Mutex<Vec<Instance>>,
+    /// ABI version. (major, minor)
+    abi_version: (u8, u8),
 }
 
 /// Configurations.
@@ -105,7 +107,8 @@ impl Runtime {
             .find_map(|e| e.name().strip_prefix("ARROWUDF_VERSION_"))
             .context("version not found")?;
         let (major, minor) = version.split_once('_').context("invalid version")?;
-        ensure!(major <= "2", "unsupported abi version: {major}.{minor}");
+        let (major, minor) = (major.parse::<u8>()?, minor.parse::<u8>()?);
+        ensure!(major <= 3, "unsupported abi version: {major}.{minor}");
 
         let mut functions = HashSet::new();
         let mut types = HashMap::new();
@@ -126,6 +129,7 @@ impl Runtime {
             functions,
             types,
             instances: Mutex::new(vec![]),
+            abi_version: (major, minor),
         })
     }
 
@@ -139,14 +143,19 @@ impl Runtime {
         self.types.iter().map(|(k, v)| (k.as_str(), v.as_str()))
     }
 
+    /// Return the ABI version.
+    pub fn abi_version(&self) -> (u8, u8) {
+        self.abi_version
+    }
+
     /// Given a function signature that inlines struct types, find the function name.
     ///
     /// # Example
     ///
     /// ```text
-    /// types = { "KeyValue": "key:varchar,value:varchar" }
-    /// input = "keyvalue(varchar, varchar) -> struct<key:varchar,value:varchar>"
-    /// output = "keyvalue(varchar, varchar) -> struct KeyValue"
+    /// types = { "KeyValue": "key:string,value:string" }
+    /// input = "keyvalue(string, string) -> struct<key:string,value:string>"
+    /// output = "keyvalue(string, string) -> struct KeyValue"
     /// ```
     pub fn find_function_by_inlined_signature(&self, s: &str) -> Option<&str> {
         self.functions
@@ -160,9 +169,9 @@ impl Runtime {
     /// # Example
     ///
     /// ```text
-    /// types = { "KeyValue": "key:varchar,value:varchar" }
-    /// input = "keyvalue(varchar, varchar) -> struct KeyValue"
-    /// output = "keyvalue(varchar, varchar) -> struct<key:varchar,value:varchar>"
+    /// types = { "KeyValue": "key:string,value:string" }
+    /// input = "keyvalue(string, string) -> struct KeyValue"
+    /// output = "keyvalue(string, string) -> struct<key:string,value:string>"
     /// ```
     fn inline_types(&self, s: &str) -> String {
         let mut inlined = s.to_string();

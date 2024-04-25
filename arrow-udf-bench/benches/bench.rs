@@ -15,7 +15,7 @@
 use std::sync::Arc;
 
 use arrow_arith::arity::binary;
-use arrow_array::{Int32Array, LargeBinaryArray, RecordBatch};
+use arrow_array::{Int32Array, RecordBatch, StringArray};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf::function;
 use arrow_udf_js::Runtime as JsRuntime;
@@ -72,14 +72,14 @@ def gcd(a: int, b: int) -> int:
     });
 
     c.bench_function("gcd/rust", |bencher| {
-        bencher.iter(|| gcd_int4_int4_int4_eval(&input).unwrap())
+        bencher.iter(|| gcd_int32_int32_int32_eval(&input).unwrap())
     });
 
     c.bench_function("gcd/wasm", |bencher| {
         let filepath = "../target/wasm32-wasi/release/arrow_udf_example.wasm";
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
-        bencher.iter(|| rt.call("gcd(int4,int4)->int4", &input).unwrap())
+        bencher.iter(|| rt.call("gcd(int32,int32)->int32", &input).unwrap())
     });
 
     c.bench_function("gcd/deno", |bencher| {
@@ -164,7 +164,7 @@ def range1(n: int):
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
         bencher.iter(|| {
-            rt.call_table_function("range(int4)->>int4", &input)
+            rt.call_table_function("range(int32)->>int32", &input)
                 .unwrap()
                 .for_each(|_| {})
         })
@@ -245,12 +245,8 @@ def decimal(a):
     "#;
 
     let input = RecordBatch::try_new(
-        Arc::new(Schema::new(vec![Field::new(
-            "a",
-            DataType::LargeBinary,
-            true,
-        )])),
-        vec![Arc::new(LargeBinaryArray::from(vec![&b"0.0"[..]; 1024]))],
+        Arc::new(Schema::new(vec![decimal_field("a")])),
+        vec![Arc::new(StringArray::from(vec!["0.0"; 1024]))],
     )
     .unwrap();
 
@@ -262,7 +258,7 @@ def decimal(a):
         let mut rt = JsRuntime::new().unwrap();
         rt.add_function(
             "decimal",
-            DataType::LargeBinary,
+            decimal_field("decimal"),
             arrow_udf_js::CallMode::ReturnNullOnNullInput,
             js_code,
         )
@@ -280,7 +276,7 @@ def decimal(a):
         tokio_runtime
             .block_on(rt.add_function(
                 "decimal",
-                DataType::LargeBinary,
+                decimal_field("decimal"),
                 arrow_udf_js_deno::CallMode::ReturnNullOnNullInput,
                 js_code,
             ))
@@ -294,7 +290,7 @@ def decimal(a):
         let mut rt = PythonRuntime::new().unwrap();
         rt.add_function(
             "decimal",
-            DataType::LargeBinary,
+            decimal_field("decimal"),
             arrow_udf_python::CallMode::ReturnNullOnNullInput,
             python_code,
         )
@@ -310,3 +306,9 @@ criterion_group!(
     bench_eval_decimal
 );
 criterion_main!(benches);
+
+/// Returns a field with decimal type.
+fn decimal_field(name: &str) -> Field {
+    Field::new(name, DataType::Utf8, true)
+        .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into())
+}

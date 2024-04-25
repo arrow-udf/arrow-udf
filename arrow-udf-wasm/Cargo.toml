@@ -1,6 +1,6 @@
 [package]
 name = "arrow-udf-wasm"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 description = "WebAssembly runtime for Arrow UDFs."
 repository = "https://github.com/risingwavelabs/arrow-udf"
@@ -22,8 +22,8 @@ base64 = "0.22"
 genawaiter = "0.99"
 lazy_static = "1"
 tempfile = { version = "3", optional = true }
-wasi-common = "19"
-wasmtime = "19"
+wasi-common = "20"
+wasmtime = "20"
 
 [dev-dependencies]
 arrow-cast = { version = ">=50", features = ["prettyprint"] }

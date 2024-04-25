@@ -37,7 +37,7 @@ mod utils;
 /// ```
 ///
 /// ```ignore
-/// #[function("split_kv(varchar) -> struct KeyValue")]
+/// #[function("split_kv(string) -> struct KeyValue")]
 /// fn split_kv(kv: &str) -> Option<KeyValue<'_>> {
 ///     let (key, value) = kv.split_once('=')?;
 ///     Some(KeyValue { key, value })
@@ -94,7 +94,7 @@ pub fn struct_type(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// function (table function), meaning it can return multiple values instead of just one. For more
 /// details, see the section on table functions.
 ///
-/// If no return type is specified, the function returns `void`.
+/// If no return type is specified, the function returns `null`.
 ///
 /// ## Multiple Function Definitions
 ///
@@ -102,9 +102,9 @@ pub fn struct_type(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// multiple SQL functions of different types. For example:
 ///
 /// ```ignore
-/// #[function("add(int2, int2) -> int2")]
-/// #[function("add(int4, int4) -> int4")]
-/// #[function("add(int8, int8) -> int8")]
+/// #[function("add(int16, int16) -> int16")]
+/// #[function("add(int32, int32) -> int32")]
+/// #[function("add(int64, int64) -> int64")]
 /// fn add<T: Add>(x: T, y: T) -> T {
 ///     x + y
 /// }
@@ -145,11 +145,11 @@ pub fn struct_type(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 ///
 /// ## Functions Returning Strings
 ///
-/// For functions that return varchar types, you can also use the writer style function signature to
+/// For functions that return string types, you can also use the writer style function signature to
 /// avoid memory copying and dynamic memory allocation:
 ///
 /// ```ignore
-/// #[function("trim(varchar) -> varchar")]
+/// #[function("trim(string) -> string")]
 /// fn trim(s: &str, writer: &mut impl Write) {
 ///     writer.write_str(s.trim()).unwrap();
 /// }
@@ -158,7 +158,7 @@ pub fn struct_type(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// If errors may be returned, then the return value should be `Result<()>`:
 ///
 /// ```ignore
-/// #[function("trim(varchar) -> varchar")]
+/// #[function("trim(string) -> string")]
 /// fn trim(s: &str, writer: &mut impl Write) -> Result<()> {
 ///     writer.write_str(s.trim()).unwrap();
 ///     Ok(())
@@ -168,7 +168,7 @@ pub fn struct_type(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// If null values may be returned, then the return value should be `Option<()>`:
 ///
 /// ```ignore
-/// #[function("trim(varchar) -> varchar")]
+/// #[function("trim(string) -> string")]
 /// fn trim(s: &str, writer: &mut impl Write) -> Option<()> {
 ///     if s.is_empty() {
 ///         None
@@ -217,42 +217,53 @@ pub fn struct_type(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 ///
 /// ## Base Types
 ///
-/// | SQL type             | Rust type as argument          | Rust type as return value      |
-/// | -------------------- | ------------------------------ | ------------------------------ |
-/// | `boolean`            | `bool`                         | `bool`                         |
-/// | `smallint`           | `i16`                          | `i16`                          |
-/// | `integer`            | `i32`                          | `i32`                          |
-/// | `bigint`             | `i64`                          | `i64`                          |
-/// | `real`               | `f32`                          | `f32`                          |
-/// | `double precision`   | `f64`                          | `f64`                          |
-/// | `decimal`            | [`rust_decimal::Decimal`]      | [`rust_decimal::Decimal`]      |
-/// | `date`               | [`chrono::NaiveDate`]          | [`chrono::NaiveDate`]          |
-/// | `time`               | [`chrono::NaiveTime`]          | [`chrono::NaiveTime`]          |
-/// | `timestamp`          | [`chrono::NaiveDateTime`]      | [`chrono::NaiveDateTime`]      |
-/// | `timestamptz`        | not supported yet              | not supported yet              |
-/// | `interval`           | [`arrow_udf::types::Interval`] | [`arrow_udf::types::Interval`] |
-/// | `json`               | [`serde_json::Value`]          | [`serde_json::Value`]          |
-/// | `varchar`            | `&str`                         | `impl AsRef<str>`, e.g. `String`, `Box<str>`, `&str`     |
-/// | `bytea`              | `&[u8]`                        | `impl AsRef<[u8]>`, e.g. `Vec<u8>`, `Box<[u8]>`, `&[u8]` |
+/// | Arrow data type      | Aliases            | Rust type as argument          | Rust type as return value      |
+/// | -------------------- | ------------------ | ------------------------------ | ------------------------------ |
+/// | `boolean`            | `bool`             | `bool`                         | `bool`                         |
+/// | `int8`               |                    | `i8`                           | `i8`                           |
+/// | `int16`              | `smallint`         | `i16`                          | `i16`                          |
+/// | `int32`              | `int`              | `i32`                          | `i32`                          |
+/// | `int64`              | `bigint`           | `i64`                          | `i64`                          |
+/// | `float32`            | `real`             | `f32`                          | `f32`                          |
+/// | `float32`            | `double precision` | `f64`                          | `f64`                          |
+/// | `date32`             | `date`             | [`chrono::NaiveDate`]          | [`chrono::NaiveDate`]          |
+/// | `time64`             | `time`             | [`chrono::NaiveTime`]          | [`chrono::NaiveTime`]          |
+/// | `timestamp`          |                    | [`chrono::NaiveDateTime`]      | [`chrono::NaiveDateTime`]      |
+/// | `timestamptz`        |                    | not supported yet              | not supported yet              |
+/// | `interval`           |                    | [`arrow_udf::types::Interval`] | [`arrow_udf::types::Interval`] |
+/// | `string`             | `varchar`          | `&str`                         | `impl AsRef<str>`, e.g. `String`, `Box<str>`, `&str`     |
+/// | `binary`             | `bytea`            | `&[u8]`                        | `impl AsRef<[u8]>`, e.g. `Vec<u8>`, `Box<[u8]>`, `&[u8]` |
+///
+/// ## Extension Types
+///
+/// We also support the following extension types that are not part of the Arrow data types:
+///
+/// | Data type   | Metadata            | Rust type as argument          | Rust type as return value      |
+/// | ----------- | ------------------- | ------------------------------ | ------------------------------ |
+/// | `decimal`   | `arrowudf.decimal`  | [`rust_decimal::Decimal`]      | [`rust_decimal::Decimal`]      |
+/// | `json`      | `arrowudf.json`     | [`serde_json::Value`]          | [`serde_json::Value`]          |
 ///
 /// ## Array Types
 ///
-/// | SQL type             | Rust type as argument          | Rust type as return value      |
-/// | -------------------- | ------------------------------ | ------------------------------ |
-/// | `smallint[]`         | `&[i16]`                       | `impl Iterator<Item = i16>`    |
-/// | `integer[]`          | `&[i32]`                       | `impl Iterator<Item = i32>`    |
-/// | `bigint[]`           | `&[i64]`                       | `impl Iterator<Item = i64>`    |
-/// | `real[]`             | `&[f32]`                       | `impl Iterator<Item = f32>`    |
-/// | `double precision[]` | `&[f64]`                       | `impl Iterator<Item = f64>`    |
-/// | `varchar[]`          | [`&arrow::array::StringArray`] | `impl Iterator<Item = &str>`   |
-/// | `bytea[]`            | [`&arrow::array::BinaryArray`] | `impl Iterator<Item = &[u8]>`  |
-/// | `others[]`           | not supported yet              | not supported yet              |
+/// | SQL type              | Rust type as argument     | Rust type as return value      |
+/// | --------------------  | ------------------------- | ------------------------------ |
+/// | `int8[]`              | `&[i8]`                   | `impl Iterator<Item = i8>`     |
+/// | `int16[]`             | `&[i16]`                  | `impl Iterator<Item = i16>`    |
+/// | `int32[]`             | `&[i32]`                  | `impl Iterator<Item = i32>`    |
+/// | `int64[]`             | `&[i64]`                  | `impl Iterator<Item = i64>`    |
+/// | `float32[]`           | `&[f32]`                  | `impl Iterator<Item = f32>`    |
+/// | `float64[]`           | `&[f64]`                  | `impl Iterator<Item = f64>`    |
+/// | `string[]`            | [`&StringArray`]          | `impl Iterator<Item = &str>`   |
+/// | `binary[]`            | [`&BinaryArray`]          | `impl Iterator<Item = &[u8]>`  |
+/// | `largestring[]`       | [`&LargeStringArray`]     | `impl Iterator<Item = &str>`   |
+/// | `largebinary[]`       | [`&LargeBinaryArray`]     | `impl Iterator<Item = &[u8]>`  |
+/// | `others[]`            | not supported yet         | not supported yet              |
 ///
 /// ## Composite Types
 ///
-/// | SQL type             | Rust type as argument          | Rust type as return value      |
-/// | -------------------- | ------------------------------ | ------------------------------ |
-/// | `struct<..>`         | `UserDefinedStruct`            | `UserDefinedStruct`            |
+/// | SQL type              | Rust type as argument     | Rust type as return value      |
+/// | --------------------- | ------------------------- | ------------------------------ |
+/// | `struct<..>`          | `UserDefinedStruct`       | `UserDefinedStruct`            |
 ///
 /// [type matrix]: #appendix-type-matrix
 /// [`rust_decimal::Decimal`]: https://docs.rs/rust_decimal/1.33.1/rust_decimal/struct.Decimal.html
@@ -261,8 +272,10 @@ pub fn struct_type(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// [`chrono::NaiveDateTime`]: https://docs.rs/chrono/0.4.31/chrono/naive/struct.NaiveDateTime.html
 /// [`arrow_udf::types::Interval`]: https://docs.rs/arrow_udf/0.1.0/arrow_udf/types/struct.Interval.html
 /// [`serde_json::Value`]: https://docs.rs/serde_json/1.0.108/serde_json/enum.Value.html
-/// [`&arrow::array::StringArray`]: https://docs.rs/arrow/50.0.0/arrow/array/type.StringArray.html
-/// [`&arrow::array::BinaryArray`]: https://docs.rs/arrow/50.0.0/arrow/array/type.BinaryArray.html
+/// [`&StringArray`]: https://docs.rs/arrow/50.0.0/arrow/array/type.StringArray.html
+/// [`&BinaryArray`]: https://docs.rs/arrow/50.0.0/arrow/array/type.BinaryArray.html
+/// [`&LargeStringArray`]: https://docs.rs/arrow/50.0.0/arrow/array/type.LargeStringArray.html
+/// [`&LargeBinaryArray`]: https://docs.rs/arrow/50.0.0/arrow/array/type.LargeBinaryArray.html
 #[proc_macro_attribute]
 pub fn function(attr: TokenStream, item: TokenStream) -> TokenStream {
     fn inner(attr: TokenStream, item: TokenStream) -> Result<TokenStream2> {

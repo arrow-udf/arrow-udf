@@ -36,7 +36,7 @@ fn test_oom() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("oom()->void", &input);
+    let output = RUNTIME.call("oom()->null", &input);
     // panic message should be contained in the error message
     assert!(output
         .unwrap_err()
@@ -53,7 +53,7 @@ fn test_sleep() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("sleep(int4)->int4", &input);
+    let output = RUNTIME.call("sleep(int32)->int32", &input);
     output.unwrap_err();
 }
 
@@ -71,7 +71,7 @@ fn test_gcd() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("gcd(int4,int4)->int4", &input).unwrap();
+    let output = RUNTIME.call("gcd(int32,int32)->int32", &input).unwrap();
     check(
         &[output],
         expect![[r#"
@@ -99,7 +99,7 @@ fn test_division_by_zero() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("div(int4,int4)->int4", &input).unwrap();
+    let output = RUNTIME.call("div(int32,int32)->int32", &input).unwrap();
     check(
         &[output],
         expect![[r#"
@@ -121,7 +121,7 @@ fn test_length() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("length(varchar)->int4", &input).unwrap();
+    let output = RUNTIME.call("length(string)->int32", &input).unwrap();
     check(
         &[output],
         expect![[r#"
@@ -143,7 +143,7 @@ fn test_key_value() {
     .unwrap();
 
     let output = RUNTIME
-        .call("key_value(varchar)->struct KeyValue", &input)
+        .call("key_value(string)->struct KeyValue", &input)
         .unwrap();
     check(
         &[output],
@@ -166,7 +166,7 @@ fn test_range() {
     .unwrap();
 
     let mut iter = RUNTIME
-        .call_table_function("range(int4)->>int4", &input)
+        .call_table_function("range(int32)->>int32", &input)
         .unwrap();
     let output = iter.next().unwrap().unwrap();
     check(

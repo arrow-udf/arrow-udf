@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2024-04-25
+
+### Breaking Changes
+
+- `json` and `decimal` type are no longer mapped to `LargeString` and `LargeBinary` respectively. They are now mapped to [extension types](https://arrow.apache.org/docs/format/Columnar.html#format-metadata-extension-types) with `String` as the storage type.
+    - `json`: `ARROW:extension:name` = `arrorudf.json`
+    - `decimal`: `ARROW:extension:name` = `arrowudf.decimal`
+
+### Added
+
+- Add support for `LargeString` and `LargeBinary` type.
+
 ### Changed
 
 - Update `arrow` version to >=50.

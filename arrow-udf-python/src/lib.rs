@@ -30,7 +30,7 @@ use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
 use arrow_array::{ArrayRef, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use into_field::IntoField;
-use pyo3::types::{PyIterator, PyModule, PyTuple};
+use pyo3::types::{PyAnyMethods, PyIterator, PyModule, PyTuple};
 use pyo3::{Py, PyObject};
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -196,7 +196,7 @@ impl Runtime {
         handler: &str,
     ) -> Result<()> {
         let function = self.interpreter.with_gil(|py| {
-            Ok(PyModule::from_code(py, code, "", "")?
+            Ok(PyModule::from_code_bound(py, code, "", "")?
                 .getattr(handler)?
                 .into())
         })?;
@@ -239,7 +239,7 @@ impl Runtime {
                     results.push(py.None());
                     continue;
                 }
-                let args = PyTuple::new(py, row.drain(..));
+                let args = PyTuple::new_bound(py, row.drain(..));
                 match function.function.call1(py, args) {
                     Ok(result) => results.push(result),
                     Err(e) => {
@@ -337,8 +337,8 @@ impl RecordBatchIter<'_> {
                         self.row += 1;
                         continue;
                     }
-                    let args = PyTuple::new(py, row.drain(..));
-                    match self.function.function.as_ref(py).call1(args) {
+                    let args = PyTuple::new_bound(py, row.drain(..));
+                    match self.function.function.bind(py).call1(args) {
                         Ok(result) => {
                             let iter = result.iter()?.into();
                             self.generator.insert(iter)
@@ -353,7 +353,7 @@ impl RecordBatchIter<'_> {
                         }
                     }
                 };
-                match generator.as_ref(py).next() {
+                match generator.bind(py).clone().next() {
                     Some(Ok(value)) => {
                         indexes.append_value(self.row as i32);
                         results.push(value.into());

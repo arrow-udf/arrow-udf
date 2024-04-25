@@ -17,7 +17,7 @@
 use arrow_array::{array::*, builder::*};
 use arrow_buffer::OffsetBuffer;
 use arrow_schema::{DataType, Field};
-use pyo3::{IntoPy, PyObject, PyResult, Python};
+use pyo3::{types::PyAnyMethods, IntoPy, PyObject, PyResult, Python};
 use std::sync::Arc;
 
 macro_rules! get_pyobject {
@@ -59,14 +59,14 @@ pub fn get_pyobject(
                 let array = array.as_any().downcast_ref::<StringArray>().unwrap();
                 let string = array.value(i);
                 // XXX: it is slow to call eval every time
-                let json_loads = py.eval("json.loads", None, None)?;
+                let json_loads = py.eval_bound("json.loads", None, None)?;
                 json_loads.call1((string,))?.into()
             }
             Some("arrowudf.decimal") => {
                 let array = array.as_any().downcast_ref::<StringArray>().unwrap();
                 let string = array.value(i);
                 // XXX: it is slow to call eval every time
-                let decimal_constructor = py.import("decimal")?.getattr("Decimal")?;
+                let decimal_constructor = py.import_bound("decimal")?.getattr("Decimal")?;
                 decimal_constructor.call1((string,))?.into()
             }
             _ => get_pyobject!(StringArray, py, array, i),
@@ -85,7 +85,7 @@ pub fn get_pyobject(
         }
         DataType::Struct(fields) => {
             let array = array.as_any().downcast_ref::<StructArray>().unwrap();
-            let object = py.eval("Struct()", None, None)?;
+            let object = py.eval_bound("Struct()", None, None)?;
             for (j, field) in fields.iter().enumerate() {
                 let value = get_pyobject(py, field, array.column(j).as_ref(), i)?;
                 object.setattr(field.name().as_str(), value)?;
@@ -155,7 +155,7 @@ pub fn build_array(field: &Field, py: Python<'_>, values: &[PyObject]) -> PyResu
             .map(|s| s.as_str())
         {
             Some("arrowudf.json") => {
-                let json_dumps = py.eval("json.dumps", None, None)?;
+                let json_dumps = py.eval_bound("json.dumps", None, None)?;
                 let mut builder = StringBuilder::with_capacity(values.len(), 1024);
                 for val in values {
                     if val.is_none(py) {
@@ -191,7 +191,7 @@ pub fn build_array(field: &Field, py: Python<'_>, values: &[PyObject]) -> PyResu
             offsets.push(0);
             for val in values {
                 if !val.is_none(py) {
-                    let array = val.as_ref(py);
+                    let array = val.bind(py);
                     flatten_values.reserve(array.len()?);
                     for elem in array.iter()? {
                         flatten_values.push(elem?.into());
@@ -218,7 +218,7 @@ pub fn build_array(field: &Field, py: Python<'_>, values: &[PyObject]) -> PyResu
                     } else if let Ok(value) = val.getattr(py, field.name().as_str()) {
                         value
                     } else {
-                        val.as_ref(py).get_item(field.name().as_str())?.into()
+                        val.bind(py).get_item(field.name().as_str())?.into()
                     };
                     field_values.push(v);
                 }

@@ -16,7 +16,9 @@
 
 use std::ffi::CStr;
 
-use pyo3::{ffi::*, prepare_freethreaded_python, GILPool, PyErr, Python};
+#[allow(deprecated)]
+use pyo3::GILPool;
+use pyo3::{ffi::*, prepare_freethreaded_python, PyErr, Python};
 
 /// A Python sub-interpreter with its own GIL.
 #[derive(Debug)]
@@ -77,6 +79,7 @@ impl SubInterpreter {
 
         // Safety: the GIL is already held
         // this pool is used to increment the internal GIL count of pyo3.
+        #[allow(deprecated)]
         let pool = unsafe { GILPool::new() };
         let ret = f(pool.python());
         drop(pool);
@@ -88,7 +91,7 @@ impl SubInterpreter {
 
     /// Run Python code in the sub-interpreter.
     pub fn run(&self, code: &str) -> Result<(), PyError> {
-        self.with_gil(|py| py.run(code, None, None).map_err(|e| e.into()))
+        self.with_gil(|py| py.run_bound(code, None, None).map_err(|e| e.into()))
     }
 }
 

@@ -67,10 +67,7 @@ class ScalarFunction(UserDefinedFunction):
     def eval_batch(self, batch: pa.RecordBatch) -> Iterator[pa.RecordBatch]:
         # parse value from json string for jsonb columns
         inputs = [[v.as_py() for v in array] for array in batch]
-        inputs = [
-            _process_func(pa.list_(type), False)(array)
-            for array, type in zip(inputs, self._input_schema.types)
-        ]
+
         if self._executor is not None:
             # evaluate the function for each row
             tasks = [
@@ -86,52 +83,44 @@ class ScalarFunction(UserDefinedFunction):
                 self.eval(*[col[i] for col in inputs]) for i in range(batch.num_rows)
             ]
 
-        column = _process_func(pa.list_(self._result_schema.types[0]), True)(column)
+        array = _to_arrow_array(column, self._result_schema.types[0])
 
-        array = pa.array(column, type=self._result_schema.types[0])
         yield pa.RecordBatch.from_arrays([array], schema=self._result_schema)
 
 
-def _process_func(type: pa.DataType, output: bool) -> Callable:
-    """Return a function to process input or output value."""
+def _to_arrow_array(column: List, type: pa.DataType) -> pa.Array:
+    """Return a function to convert a list of python objects to an arrow array."""
     if pa.types.is_list(type):
-        func = _process_func(type.value_type, output)
+        # FIXME
+        func = _to_arrow_array(type.value_type)
         return lambda array: [(func(v) if v is not None else None) for v in array]
 
     if pa.types.is_struct(type):
-        funcs = [_process_func(field.type, output) for field in type]
-        if output:
-            return lambda tup: tuple(
-                (func(v) if v is not None else None) for v, func in zip(tup, funcs)
-            )
-        else:
-            # the input value of struct type is a dict
-            # we convert it into tuple here
-            return lambda map: tuple(
-                (func(v) if v is not None else None)
-                for v, func in zip(map.values(), funcs)
-            )
+        fields = [
+            _to_arrow_array([v.get(field.name) for v in column], field.type)
+            for field in type
+        ]
+        return pa.StructArray.from_arrays(fields, fields=type)
 
-    if type.equals(JSONB):
-        if output:
-            return lambda v: json.dumps(v)
-        else:
-            return lambda v: json.loads(v)
+    if type.equals(JsonType()):
+        s = pa.array([json.dumps(v) for v in column], type=pa.string())
+        return pa.ExtensionArray.from_storage(JsonType(), s)
 
-    if type.equals(UNCONSTRAINED_DECIMAL):
-        if output:
+    if type.equals(DecimalType()):
+        s = pa.array(
+            [_decimal_to_str(v) if v is not None else None for v in column],
+            type=pa.string(),
+        )
+        return pa.ExtensionArray.from_storage(DecimalType(), s)
 
-            def decimal_to_str(v):
-                if not isinstance(v, Decimal):
-                    raise ValueError(f"Expected Decimal, got {v}")
-                # use `f` format to avoid scientific notation, e.g. `1e10`
-                return format(v, "f").encode("utf-8")
+    return pa.array(column, type=type)
 
-            return decimal_to_str
-        else:
-            return lambda v: Decimal(v.decode("utf-8"))
 
-    return lambda v: v
+def _decimal_to_str(v: Decimal) -> str:
+    if not isinstance(v, Decimal):
+        raise ValueError(f"Expected Decimal, got {v}")
+    # use `f` format to avoid scientific notation, e.g. `1e10`
+    return format(v, "f")
 
 
 class TableFunction(UserDefinedFunction):
@@ -243,9 +232,11 @@ class UserDefinedTableFunctionWrapper(TableFunction):
                 ("row_index", pa.int32()),
                 (
                     self._name,
-                    pa.struct([("", _to_data_type(t)) for t in result_types])
-                    if isinstance(result_types, list)
-                    else _to_data_type(result_types),
+                    (
+                        pa.struct([("", _to_data_type(t)) for t in result_types])
+                        if isinstance(result_types, list)
+                        else _to_data_type(result_types)
+                    ),
                 ),
             ]
         )
@@ -382,7 +373,7 @@ class UdfServer(pa.flight.FlightServerBase):
             output_type = udf._result_schema.types[-1]
             if isinstance(output_type, pa.StructType):
                 output_type = ",".join(
-                    f"field_{i} {_data_type_to_string(field.type)}"
+                    f"{field.name} {_data_type_to_string(field.type)}"
                     for i, field in enumerate(output_type)
                 )
                 output_type = f"TABLE({output_type})"
@@ -423,6 +414,58 @@ class UdfServer(pa.flight.FlightServerBase):
         super(UdfServer, self).serve()
 
 
+class JsonScalar(pa.ExtensionScalar):
+    def as_py(self):
+        return json.loads(self.value.as_py())
+
+
+class JsonType(pa.ExtensionType):
+    def __init__(self):
+        super().__init__(pa.string(), "arrowudf.json")
+
+    def __arrow_ext_serialize__(self):
+        # since we don't have a parameterized type, we don't need extra
+        # metadata to be deserialized
+        return b""
+
+    @classmethod
+    def __arrow_ext_deserialize__(self, storage_type, serialized):
+        # return an instance of this subclass given the serialized
+        # metadata.
+        return JsonType()
+
+    def __arrow_ext_scalar_class__(self):
+        return JsonScalar
+
+
+class DecimalScalar(pa.ExtensionScalar):
+    def as_py(self):
+        return Decimal(self.value.as_py())
+
+
+class DecimalType(pa.ExtensionType):
+    def __init__(self):
+        super().__init__(pa.string(), "arrowudf.decimal")
+
+    def __arrow_ext_serialize__(self):
+        # since we don't have a parameterized type, we don't need extra
+        # metadata to be deserialized
+        return b""
+
+    @classmethod
+    def __arrow_ext_deserialize__(self, storage_type, serialized):
+        # return an instance of this subclass given the serialized
+        # metadata.
+        return DecimalType()
+
+    def __arrow_ext_scalar_class__(self):
+        return DecimalScalar
+
+
+pa.register_extension_type(JsonType())
+pa.register_extension_type(DecimalType())
+
+
 def _to_data_type(t: Union[str, pa.DataType]) -> pa.DataType:
     """
     Convert a SQL data type string or `pyarrow.DataType` to `pyarrow.DataType`.
@@ -433,58 +476,17 @@ def _to_data_type(t: Union[str, pa.DataType]) -> pa.DataType:
         return t
 
 
-# we use `large_binary` to represent unconstrained decimal type
-UNCONSTRAINED_DECIMAL = pa.large_binary()
-JSONB = pa.large_string()
-
-
-def _string_to_data_type(type_str: str):
+def _string_to_data_type(type: str):
     """
     Convert a SQL data type string to `pyarrow.DataType`.
     """
-    type_str = type_str.upper()
-    if type_str.endswith("[]"):
-        return pa.list_(_string_to_data_type(type_str[:-2]))
-    elif type_str in ("BOOLEAN", "BOOL"):
-        return pa.bool_()
-    elif type_str in ("SMALLINT", "INT2"):
-        return pa.int16()
-    elif type_str in ("INT", "INTEGER", "INT4"):
-        return pa.int32()
-    elif type_str in ("BIGINT", "INT8"):
-        return pa.int64()
-    elif type_str in ("FLOAT4", "REAL"):
-        return pa.float32()
-    elif type_str in ("FLOAT8", "DOUBLE PRECISION"):
-        return pa.float64()
-    elif type_str.startswith("DECIMAL") or type_str.startswith("NUMERIC"):
-        if type_str == "DECIMAL" or type_str == "NUMERIC":
-            return UNCONSTRAINED_DECIMAL
-        rest = type_str[8:-1]  # remove "DECIMAL(" and ")"
-        if "," in rest:
-            precision, scale = rest.split(",")
-            return pa.decimal128(int(precision), int(scale))
-        else:
-            return pa.decimal128(int(rest), 0)
-    elif type_str in ("DATE"):
-        return pa.date32()
-    elif type_str in ("TIME", "TIME WITHOUT TIME ZONE"):
-        return pa.time64("us")
-    elif type_str in ("TIMESTAMP", "TIMESTAMP WITHOUT TIME ZONE"):
-        return pa.timestamp("us")
-    elif type_str.startswith("INTERVAL"):
-        return pa.month_day_nano_interval()
-    elif type_str in ("VARCHAR"):
-        return pa.string()
-    elif type_str in ("JSONB"):
-        return JSONB
-    elif type_str in ("BYTEA"):
-        return pa.binary()
-    elif type_str.startswith("STRUCT"):
-        # extract 'STRUCT<INT, VARCHAR, STRUCT<INT>, ...>'
-        type_list = type_str[7:-1]  # strip "STRUCT<>"
+    t = type.upper()
+    if t.endswith("[]"):
+        return pa.list_(_string_to_data_type(type[:-2]))
+    elif t.startswith("STRUCT"):
+        # extract 'STRUCT<a:INT, b:VARCHAR, c:STRUCT<INT>, ...>'
+        type_list = type[7:-1]  # strip "STRUCT<>"
         fields = []
-        elements = []
         start = 0
         depth = 0
         for i, c in enumerate(type_list):
@@ -493,14 +495,68 @@ def _string_to_data_type(type_str: str):
             elif c == ">":
                 depth -= 1
             elif c == "," and depth == 0:
-                type_str = type_list[start:i].strip()
-                fields.append(pa.field("", _string_to_data_type(type_str)))
+                name, t = type_list[start:i].split(":")
+                name = name.strip()
+                t = t.strip()
+                fields.append(pa.field(name, _string_to_data_type(t)))
                 start = i + 1
-        type_str = type_list[start:].strip()
-        fields.append(pa.field("", _string_to_data_type(type_str)))
+        if ":" in type_list[start:].strip():
+            name, t = type_list[start:].split(":")
+            name = name.strip()
+            t = t.strip()
+            fields.append(pa.field(name, _string_to_data_type(t)))
         return pa.struct(fields)
+    elif t in ("BOOLEAN", "BOOL"):
+        return pa.bool_()
+    elif t in ("TINYINT", "INT8"):
+        return pa.int8()
+    elif t in ("SMALLINT", "INT16"):
+        return pa.int16()
+    elif t in ("INT", "INTEGER", "INT32"):
+        return pa.int32()
+    elif t in ("BIGINT", "INT64"):
+        return pa.int64()
+    elif t in ("UINT8"):
+        return pa.uint8()
+    elif t in ("UINT16"):
+        return pa.uint16()
+    elif t in ("UINT32"):
+        return pa.uint32()
+    elif t in ("UINT64"):
+        return pa.uint64()
+    elif t in ("FLOAT32", "REAL"):
+        return pa.float32()
+    elif t in ("FLOAT64", "DOUBLE PRECISION"):
+        return pa.float64()
+    elif t.startswith("DECIMAL") or t.startswith("NUMERIC"):
+        if t == "DECIMAL" or t == "NUMERIC":
+            return DecimalType()
+        rest = t[8:-1]  # remove "DECIMAL(" and ")"
+        if "," in rest:
+            precision, scale = rest.split(",")
+            return pa.decimal128(int(precision), int(scale))
+        else:
+            return pa.decimal128(int(rest), 0)
+    elif t in ("DATE32", "DATE"):
+        return pa.date32()
+    elif t in ("TIME64", "TIME", "TIME WITHOUT TIME ZONE"):
+        return pa.time64("us")
+    elif t in ("TIMESTAMP", "TIMESTAMP WITHOUT TIME ZONE"):
+        return pa.timestamp("us")
+    elif t.startswith("INTERVAL"):
+        return pa.month_day_nano_interval()
+    elif t in ("STRING", "VARCHAR"):
+        return pa.string()
+    elif t in ("LARGE_STRING"):
+        return pa.large_string()
+    elif t in ("JSON", "JSONB"):
+        return JsonType()
+    elif t in ("BINARY", "BYTEA"):
+        return pa.binary()
+    elif t in ("LARGE_BINARY"):
+        return pa.large_binary()
 
-    raise ValueError(f"Unsupported type: {type_str}")
+    raise ValueError(f"Unsupported type: {t}")
 
 
 def _data_type_to_string(t: pa.DataType) -> str:
@@ -511,17 +567,27 @@ def _data_type_to_string(t: pa.DataType) -> str:
         return _data_type_to_string(t.value_type) + "[]"
     elif t.equals(pa.bool_()):
         return "BOOLEAN"
+    elif t.equals(pa.int8()):
+        return "TINYINT"
     elif t.equals(pa.int16()):
         return "SMALLINT"
     elif t.equals(pa.int32()):
         return "INT"
     elif t.equals(pa.int64()):
         return "BIGINT"
+    elif t.equals(pa.uint8()):
+        return "uint8"
+    elif t.equals(pa.uint16()):
+        return "uint16"
+    elif t.equals(pa.uint32()):
+        return "uint32"
+    elif t.equals(pa.uint64()):
+        return "uint64"
     elif t.equals(pa.float32()):
         return "FLOAT4"
     elif t.equals(pa.float64()):
         return "FLOAT8"
-    elif t.equals(UNCONSTRAINED_DECIMAL):
+    elif t.equals(DecimalType()):
         return "DECIMAL"
     elif pa.types.is_decimal(t):
         return f"DECIMAL({t.precision},{t.scale})"
@@ -535,16 +601,19 @@ def _data_type_to_string(t: pa.DataType) -> str:
         return "INTERVAL"
     elif t.equals(pa.string()):
         return "VARCHAR"
-    elif t.equals(JSONB):
-        return "JSONB"
     elif t.equals(pa.binary()):
         return "BYTEA"
+    elif t.equals(pa.large_string()):
+        return "large_string"
+    elif t.equals(pa.large_binary()):
+        return "large_binary"
+    elif t.equals(JsonType()):
+        return "JSON"
     elif isinstance(t, pa.StructType):
         return (
             "STRUCT<"
             + ",".join(
-                f"f{i+1} {_data_type_to_string(field.type)}"
-                for i, field in enumerate(t)
+                f"{field.name}: {_data_type_to_string(field.type)}" for field in t
             )
             + ">"
         )

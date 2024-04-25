@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2024-04-25
+
 ### Added
 
 - Add support for `int8`, `uint8`, `uint16`, `uint32`, `uint64`, `largestring`, and `largebinary` type.

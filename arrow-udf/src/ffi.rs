@@ -26,11 +26,12 @@ use arrow_ipc::{reader::FileReader, writer::FileWriter};
 ///
 /// # Changelog
 ///
+/// - 3.0: Change type names in signatures.
 /// - 2.0: Add user defined struct type.
 /// - 1.0: Initial version.
 #[no_mangle]
 #[used]
-pub static ARROWUDF_VERSION_2_0: () = ();
+pub static ARROWUDF_VERSION_3_0: () = ();
 
 /// Allocate memory.
 ///

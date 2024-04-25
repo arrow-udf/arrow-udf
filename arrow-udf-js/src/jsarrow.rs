@@ -110,7 +110,7 @@ pub fn get_jsvalue<'a>(
             }
             Ok(object.into_value())
         }
-        _ => todo!(),
+        t => todo!("unsupported data type: {:?}", t),
     }
 }
 
@@ -262,6 +262,6 @@ pub fn build_array<'a>(field: &Field, ctx: &Ctx<'a>, values: Vec<Value<'a>>) -> 
                 Some(nulls),
             )))
         }
-        _ => todo!(),
+        t => todo!("unsupported data type: {:?}", t),
     }
 }

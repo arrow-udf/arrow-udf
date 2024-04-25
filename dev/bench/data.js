@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1712901084138,
+  "lastUpdate": 1714032802361,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -5711,6 +5711,114 @@ window.BENCHMARK_DATA = {
             "name": "decimal/deno",
             "value": 820179,
             "range": "± 20062",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3113865b3757814c18429a3abd5cfb5b2658b25b",
+          "message": "feat: use extension type for json and decimal (#17)\n\n* python: use extension type for json and decimal\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* rust: use extension type for json and decimal\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* js: use extension type for json and decimal\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix test\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* rust: append field metadata to returned batch\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix global register\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* js-deno: use extension type for json and decimal\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix clippy\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* add extension type to README\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* bump versions\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n---------\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-04-25T15:58:07+08:00",
+          "tree_id": "4b6fb6ff10eb864cf7859fe7a0e04ca82c91bc8d",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/3113865b3757814c18429a3abd5cfb5b2658b25b"
+        },
+        "date": 1714032800964,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3900,
+            "range": "± 9",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4040,
+            "range": "± 18",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 25112,
+            "range": "± 1524",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 168726,
+            "range": "± 3903",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 183849,
+            "range": "± 2161",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 262966,
+            "range": "± 23879",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 97302,
+            "range": "± 2397",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 427047,
+            "range": "± 30024",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5647958,
+            "range": "± 232730",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9024965,
+            "range": "± 204790",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1129339,
+            "range": "± 26194",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 54846,
+            "range": "± 388",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 618273,
+            "range": "± 5514",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 833064,
+            "range": "± 48450",
             "unit": "ns/iter"
           }
         ]

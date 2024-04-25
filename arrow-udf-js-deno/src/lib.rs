@@ -17,13 +17,15 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc, task::Poll};
 
 use anyhow::{Context, Result};
 use arrow_array::{builder::Int32Builder, RecordBatch};
-use arrow_schema::{DataType, Field, Schema, SchemaRef};
+use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
 use arrow_udf_js_deno_runtime::deno_runtime;
 use futures::{Future, Stream, StreamExt, TryStreamExt};
+use into_field::IntoField;
 
 use crate::deno_arrow::get_jsvalue;
 
 mod deno_arrow;
+mod into_field;
 pub mod tokio_spawn_pinned;
 mod v8;
 mod values_future;
@@ -70,7 +72,7 @@ pub struct InternalRuntime {
 struct Function {
     mode: CallMode,
     function: ::v8::Global<::v8::Function>,
-    return_type: DataType,
+    return_field: FieldRef,
 }
 
 pub struct RecordBatchIter {
@@ -216,15 +218,16 @@ impl Runtime {
     pub async fn add_function(
         &self,
         name: &str,
-        return_type: DataType,
+        return_type: impl IntoField,
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
+        let return_field = return_type.into_field(name).into();
         if let Ok(current) = tokio::runtime::Handle::try_current() {
             if current.runtime_flavor() == tokio::runtime::RuntimeFlavor::CurrentThread {
                 let runtime = THREAD_ISOLATE.with(|isolate| isolate.clone());
                 let mut runtime = runtime.borrow_mut();
-                runtime.add_function(name, return_type, mode, code)
+                runtime.add_function(name, return_field, mode, code)
             } else {
                 let name = name.to_string();
                 let code = code.to_string();
@@ -232,7 +235,7 @@ impl Runtime {
                     .spawn_pinned(|| async move {
                         let runtime = THREAD_ISOLATE.with(|isolate| isolate.clone());
                         let mut runtime = runtime.borrow_mut();
-                        runtime.add_function(&name, return_type, mode, &code)
+                        runtime.add_function(&name, return_field, mode, &code)
                     })
                     .await?
             }
@@ -302,7 +305,7 @@ impl InternalRuntime {
     pub fn add_function(
         &mut self,
         name: &str,
-        return_type: DataType,
+        return_field: FieldRef,
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
@@ -331,7 +334,7 @@ impl InternalRuntime {
                             let function = Function {
                                 mode,
                                 function,
-                                return_type,
+                                return_field,
                             };
                             self.functions.insert(name.to_string(), function);
                             return Ok(());
@@ -354,7 +357,7 @@ impl InternalRuntime {
                                                 let function = Function {
                                                     mode,
                                                     function,
-                                                    return_type,
+                                                    return_field,
                                                 };
                                                 self.functions.insert(name.to_string(), function);
                                                 return Ok(());
@@ -395,9 +398,10 @@ impl InternalRuntime {
 
             for i in 0..input.num_rows() {
                 args.clear();
-                for column in input.columns() {
-                    let val = deno_arrow::get_jsvalue(try_catch, column, &self.big_decimal, i)
-                        .context("failed to get jsvalue from arrow array")?;
+                for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+                    let val =
+                        deno_arrow::get_jsvalue(try_catch, field, column, &self.big_decimal, i)
+                            .context("failed to get jsvalue from arrow array")?;
                     args.push(val);
                 }
 
@@ -463,7 +467,7 @@ impl InternalRuntime {
         let scope = &mut js_runtime.handle_scope();
         let try_catch = &mut ::v8::TryCatch::new(scope);
 
-        let array = deno_arrow::build_array(&function.return_type, try_catch, results)
+        let array = deno_arrow::build_array(&function.return_field, try_catch, results)
             .context("failed to build arrow array from return values")?;
         let schema = Schema::new(vec![Field::new(name, array.data_type().clone(), true)]);
         Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
@@ -484,8 +488,8 @@ impl InternalRuntime {
             input,
             function: function.clone(),
             schema: Arc::new(Schema::new(vec![
-                Field::new("row", DataType::Int32, true),
-                Field::new(name, function.return_type.clone(), true),
+                Field::new("row", DataType::Int32, true).into(),
+                function.return_field.clone(),
             ])),
             big_decimal: self.big_decimal.clone(),
             chunk_size,
@@ -669,9 +673,11 @@ impl Stream for RecordBatchIterInternal {
                 } else {
                     // call the table function to get a generator
                     row.clear();
-                    for column in inner.input.columns() {
+                    for (column, field) in
+                        (inner.input.columns().iter()).zip(inner.input.schema().fields())
+                    {
                         let r = inner.row.borrow();
-                        let val = get_jsvalue(scope, &column, &inner.big_decimal, *r)
+                        let val = get_jsvalue(scope, field, &column, &inner.big_decimal, *r)
                             .context("failed to get jsvalue from arrow array")?;
 
                         row.push(val);
@@ -801,7 +807,7 @@ impl Stream for RecordBatchIterInternal {
         }
 
         let indexes = Arc::new(indexes.finish());
-        let array = deno_arrow::build_array(&inner.function.return_type, scope, results)
+        let array = deno_arrow::build_array(&inner.function.return_field, scope, results)
             .context("failed to build arrow array from return values")?;
 
         match RecordBatch::try_new(inner.schema.clone(), vec![indexes, array]) {

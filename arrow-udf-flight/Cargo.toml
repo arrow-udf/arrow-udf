@@ -1,0 +1,18 @@
+[package]
+name = "arrow-udf-flight"
+version = "0.1.0"
+edition = "2021"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+arrow-array = ">=50"
+arrow-flight = ">=50"
+arrow-schema = ">=50"
+futures = "0.3"
+futures-util = "0.3"
+ginepro = "0.7.0"
+static_assertions = "1"
+thiserror = "1"
+tokio = { version = "1", features = ["rt", "macros"] }
+tonic = "0.11"
+tracing = "0.1"

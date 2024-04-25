@@ -276,7 +276,7 @@ def decimal(a):
         tokio_runtime
             .block_on(rt.add_function(
                 "decimal",
-                DataType::LargeBinary,
+                decimal_field("decimal"),
                 arrow_udf_js_deno::CallMode::ReturnNullOnNullInput,
                 js_code,
             ))

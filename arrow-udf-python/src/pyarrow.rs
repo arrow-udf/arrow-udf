@@ -199,7 +199,7 @@ pub fn build_array(field: &Field, py: Python<'_>, values: &[PyObject]) -> PyResu
                 }
                 offsets.push(flatten_values.len() as i32);
             }
-            let values_array = build_array(&inner, py, &flatten_values)?;
+            let values_array = build_array(inner, py, &flatten_values)?;
             let nulls = values.iter().map(|v| !v.is_none(py)).collect();
             Ok(Arc::new(ListArray::new(
                 inner.clone(),
@@ -222,7 +222,7 @@ pub fn build_array(field: &Field, py: Python<'_>, values: &[PyObject]) -> PyResu
                     };
                     field_values.push(v);
                 }
-                arrays.push(build_array(&field, py, &field_values)?);
+                arrays.push(build_array(field, py, &field_values)?);
             }
             let nulls = values.iter().map(|v| !v.is_none(py)).collect();
             Ok(Arc::new(StructArray::new(

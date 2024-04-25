@@ -9,7 +9,7 @@ Add the following lines to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-arrow-udf = "0.2"
+arrow-udf = "0.3"
 ```
 
 Define your functions with the `#[function]` macro:
@@ -17,7 +17,7 @@ Define your functions with the `#[function]` macro:
 ```rust
 use arrow_udf::function;
 
-#[function("gcd(int, int) -> int", output = "eval_gcd")]
+#[function("gcd(int32, int32) -> int32", output = "eval_gcd")]
 fn gcd(mut a: i32, mut b: i32) -> i32 {
     while b != 0 {
         (a, b) = (b, a % b);
@@ -28,7 +28,7 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
 
 The macro will generate a function that takes a `RecordBatch` as input and returns a `RecordBatch` as output.
 The function can be named with the optional `output` parameter.
-If not specified, it will be named arbitrarily like `gcd_int4_int4_int4_eval`.
+If not specified, it will be named arbitrarily like `gcd_int32_int32_int32_eval`.
 
 You can then call the generated function on a `RecordBatch`:
 
@@ -56,7 +56,7 @@ If your function returns a `Result`:
 ```rust
 use arrow_udf::function;
 
-#[function("div(int, int) -> int", output = "eval_div")]
+#[function("div(int32, int32) -> int32", output = "eval_div")]
 fn div(x: i32, y: i32) -> Result<i32, &'static str> {
     x.checked_div(y).ok_or("division by zero")
 }
@@ -94,7 +94,7 @@ Then you can use the struct type in function signatures:
 ```rust,ignore
 use arrow_udf::function;
 
-#[function("point(float8, float8) -> struct Point", output = "eval_point")]
+#[function("point(float64, float64) -> struct Point", output = "eval_point")]
 fn point(x: f64, y: f64) -> Point {
     Point { x, y }
 }
@@ -108,17 +108,18 @@ If you want to lookup functions by signature, you can enable the `global_registr
 
 ```toml
 [dependencies]
-arrow-udf = { version = "0.2", features = ["global_registry"] }
+arrow-udf = { version = "0.3", features = ["global_registry"] }
 ```
 
 Each function will be registered in a global registry when it is defined.
 Then you can lookup functions from the `REGISTRY`:
 
 ```rust,ignore
-use arrow_schema::DataType::Int32;
+use arrow_schema::{DataType, Field};
 use arrow_udf::sig::REGISTRY;
 
-let sig = REGISTRY.get("gcd", &[Int32, Int32], &Int32).expect("gcd function");
+let int32 = Field::new("int32", DataType::Int32, true);
+let sig = REGISTRY.get("gcd", &[int32.clone(), int32.clone()], &int32).expect("gcd function");
 let output = sig.function.as_scalar().unwrap()(&input).unwrap();
 ```
 

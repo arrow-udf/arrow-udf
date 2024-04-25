@@ -39,16 +39,18 @@ fn main() {
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     // call the generated function directly
+    #[cfg(not(feature = "global_registry"))]
     let output = gcd_batch(&input).unwrap();
 
     // or find the function from the global registry
     #[cfg(feature = "global_registry")]
-    {
+    let output = {
+        let int32 = Field::new("", DataType::Int32, true);
         let sig = arrow_udf::sig::REGISTRY
-            .get("gcd", &[DataType::Int32, DataType::Int32], &DataType::Int32)
+            .get("gcd", &[int32.clone(), int32.clone()], &int32)
             .expect("gcd function");
-        let _output = sig.function.as_scalar().unwrap()(&input).unwrap();
-    }
+        sig.function.as_scalar().unwrap()(&input).unwrap()
+    };
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
     arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();

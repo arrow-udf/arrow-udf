@@ -18,7 +18,7 @@
 //!
 //! ```
 //! use arrow_udf::{function, sig::REGISTRY};
-//! use arrow_schema::DataType::Int32;
+//! use arrow_schema::{DataType::Int32, Field};
 //!
 //! // define a function
 //! #[function("add(int, int) -> int")]
@@ -27,11 +27,12 @@
 //! }
 //!
 //! // lookup the function by name and types
-//! let sig = REGISTRY.get("add", &[Int32, Int32], &Int32).unwrap();
+//! let int32 = Field::new("", Int32, true);
+//! let sig = REGISTRY.get("add", &[int32.clone(), int32.clone()], &int32).unwrap();
 //! ```
 
 use super::{ScalarFunction, TableFunction};
-use arrow_schema::{DataType, Field, Fields};
+use arrow_schema::{Field, Fields};
 use std::collections::HashMap;
 
 /// A function signature.

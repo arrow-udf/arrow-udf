@@ -87,12 +87,13 @@ impl FunctionAttr {
             #[cfg(feature = "global_registry")]
             #[::arrow_udf::codegen::linkme::distributed_slice(::arrow_udf::sig::SIGNATURES)]
             fn #sig_name() -> ::arrow_udf::sig::FunctionSignature {
-                use ::arrow_udf::sig::{FunctionSignature, FunctionKind, SigDataType};
-                use ::arrow_udf::codegen::arrow_schema::{self, TimeUnit, IntervalUnit};
+                use ::arrow_udf::sig::{FunctionSignature, FunctionKind};
+                use ::arrow_udf::codegen::arrow_schema::{self, TimeUnit, IntervalUnit, Field};
 
+                let args: Vec<Field> = vec![#(#args),*];
                 FunctionSignature {
                     name: #name.into(),
-                    arg_types: vec![#(#args),*],
+                    arg_types: args.into(),
                     variadic: #variadic,
                     return_type: #ret,
                     function: FunctionKind::#kind(#eval_name),

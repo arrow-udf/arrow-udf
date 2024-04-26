@@ -17,6 +17,7 @@ package com.risingwave.functions;
 import java.io.IOException;
 import org.apache.arrow.flight.*;
 import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.types.pojo.ExtensionTypeRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,14 +33,17 @@ public class UdfServer implements AutoCloseable {
         var allocator = new RootAllocator();
         this.producer = new UdfProducer(allocator);
         this.server = FlightServer.builder(allocator, location, this.producer).build();
+        ExtensionTypeRegistry.register(new JsonType());
+        ExtensionTypeRegistry.register(new DecimalType());
     }
 
     /**
      * Add a user-defined function to the server.
      *
      * @param name the name of the function
-     * @param udf the function to add
-     * @throws IllegalArgumentException if a function with the same name already exists
+     * @param udf  the function to add
+     * @throws IllegalArgumentException if a function with the same name already
+     *                                  exists
      */
     public void addFunction(String name, UserDefinedFunction udf) throws IllegalArgumentException {
         logger.info("added function: " + name);

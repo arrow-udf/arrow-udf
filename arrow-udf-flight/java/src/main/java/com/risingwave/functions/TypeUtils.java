@@ -40,59 +40,63 @@ import org.apache.arrow.vector.types.pojo.*;
 class TypeUtils {
     /** Convert a string to an Arrow type. */
     static Field stringToField(String typeStr, String name) {
-        typeStr = typeStr.toUpperCase();
-        if (typeStr.endsWith("[]")) {
-            Field innerField = stringToField(typeStr.substring(0, typeStr.length() - 2), "");
+        var t = typeStr.toUpperCase();
+        if (t.endsWith("[]")) {
+            Field innerField = stringToField(typeStr.substring(0, t.length() - 2), "");
             return new Field(
                     name, FieldType.nullable(new ArrowType.List()), Arrays.asList(innerField));
-        } else if (typeStr.startsWith("STRUCT")) {
-            // extract "STRUCT<INT, VARCHAR, ...>"
-            var typeList = typeStr.substring(7, typeStr.length() - 1);
-            var fields =
-                    Arrays.stream(typeList.split(","))
-                            .map(s -> stringToField(s.trim(), ""))
-                            .collect(Collectors.toList());
+        } else if (t.startsWith("STRUCT")) {
+            // extract "STRUCT<f1: INT, f2: VARCHAR, ...>"
+            var typeList = typeStr.substring(7, t.length() - 1);
+            var fields = Arrays.stream(typeList.split(","))
+                    .map(s -> s.split(":"))
+                    .map(pair -> stringToField(pair[1].trim(), pair[0].trim()))
+                    .collect(Collectors.toList());
             return new Field(name, FieldType.nullable(new ArrowType.Struct()), fields);
-        } else if (typeStr.equals("BOOLEAN") || typeStr.equals("BOOL")) {
+        } else if (t.equals("BOOLEAN") || t.equals("BOOL")) {
             return Field.nullable(name, new ArrowType.Bool());
-        } else if (typeStr.equals("TINYINT") || typeStr.equals("INT8")) {
+        } else if (t.equals("TINYINT") || t.equals("INT8")) {
             return Field.nullable(name, new ArrowType.Int(8, true));
-        } else if (typeStr.equals("SMALLINT") || typeStr.equals("INT16")) {
+        } else if (t.equals("SMALLINT") || t.equals("INT16")) {
             return Field.nullable(name, new ArrowType.Int(16, true));
-        } else if (typeStr.equals("INT") || typeStr.equals("INTEGER") || typeStr.equals("INT32")) {
+        } else if (t.equals("INT") || t.equals("INTEGER") || t.equals("INT32")) {
             return Field.nullable(name, new ArrowType.Int(32, true));
-        } else if (typeStr.equals("BIGINT") || typeStr.equals("INT64")) {
+        } else if (t.equals("BIGINT") || t.equals("INT64")) {
             return Field.nullable(name, new ArrowType.Int(64, true));
-        } else if (typeStr.equals("UINT8")) {
+        } else if (t.equals("UINT8")) {
             return Field.nullable(name, new ArrowType.Int(8, false));
-        } else if (typeStr.equals("UINT16")) {
+        } else if (t.equals("UINT16")) {
             return Field.nullable(name, new ArrowType.Int(16, false));
-        } else if (typeStr.equals("UINT32")) {
+        } else if (t.equals("UINT32")) {
             return Field.nullable(name, new ArrowType.Int(32, false));
-        } else if (typeStr.equals("UINT64")) {
+        } else if (t.equals("UINT64")) {
             return Field.nullable(name, new ArrowType.Int(64, false));
-        } else if (typeStr.equals("FLOAT32") || typeStr.equals("REAL")) {
+        } else if (t.equals("FLOAT32") || t.equals("REAL")) {
             return Field.nullable(name, new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE));
-        } else if (typeStr.equals("FLOAT64") || typeStr.equals("DOUBLE PRECISION")) {
+        } else if (t.equals("FLOAT64") || t.equals("DOUBLE PRECISION")) {
             return Field.nullable(name, new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE));
-        } else if (typeStr.equals("DECIMAL") || typeStr.equals("NUMERIC")) {
-            return Field.nullable(name, new ArrowType.LargeBinary());
-        } else if (typeStr.equals("DATE")) {
+        } else if (t.equals("DECIMAL") || t.equals("NUMERIC")) {
+            return Field.nullable(name, new DecimalType());
+        } else if (t.equals("DATE")) {
             return Field.nullable(name, new ArrowType.Date(DateUnit.DAY));
-        } else if (typeStr.equals("TIME") || typeStr.equals("TIME WITHOUT TIME ZONE")) {
+        } else if (t.equals("TIME") || t.equals("TIME WITHOUT TIME ZONE")) {
             return Field.nullable(name, new ArrowType.Time(TimeUnit.MICROSECOND, 64));
-        } else if (typeStr.equals("TIMESTAMP") || typeStr.equals("TIMESTAMP WITHOUT TIME ZONE")) {
+        } else if (t.equals("TIMESTAMP") || t.equals("TIMESTAMP WITHOUT TIME ZONE")) {
             return Field.nullable(name, new ArrowType.Timestamp(TimeUnit.MICROSECOND, null));
-        } else if (typeStr.startsWith("INTERVAL")) {
+        } else if (t.startsWith("INTERVAL")) {
             return Field.nullable(name, new ArrowType.Interval(IntervalUnit.MONTH_DAY_NANO));
-        } else if (typeStr.equals("STRING") || typeStr.equals("VARCHAR")) {
+        } else if (t.equals("STRING") || t.equals("VARCHAR")) {
             return Field.nullable(name, new ArrowType.Utf8());
-        } else if (typeStr.equals("JSON") || typeStr.equals("JSONB")) {
+        } else if (t.equals("LARGE_STRING")) {
             return Field.nullable(name, new ArrowType.LargeUtf8());
-        } else if (typeStr.equals("BINARY") || typeStr.equals("BYTEA")) {
+        } else if (t.equals("BINARY") || t.equals("BYTEA")) {
             return Field.nullable(name, new ArrowType.Binary());
+        } else if (t.equals("LARGE_BINARY")) {
+            return Field.nullable(name, new ArrowType.LargeBinary());
+        } else if (t.equals("JSON") || t.equals("JSONB")) {
+            return Field.nullable(name, new JsonType());
         } else {
-            throw new IllegalArgumentException("Unsupported type: " + typeStr);
+            throw new IllegalArgumentException("Unsupported type: " + t);
         }
     }
 
@@ -100,8 +104,8 @@ class TypeUtils {
      * Convert a Java class to an Arrow type.
      *
      * @param param The Java class.
-     * @param hint An optional DataTypeHint annotation.
-     * @param name The name of the field.
+     * @param hint  An optional DataTypeHint annotation.
+     * @param name  The name of the field.
      * @return The Arrow type.
      */
     static Field classToField(Class<?> param, DataTypeHint hint, String name) {
@@ -124,7 +128,7 @@ class TypeUtils {
         } else if (param == Double.class || param == double.class) {
             return Field.nullable(name, new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE));
         } else if (param == BigDecimal.class) {
-            return Field.nullable(name, new ArrowType.LargeBinary());
+            return Field.nullable(name, new DecimalType());
         } else if (param == LocalDate.class) {
             return Field.nullable(name, new ArrowType.Date(DateUnit.DAY));
         } else if (param == LocalTime.class) {
@@ -178,8 +182,7 @@ class TypeUtils {
         if (!Iterator.class.isAssignableFrom(type)) {
             throw new IllegalArgumentException("Table function must return Iterator");
         }
-        var typeArguments =
-                ((ParameterizedType) method.getGenericReturnType()).getActualTypeArguments();
+        var typeArguments = ((ParameterizedType) method.getGenericReturnType()).getActualTypeArguments();
         type = (Class<?>) typeArguments[0];
         var rowIndex = Field.nullable("row_index", new ArrowType.Int(32, true));
         return new Schema(Arrays.asList(rowIndex, classToField(type, hint, "")));
@@ -294,15 +297,6 @@ class TypeUtils {
                     vector.set(i, (double) values[i]);
                 }
             }
-        } else if (fieldVector instanceof LargeVarBinaryVector) {
-            var vector = (LargeVarBinaryVector) fieldVector;
-            vector.allocateNew(values.length);
-            for (int i = 0; i < values.length; i++) {
-                if (values[i] != null) {
-                    // use `toPlainString` to avoid scientific notation
-                    vector.set(i, ((BigDecimal) values[i]).toPlainString().getBytes());
-                }
-            }
         } else if (fieldVector instanceof DateDayVector) {
             var vector = (DateDayVector) fieldVector;
             vector.allocateNew(values.length);
@@ -381,6 +375,36 @@ class TypeUtils {
                     vector.set(i, (byte[]) values[i]);
                 }
             }
+        } else if (fieldVector instanceof LargeVarBinaryVector) {
+            var vector = (LargeVarBinaryVector) fieldVector;
+            int totalBytes = 0;
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    totalBytes += ((byte[]) values[i]).length;
+                }
+            }
+            vector.allocateNew(totalBytes, values.length);
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    vector.set(i, (byte[]) values[i]);
+                }
+            }
+        } else if (fieldVector instanceof JsonVector) {
+            var vector = (JsonVector) fieldVector;
+            vector.allocateNew(values.length);
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    vector.set(i, (String) values[i]);
+                }
+            }
+        } else if (fieldVector instanceof DecimalVector) {
+            var vector = (DecimalVector) fieldVector;
+            vector.allocateNew(values.length);
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    vector.set(i, (BigDecimal) values[i]);
+                }
+            }
         } else if (fieldVector instanceof ListVector) {
             var vector = (ListVector) fieldVector;
             vector.allocateNew();
@@ -456,7 +480,10 @@ class TypeUtils {
         return date * 24 * 3600 * 1000 * 1000 + time / 1000;
     }
 
-    /** Return a function that converts the object get from input array to the correct type. */
+    /**
+     * Return a function that converts the object get from input array to the
+     * correct type.
+     */
     static Function<Object, Object> processFunc(Field field, Class<?> targetClass) {
         var inner = processFunc0(field, targetClass);
         return obj -> obj == null ? null : inner.apply(obj);
@@ -469,10 +496,6 @@ class TypeUtils {
         } else if (field.getType() instanceof ArrowType.LargeUtf8 && targetClass == String.class) {
             // object is org.apache.arrow.vector.util.Text
             return obj -> obj.toString();
-        } else if (field.getType() instanceof ArrowType.LargeBinary
-                && targetClass == BigDecimal.class) {
-            // object is byte[]
-            return obj -> new BigDecimal(new String((byte[]) obj));
         } else if (field.getType() instanceof ArrowType.Date && targetClass == LocalDate.class) {
             // object is Integer
             return obj -> LocalDate.ofEpochDay((int) obj);
@@ -489,6 +512,8 @@ class TypeUtils {
             var subfunc = processFunc(subfield, targetClass.getComponentType());
             if (subfield.getType() instanceof ArrowType.Bool) {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(Boolean[]::new);
+            } else if (subfield.getType().equals(new ArrowType.Int(8, true))) {
+                return obj -> ((List<?>) obj).stream().map(subfunc).toArray(Byte[]::new);
             } else if (subfield.getType().equals(new ArrowType.Int(16, true))) {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(Short[]::new);
             } else if (subfield.getType().equals(new ArrowType.Int(32, true))) {
@@ -501,8 +526,6 @@ class TypeUtils {
             } else if (subfield.getType()
                     .equals(new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE))) {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(Double[]::new);
-            } else if (subfield.getType() instanceof ArrowType.LargeBinary) {
-                return obj -> ((List<?>) obj).stream().map(subfunc).toArray(BigDecimal[]::new);
             } else if (subfield.getType() instanceof ArrowType.Date) {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(LocalDate[]::new);
             } else if (subfield.getType() instanceof ArrowType.Time) {
@@ -511,11 +534,11 @@ class TypeUtils {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(LocalDateTime[]::new);
             } else if (subfield.getType() instanceof ArrowType.Interval) {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(PeriodDuration[]::new);
-            } else if (subfield.getType() instanceof ArrowType.Utf8) {
+            } else if (subfield.getType() instanceof ArrowType.Utf8
+                    || subfield.getType() instanceof ArrowType.LargeUtf8) {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(String[]::new);
-            } else if (subfield.getType() instanceof ArrowType.LargeUtf8) {
-                return obj -> ((List<?>) obj).stream().map(subfunc).toArray(String[]::new);
-            } else if (subfield.getType() instanceof ArrowType.Binary) {
+            } else if (subfield.getType() instanceof ArrowType.Binary
+                    || subfield.getType() instanceof ArrowType.LargeBinary) {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(byte[][]::new);
             } else if (subfield.getType() instanceof ArrowType.Struct) {
                 return obj -> {

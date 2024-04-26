@@ -108,8 +108,10 @@ public class TestUdfServer {
             public LocalTime time;
             public LocalDateTime timestamp;
             public PeriodDuration interval;
-            public String str;
-            public byte[] bytes;
+            public String string;
+            public byte[] binary;
+            public @DataTypeHint("large_string") String large_string;
+            public @DataTypeHint("large_binary") byte[] large_binary;
             public @DataTypeHint("json") String json;
             public Struct struct;
         }
@@ -140,8 +142,10 @@ public class TestUdfServer {
                 LocalTime time,
                 LocalDateTime timestamp,
                 PeriodDuration interval,
-                String str,
-                byte[] bytes,
+                String string,
+                byte[] binary,
+                @DataTypeHint("large_string") String large_string,
+                @DataTypeHint("large_binary") byte[] large_binary,
                 @DataTypeHint("json") String json,
                 Struct struct) {
             var row = new Row();
@@ -161,8 +165,10 @@ public class TestUdfServer {
             row.time = time;
             row.timestamp = timestamp;
             row.interval = interval;
-            row.str = str;
-            row.bytes = bytes;
+            row.string = string;
+            row.binary = binary;
+            row.large_string = large_string;
+            row.large_binary = large_binary;
             row.json = json;
             row.struct = struct;
             return row;
@@ -226,9 +232,9 @@ public class TestUdfServer {
         c10.set(0, 1);
         c10.setValueCount(2);
 
-        var c11 = new LargeVarBinaryVector("", allocator);
+        var c11 = new DecimalVector("", allocator);
         c11.allocateNew(2);
-        c11.set(0, "1.234".getBytes());
+        c11.set(0, new BigDecimal("1.234"));
         c11.setValueCount(2);
 
         var c12 = new DateDayVector("", allocator);
@@ -250,11 +256,10 @@ public class TestUdfServer {
                         + ts.toLocalTime().toNanoOfDay() / 1000);
         c14.setValueCount(2);
 
-        var c15 =
-                new IntervalMonthDayNanoVector(
-                        "",
-                        FieldType.nullable(MinorType.INTERVALMONTHDAYNANO.getType()),
-                        allocator);
+        var c15 = new IntervalMonthDayNanoVector(
+                "",
+                FieldType.nullable(MinorType.INTERVALMONTHDAYNANO.getType()),
+                allocator);
         c15.allocateNew(2);
         c15.set(0, 1000, 2000, 3000);
         c15.setValueCount(2);
@@ -266,36 +271,45 @@ public class TestUdfServer {
 
         var c17 = new VarBinaryVector("", allocator);
         c17.allocateNew(2);
-        c17.set(0, "bytes".getBytes());
+        c17.set(0, "binary".getBytes());
         c17.setValueCount(2);
 
         var c18 = new LargeVarCharVector("", allocator);
         c18.allocateNew(2);
-        c18.set(0, "{ key: 1 }".getBytes());
+        c18.set(0, "large_string".getBytes());
         c18.setValueCount(2);
 
-        var c19 =
-                new StructVector(
-                        "", allocator, FieldType.nullable(ArrowType.Struct.INSTANCE), null);
-        c19.allocateNew();
-        var f1 = c19.addOrGet("f1", FieldType.nullable(MinorType.INT.getType()), IntVector.class);
-        var f2 = c19.addOrGet("f2", FieldType.nullable(MinorType.INT.getType()), IntVector.class);
+        var c19 = new LargeVarBinaryVector("", allocator);
+        c19.allocateNew(2);
+        c19.set(0, "large_binary".getBytes());
+        c19.setValueCount(2);
+
+        var c20 = new JsonVector("", allocator);
+        c20.allocateNew(2);
+        c20.set(0, "{ \"key\": 1 }");
+        c20.setValueCount(2);
+
+        var c21 = new StructVector(
+                "", allocator, FieldType.nullable(ArrowType.Struct.INSTANCE), null);
+        c21.allocateNew();
+        var f1 = c21.addOrGet("f1", FieldType.nullable(MinorType.INT.getType()), IntVector.class);
+        var f2 = c21.addOrGet("f2", FieldType.nullable(MinorType.INT.getType()), IntVector.class);
         f1.allocateNew(2);
         f2.allocateNew(2);
         f1.set(0, 1);
         f2.set(0, 2);
-        c19.setIndexDefined(0);
-        c19.setValueCount(2);
+        c21.setIndexDefined(0);
+        c21.setValueCount(2);
 
-        var input =
-                VectorSchemaRoot.of(
-                        c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19);
+        var input = VectorSchemaRoot.of(
+                c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21);
 
         try (var stream = client.call("return_all", input)) {
             var output = stream.getRoot();
             assertTrue(stream.next());
             assertEquals(
-                    "{\"bool\":true,\"i8\":1,\"i16\":1,\"i32\":1,\"i64\":1,\"u8\":1,\"u16\":\"\\u0001\",\"u32\":1,\"u64\":1,\"f32\":1.0,\"f64\":1.0,\"decimal\":\"MS4yMzQ=\",\"date\":19358,\"time\":3723000000,\"timestamp\":[2023,1,1,1,2,3],\"interval\":{\"period\":\"P1000M2000D\",\"duration\":0.000003000,\"units\":[\"YEARS\",\"MONTHS\",\"DAYS\",\"SECONDS\",\"NANOS\"]},\"str\":\"string\",\"bytes\":\"Ynl0ZXM=\",\"json\":\"{ key: 1 }\",\"struct\":{\"f1\":1,\"f2\":2}}\n{}",
+                    "{\"bool\":true,\"i8\":1,\"i16\":1,\"i32\":1,\"i64\":1,\"u8\":1,\"u16\":\"\\u0001\",\"u32\":1,\"u64\":1,\"f32\":1.0,\"f64\":1.0,\"decimal\":1.234,\"date\":19358,\"time\":3723000000,\"timestamp\":[2023,1,1,1,2,3],\"interval\":{\"period\":\"P1000M2000D\",\"duration\":0.000003000,\"units\":[\"YEARS\",\"MONTHS\",\"DAYS\",\"SECONDS\",\"NANOS\"]},\"string\":\"string\",\"binary\":\"YmluYXJ5\",\"large_string\":\"large_string\",\"large_binary\":\"bGFyZ2VfYmluYXJ5\",\"json\":\"{ \\\"key\\\": 1 }\",\"struct\":{\"f1\":1,\"f2\":2}}\n"
+                            + "{}",
                     output.contentToTSVString().trim());
         }
     }

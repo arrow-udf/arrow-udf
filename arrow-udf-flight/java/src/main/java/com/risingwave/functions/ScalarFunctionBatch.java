@@ -52,9 +52,8 @@ class ScalarFunctionBatch extends UserDefinedFunctionBatch {
                 throw new RuntimeException(e);
             }
         }
-        var outputVector =
-                TypeUtils.createVector(
-                        this.outputSchema.getFields().get(0), allocator, outputValues);
+        var outputVector = TypeUtils.createVector(
+                this.outputSchema.getFields().get(0), allocator, outputValues);
         var outputBatch = VectorSchemaRoot.of(outputVector);
         return Collections.singleton(outputBatch).iterator();
     }

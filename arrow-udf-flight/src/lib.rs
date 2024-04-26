@@ -16,7 +16,6 @@ mod error;
 
 pub use error::{Error, Result};
 
-use std::str::FromStr;
 use std::time::Duration;
 
 use arrow_array::RecordBatch;
@@ -68,16 +67,19 @@ impl Client {
         mut addr: &str,
         resolution_strategy: ResolutionStrategy,
     ) -> Result<Self> {
-        if addr.starts_with("http://") {
-            addr = addr.strip_prefix("http://").unwrap();
+        if let Some(a) = addr.strip_prefix("http://") {
+            addr = a;
         }
-        if addr.starts_with("https://") {
-            addr = addr.strip_prefix("https://").unwrap();
+        if let Some(a) = addr.strip_prefix("https://") {
+            addr = a;
         }
-        let host_addr = HostAddr::from_str(addr).map_err(|e| {
-            Error::service_error(format!("invalid address: {}, err: {}", addr, e.as_report()))
-        })?;
-        let channel = LoadBalancedChannel::builder((host_addr.host.clone(), host_addr.port))
+        let (host, port) = addr
+            .split_once(':')
+            .ok_or_else(|| Error::ServiceError(format!("invalid address: {addr}")))?;
+        let port: u16 = port
+            .parse()
+            .map_err(|_| Error::ServiceError(format!("invalid port number: {port}")))?;
+        let channel = LoadBalancedChannel::builder((host.to_owned(), port))
             .dns_probe_interval(std::time::Duration::from_secs(DNS_PROBE_INTERVAL_SECS))
             .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
             .connect_timeout(Duration::from_secs(CONNECT_TIMEOUT_SECS))
@@ -85,10 +87,9 @@ impl Client {
             .channel()
             .await
             .map_err(|e| {
-                Error::service_error(format!(
+                Error::ServiceError(format!(
                     "failed to create LoadBalancedChannel, address: {}, err: {}",
-                    host_addr,
-                    e.as_report()
+                    addr, e
                 ))
             })?;
         let client = FlightServiceClient::new(channel.into());
@@ -107,11 +108,10 @@ impl Client {
         // check schema
         let info = response.into_inner();
         let input_num = info.total_records as usize;
-        let full_schema = Schema::try_from(info).map_err(|e| {
-            FlightError::DecodeError(format!("Error decoding schema: {}", e.as_report()))
-        })?;
+        let full_schema = Schema::try_from(info)
+            .map_err(|e| FlightError::DecodeError(format!("error decoding schema: {}", e)))?;
         if input_num > full_schema.fields.len() {
-            return Err(Error::service_error(format!(
+            return Err(Error::ServiceError(format!(
                 "function {:?} schema info not consistency: input_num: {}, total_fields: {}",
                 id,
                 input_num,
@@ -125,13 +125,13 @@ impl Client {
         let expect_input_types: Vec<_> = args.fields.iter().map(|f| f.data_type()).collect();
         let expect_result_types: Vec<_> = returns.fields.iter().map(|f| f.data_type()).collect();
         if !data_types_match(&expect_input_types, &actual_input_types) {
-            return Err(Error::type_mismatch(format!(
+            return Err(Error::TypeMismatch(format!(
                 "function: {:?}, expect arguments: {:?}, actual: {:?}",
                 id, expect_input_types, actual_input_types
             )));
         }
         if !data_types_match(&expect_result_types, &actual_result_types) {
-            return Err(Error::type_mismatch(format!(
+            return Err(Error::TypeMismatch(format!(
                 "function: {:?}, expect return: {:?}, actual: {:?}",
                 id, expect_result_types, actual_result_types
             )));
@@ -153,7 +153,7 @@ impl Client {
             batches.push(batch?);
         }
         Ok(arrow_select::concat::concat_batches(
-            output_stream.schema().ok_or_else(Error::no_returned)?,
+            output_stream.schema().ok_or(Error::NoReturned)?,
             batches.iter(),
         )?)
     }
@@ -164,7 +164,7 @@ impl Client {
         for i in 0..5 {
             match self.call(id, input.clone()).await {
                 Err(err) if err.is_connection_error() && i != 4 => {
-                    tracing::error!(error = %err.as_report(), "UDF connection error. retry...");
+                    tracing::error!(error = %err, "UDF connection error. retry...");
                 }
                 ret => return ret,
             }
@@ -179,24 +179,20 @@ impl Client {
         &self,
         id: &str,
         input: RecordBatch,
-        fragment_id: &str,
     ) -> Result<RecordBatch> {
         let mut backoff = Duration::from_millis(100);
-        let metrics = &*GLOBAL_METRICS;
-        let labels: &[&str; 4] = &[&self.addr, "external", id, fragment_id];
         loop {
             match self.call(id, input.clone()).await {
                 Err(err) if err.is_tonic_error() => {
-                    tracing::error!(error = %err.as_report(), "UDF tonic error. retry...");
+                    tracing::error!(error = %err, "UDF tonic error. retry...");
                 }
                 ret => {
                     if ret.is_err() {
-                        tracing::error!(error = %ret.as_ref().unwrap_err().as_report(), "UDF error. exiting...");
+                        tracing::error!(error = %ret.as_ref().unwrap_err(), "UDF error. exiting...");
                     }
                     return ret;
                 }
             }
-            metrics.udf_retry_count.with_label_values(labels).inc();
             tokio::time::sleep(backoff).await;
             backoff *= 2;
         }

@@ -58,5 +58,3 @@ impl Error {
         matches!(self, Error::Tonic(_) | Error::Flight(FlightError::Tonic(_)))
     }
 }
-
-static_assertions::const_assert_eq!(std::mem::size_of::<Error>(), 8);

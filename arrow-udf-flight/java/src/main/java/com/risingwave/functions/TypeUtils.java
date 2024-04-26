@@ -41,35 +41,7 @@ class TypeUtils {
     /** Convert a string to an Arrow type. */
     static Field stringToField(String typeStr, String name) {
         typeStr = typeStr.toUpperCase();
-        if (typeStr.equals("BOOLEAN") || typeStr.equals("BOOL")) {
-            return Field.nullable(name, new ArrowType.Bool());
-        } else if (typeStr.equals("SMALLINT") || typeStr.equals("INT2")) {
-            return Field.nullable(name, new ArrowType.Int(16, true));
-        } else if (typeStr.equals("INT") || typeStr.equals("INTEGER") || typeStr.equals("INT4")) {
-            return Field.nullable(name, new ArrowType.Int(32, true));
-        } else if (typeStr.equals("BIGINT") || typeStr.equals("INT8")) {
-            return Field.nullable(name, new ArrowType.Int(64, true));
-        } else if (typeStr.equals("FLOAT4") || typeStr.equals("REAL")) {
-            return Field.nullable(name, new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE));
-        } else if (typeStr.equals("FLOAT8") || typeStr.equals("DOUBLE PRECISION")) {
-            return Field.nullable(name, new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE));
-        } else if (typeStr.equals("DECIMAL") || typeStr.equals("NUMERIC")) {
-            return Field.nullable(name, new ArrowType.LargeBinary());
-        } else if (typeStr.equals("DATE")) {
-            return Field.nullable(name, new ArrowType.Date(DateUnit.DAY));
-        } else if (typeStr.equals("TIME") || typeStr.equals("TIME WITHOUT TIME ZONE")) {
-            return Field.nullable(name, new ArrowType.Time(TimeUnit.MICROSECOND, 64));
-        } else if (typeStr.equals("TIMESTAMP") || typeStr.equals("TIMESTAMP WITHOUT TIME ZONE")) {
-            return Field.nullable(name, new ArrowType.Timestamp(TimeUnit.MICROSECOND, null));
-        } else if (typeStr.startsWith("INTERVAL")) {
-            return Field.nullable(name, new ArrowType.Interval(IntervalUnit.MONTH_DAY_NANO));
-        } else if (typeStr.equals("VARCHAR")) {
-            return Field.nullable(name, new ArrowType.Utf8());
-        } else if (typeStr.equals("JSONB")) {
-            return Field.nullable(name, new ArrowType.LargeUtf8());
-        } else if (typeStr.equals("BYTEA")) {
-            return Field.nullable(name, new ArrowType.Binary());
-        } else if (typeStr.endsWith("[]")) {
+        if (typeStr.endsWith("[]")) {
             Field innerField = stringToField(typeStr.substring(0, typeStr.length() - 2), "");
             return new Field(
                     name, FieldType.nullable(new ArrowType.List()), Arrays.asList(innerField));
@@ -81,6 +53,44 @@ class TypeUtils {
                             .map(s -> stringToField(s.trim(), ""))
                             .collect(Collectors.toList());
             return new Field(name, FieldType.nullable(new ArrowType.Struct()), fields);
+        } else if (typeStr.equals("BOOLEAN") || typeStr.equals("BOOL")) {
+            return Field.nullable(name, new ArrowType.Bool());
+        } else if (typeStr.equals("TINYINT") || typeStr.equals("INT8")) {
+            return Field.nullable(name, new ArrowType.Int(8, true));
+        } else if (typeStr.equals("SMALLINT") || typeStr.equals("INT16")) {
+            return Field.nullable(name, new ArrowType.Int(16, true));
+        } else if (typeStr.equals("INT") || typeStr.equals("INTEGER") || typeStr.equals("INT32")) {
+            return Field.nullable(name, new ArrowType.Int(32, true));
+        } else if (typeStr.equals("BIGINT") || typeStr.equals("INT64")) {
+            return Field.nullable(name, new ArrowType.Int(64, true));
+        } else if (typeStr.equals("UINT8")) {
+            return Field.nullable(name, new ArrowType.Int(8, false));
+        } else if (typeStr.equals("UINT16")) {
+            return Field.nullable(name, new ArrowType.Int(16, false));
+        } else if (typeStr.equals("UINT32")) {
+            return Field.nullable(name, new ArrowType.Int(32, false));
+        } else if (typeStr.equals("UINT64")) {
+            return Field.nullable(name, new ArrowType.Int(64, false));
+        } else if (typeStr.equals("FLOAT32") || typeStr.equals("REAL")) {
+            return Field.nullable(name, new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE));
+        } else if (typeStr.equals("FLOAT64") || typeStr.equals("DOUBLE PRECISION")) {
+            return Field.nullable(name, new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE));
+        } else if (typeStr.equals("DECIMAL") || typeStr.equals("NUMERIC")) {
+            return Field.nullable(name, new ArrowType.LargeBinary());
+        } else if (typeStr.equals("DATE")) {
+            return Field.nullable(name, new ArrowType.Date(DateUnit.DAY));
+        } else if (typeStr.equals("TIME") || typeStr.equals("TIME WITHOUT TIME ZONE")) {
+            return Field.nullable(name, new ArrowType.Time(TimeUnit.MICROSECOND, 64));
+        } else if (typeStr.equals("TIMESTAMP") || typeStr.equals("TIMESTAMP WITHOUT TIME ZONE")) {
+            return Field.nullable(name, new ArrowType.Timestamp(TimeUnit.MICROSECOND, null));
+        } else if (typeStr.startsWith("INTERVAL")) {
+            return Field.nullable(name, new ArrowType.Interval(IntervalUnit.MONTH_DAY_NANO));
+        } else if (typeStr.equals("STRING") || typeStr.equals("VARCHAR")) {
+            return Field.nullable(name, new ArrowType.Utf8());
+        } else if (typeStr.equals("JSON") || typeStr.equals("JSONB")) {
+            return Field.nullable(name, new ArrowType.LargeUtf8());
+        } else if (typeStr.equals("BINARY") || typeStr.equals("BYTEA")) {
+            return Field.nullable(name, new ArrowType.Binary());
         } else {
             throw new IllegalArgumentException("Unsupported type: " + typeStr);
         }
@@ -99,12 +109,16 @@ class TypeUtils {
             return stringToField(hint.value(), name);
         } else if (param == Boolean.class || param == boolean.class) {
             return Field.nullable(name, new ArrowType.Bool());
+        } else if (param == Byte.class || param == byte.class) {
+            return Field.nullable(name, new ArrowType.Int(8, true));
         } else if (param == Short.class || param == short.class) {
             return Field.nullable(name, new ArrowType.Int(16, true));
         } else if (param == Integer.class || param == int.class) {
             return Field.nullable(name, new ArrowType.Int(32, true));
         } else if (param == Long.class || param == long.class) {
             return Field.nullable(name, new ArrowType.Int(64, true));
+        } else if (param == Character.class || param == char.class) {
+            return Field.nullable(name, new ArrowType.Int(16, false));
         } else if (param == Float.class || param == float.class) {
             return Field.nullable(name, new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE));
         } else if (param == Double.class || param == double.class) {
@@ -200,6 +214,14 @@ class TypeUtils {
                     vector.set(i, (boolean) values[i] ? 1 : 0);
                 }
             }
+        } else if (fieldVector instanceof TinyIntVector) {
+            var vector = (TinyIntVector) fieldVector;
+            vector.allocateNew(values.length);
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    vector.set(i, (byte) values[i]);
+                }
+            }
         } else if (fieldVector instanceof SmallIntVector) {
             var vector = (SmallIntVector) fieldVector;
             vector.allocateNew(values.length);
@@ -218,6 +240,38 @@ class TypeUtils {
             }
         } else if (fieldVector instanceof BigIntVector) {
             var vector = (BigIntVector) fieldVector;
+            vector.allocateNew(values.length);
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    vector.set(i, (long) values[i]);
+                }
+            }
+        } else if (fieldVector instanceof UInt1Vector) {
+            var vector = (UInt1Vector) fieldVector;
+            vector.allocateNew(values.length);
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    vector.set(i, (byte) values[i]);
+                }
+            }
+        } else if (fieldVector instanceof UInt2Vector) {
+            var vector = (UInt2Vector) fieldVector;
+            vector.allocateNew(values.length);
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    vector.set(i, (char) values[i]);
+                }
+            }
+        } else if (fieldVector instanceof UInt4Vector) {
+            var vector = (UInt4Vector) fieldVector;
+            vector.allocateNew(values.length);
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    vector.set(i, (int) values[i]);
+                }
+            }
+        } else if (fieldVector instanceof UInt8Vector) {
+            var vector = (UInt8Vector) fieldVector;
             vector.allocateNew(values.length);
             for (int i = 0; i < values.length; i++) {
                 if (values[i] != null) {

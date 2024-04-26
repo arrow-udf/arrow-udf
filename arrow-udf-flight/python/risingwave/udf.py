@@ -190,16 +190,17 @@ class UserDefinedScalarFunctionWrapper(ScalarFunction):
 
     def __init__(self, func, input_types, result_type, name=None, io_threads=None):
         self._func = func
+        self._name = name or (
+            func.__name__ if hasattr(func, "__name__") else func.__class__.__name__
+        )
         self._input_schema = pa.schema(
             zip(
                 inspect.getfullargspec(func)[0],
                 [_to_data_type(t) for t in _to_list(input_types)],
             )
         )
-        self._result_schema = pa.schema([("output", _to_data_type(result_type))])
-        self._name = name or (
-            func.__name__ if hasattr(func, "__name__") else func.__class__.__name__
-        )
+        self._result_schema = pa.schema([(self._name, _to_data_type(result_type))])
+
         super().__init__(io_threads=io_threads)
 
     def __call__(self, *args):
@@ -229,7 +230,7 @@ class UserDefinedTableFunctionWrapper(TableFunction):
         )
         self._result_schema = pa.schema(
             [
-                ("row_index", pa.int32()),
+                ("row", pa.int32()),
                 (
                     self._name,
                     (
@@ -365,26 +366,7 @@ class UdfServer(pa.flight.FlightServerBase):
         name = udf._name
         if name in self._functions:
             raise ValueError("Function already exists: " + name)
-
-        input_types = ",".join(
-            [_data_type_to_string(t) for t in udf._input_schema.types]
-        )
-        if isinstance(udf, TableFunction):
-            output_type = udf._result_schema.types[-1]
-            if isinstance(output_type, pa.StructType):
-                output_type = ",".join(
-                    f"{field.name} {_data_type_to_string(field.type)}"
-                    for i, field in enumerate(output_type)
-                )
-                output_type = f"TABLE({output_type})"
-            else:
-                output_type = _data_type_to_string(output_type)
-                output_type = f"TABLE(output {output_type})"
-        else:
-            output_type = _data_type_to_string(udf._result_schema.types[-1])
-
-        sql = f"CREATE FUNCTION {name}({input_types}) RETURNS {output_type} AS '{name}' USING LINK 'http://{self._location}';"
-        print(f"added function: {name}, corresponding SQL:\n{sql}\n")
+        print(f"added function: {name}")
         self._functions[name] = udf
 
     def do_exchange(self, context, descriptor, reader, writer):
@@ -406,10 +388,7 @@ class UdfServer(pa.flight.FlightServerBase):
 
         This method only returns if shutdown() is called or a signal (SIGINT, SIGTERM) received.
         """
-        print(
-            "Note: You can use arbitrary function names and struct field names in CREATE FUNCTION statements."
-            f"\n\nlistening on {self._location}"
-        )
+        print(f"listening on {self._location}")
         signal.signal(signal.SIGTERM, lambda s, f: self.shutdown())
         super(UdfServer, self).serve()
 
@@ -557,65 +536,3 @@ def _string_to_data_type(type: str):
         return pa.large_binary()
 
     raise ValueError(f"Unsupported type: {t}")
-
-
-def _data_type_to_string(t: pa.DataType) -> str:
-    """
-    Convert a `pyarrow.DataType` to a SQL data type string.
-    """
-    if isinstance(t, pa.ListType):
-        return _data_type_to_string(t.value_type) + "[]"
-    elif t.equals(pa.bool_()):
-        return "BOOLEAN"
-    elif t.equals(pa.int8()):
-        return "TINYINT"
-    elif t.equals(pa.int16()):
-        return "SMALLINT"
-    elif t.equals(pa.int32()):
-        return "INT"
-    elif t.equals(pa.int64()):
-        return "BIGINT"
-    elif t.equals(pa.uint8()):
-        return "uint8"
-    elif t.equals(pa.uint16()):
-        return "uint16"
-    elif t.equals(pa.uint32()):
-        return "uint32"
-    elif t.equals(pa.uint64()):
-        return "uint64"
-    elif t.equals(pa.float32()):
-        return "FLOAT4"
-    elif t.equals(pa.float64()):
-        return "FLOAT8"
-    elif t.equals(DecimalType()):
-        return "DECIMAL"
-    elif pa.types.is_decimal(t):
-        return f"DECIMAL({t.precision},{t.scale})"
-    elif t.equals(pa.date32()):
-        return "DATE"
-    elif t.equals(pa.time64("us")):
-        return "TIME"
-    elif t.equals(pa.timestamp("us")):
-        return "TIMESTAMP"
-    elif t.equals(pa.month_day_nano_interval()):
-        return "INTERVAL"
-    elif t.equals(pa.string()):
-        return "VARCHAR"
-    elif t.equals(pa.binary()):
-        return "BYTEA"
-    elif t.equals(pa.large_string()):
-        return "large_string"
-    elif t.equals(pa.large_binary()):
-        return "large_binary"
-    elif t.equals(JsonType()):
-        return "JSON"
-    elif isinstance(t, pa.StructType):
-        return (
-            "STRUCT<"
-            + ",".join(
-                f"{field.name}: {_data_type_to_string(field.type)}" for field in t
-            )
-            + ">"
-        )
-    else:
-        raise ValueError(f"Unsupported type: {t}")

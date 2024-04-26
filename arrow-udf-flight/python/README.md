@@ -1,14 +1,4 @@
-# RisingWave Python UDF SDK
-
-This library provides a Python SDK for creating user-defined functions (UDF) in [RisingWave](https://www.risingwave.com/).
-
-For a detailed guide on how to use Python UDF in RisingWave, please refer to [this doc](https://docs.risingwave.com/docs/current/udf-python/).
-
-## Introduction
-
-RisingWave supports user-defined functions implemented as external functions.
-With the RisingWave Python UDF SDK, users can define custom UDFs using Python and start a Python process as a UDF server.
-RisingWave can then remotely access the UDF server to execute the defined functions.
+# Arrow UDF Python Server
 
 ## Installation
 
@@ -34,13 +24,18 @@ def gcd(x, y):
     return x
 
 # Define a scalar function that returns multiple values (within a struct)
-@udf(input_types=['BYTEA'], result_type='STRUCT<VARCHAR, VARCHAR, SMALLINT, SMALLINT>')
+@udf(input_types=['BINARY'], result_type='STRUCT<src_addr: STRING, dst_addr: STRING, src_port: INT16, dst_port: INT16>')
 def extract_tcp_info(tcp_packet: bytes):
     src_addr, dst_addr = struct.unpack('!4s4s', tcp_packet[12:20])
     src_port, dst_port = struct.unpack('!HH', tcp_packet[20:24])
     src_addr = socket.inet_ntoa(src_addr)
     dst_addr = socket.inet_ntoa(dst_addr)
-    return src_addr, dst_addr, src_port, dst_port
+    return {
+        'src_addr': src_addr,
+        'dst_addr': dst_addr,
+        'src_port': src_port,
+        'dst_port': dst_port,
+    }
 
 # Define a table function
 @udtf(input_types='INT', result_types='INT')
@@ -52,6 +47,7 @@ def series(n):
 if __name__ == '__main__':
     server = UdfServer(location="0.0.0.0:8815")
     server.add_function(gcd)
+    server.add_function(extract_tcp_info)
     server.add_function(series)
     server.serve()
 ```
@@ -62,51 +58,33 @@ Start the UDF server:
 python3 udf.py
 ```
 
-To create functions in RisingWave, use the following syntax:
-
-```sql
-create function <name> ( <arg_type>[, ...] )
-    [ returns <ret_type> | returns table ( <column_name> <column_type> [, ...] ) ]
-    as <name_defined_in_server> using link '<udf_server_address>';
-```
-
-- The `as` parameter specifies the function name defined in the UDF server.
-- The `link` parameter specifies the address of the UDF server.
-
-For example:
-
-```sql
-create function gcd(int, int) returns int
-as gcd using link 'http://localhost:8815';
-
-create function series(int) returns table (x int)
-as series using link 'http://localhost:8815';
-
-select gcd(25, 15);
-
-select * from series(10);
-```
-
 ## Data Types
 
-The RisingWave Python UDF SDK supports the following data types:
+| Arrow Type           | Python Type                    |
+| -------------------- | ------------------------------ |
+| `boolean`            | `bool`                         |
+| `int8`               | `int`                          |
+| `int16`              | `int`                          |
+| `int32`              | `int`                          |
+| `int64`              | `int`                          |
+| `uint8`              | `int`                          |
+| `uint16`             | `int`                          |
+| `uint32`             | `int`                          |
+| `uint64`             | `int`                          |
+| `float32`            | `float`                        |
+| `float32`            | `float`                        |
+| `date32`             | `datetime.date`                |
+| `time64`             | `datetime.time`                |
+| `timestamp`          | `datetime.datetime`            |
+| `interval`           | `MonthDayNano` / `(int, int, int)` (fields can be obtained by `months()`, `days()` and `nanoseconds()` from `MonthDayNano`) |
+| `string`             | `str`                          |
+| `binary`             | `bytes`                        |
+| `large_string`       | `str`                          |
+| `large_binary`       | `bytes`                        |
 
-| SQL Type         | Python Type                    | Notes              |
-| ---------------- | -----------------------------  | ------------------ |
-| BOOLEAN          | bool                           |                    |
-| SMALLINT         | int                            |                    |
-| INT              | int                            |                    |
-| BIGINT           | int                            |                    |
-| REAL             | float                          |                    |
-| DOUBLE PRECISION | float                          |                    |
-| DECIMAL          | decimal.Decimal                |                    |
-| DATE             | datetime.date                  |                    |
-| TIME             | datetime.time                  |                    |
-| TIMESTAMP        | datetime.datetime              |                    |
-| INTERVAL         | MonthDayNano / (int, int, int) | Fields can be obtained by `months()`, `days()` and `nanoseconds()` from `MonthDayNano` |
-| VARCHAR          | str                            |                    |
-| BYTEA            | bytes                          |                    |
-| JSONB            | any                            |                    |
-| T[]              | list[T]                        |                    |
-| STRUCT<>         | tuple                          |                    |
-| ...others        |                                | Not supported yet. |
+Extension types:
+
+| Data type   | Metadata            | Python Type           |
+| ----------- | ------------------- | --------------------- |
+| `decimal`   | `arrowudf.decimal`  | `decimal.Decimal`     |
+| `json`      | `arrowudf.json`     | `any`                 |

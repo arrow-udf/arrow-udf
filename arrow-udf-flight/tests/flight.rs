@@ -14,37 +14,31 @@
 
 use std::sync::Arc;
 
-use arrow_array::{Int32Array, RecordBatch};
+use arrow_array::{Int32Array, RecordBatch, StringArray};
+use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_flight::Client;
+use expect_test::{expect, Expect};
+use futures_util::StreamExt;
 
-#[tokio::main]
-async fn main() {
-    let addr = "http://localhost:8815";
-    let client = Client::connect(addr).await.unwrap();
+const SERVER_ADDR: &str = "http://localhost:8815";
+
+#[tokio::test]
+async fn test_gcd() {
+    let client = Client::connect(SERVER_ADDR).await.unwrap();
 
     // build `RecordBatch` to send
     let array1 = Arc::new(Int32Array::from_iter(vec![1, 6, 10]));
     let array2 = Arc::new(Int32Array::from_iter(vec![3, 4, 15]));
-    let array3 = Arc::new(Int32Array::from_iter(vec![6, 8, 3]));
     let input2_schema = Schema::new(vec![
         Field::new("a", DataType::Int32, true),
         Field::new("b", DataType::Int32, true),
     ]);
-    let input3_schema = Schema::new(vec![
-        Field::new("a", DataType::Int32, true),
-        Field::new("b", DataType::Int32, true),
-        Field::new("c", DataType::Int32, true),
-    ]);
-    let output_schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let output_schema = Schema::new(vec![Field::new("gcd", DataType::Int32, true)]);
 
     // check function
     client
         .check("gcd", &input2_schema, &output_schema)
-        .await
-        .unwrap();
-    client
-        .check("gcd3", &input3_schema, &output_schema)
         .await
         .unwrap();
 
@@ -55,22 +49,111 @@ async fn main() {
     .unwrap();
 
     let output = client
-        .call("gcd", input2)
+        .call("gcd", &input2)
         .await
         .expect("failed to call function");
 
-    println!("{:?}", output);
+    check(
+        &[output],
+        expect![[r#"
+        +-----+
+        | gcd |
+        +-----+
+        | 1   |
+        | 2   |
+        | 5   |
+        +-----+"#]],
+    );
+}
 
-    let input3 = RecordBatch::try_new(
-        Arc::new(input3_schema),
-        vec![array1.clone(), array2.clone(), array3.clone()],
-    )
-    .unwrap();
+#[tokio::test]
+async fn test_decimal_add() {
+    let client = Client::connect(SERVER_ADDR).await.unwrap();
 
-    let output = client
-        .call("gcd3", input3)
-        .await
-        .expect("failed to call function");
+    let schema = Schema::new(vec![decimal_field("a"), decimal_field("b")]);
+    let arg0 = StringArray::from(vec!["0.0001"]);
+    let arg1 = StringArray::from(vec!["0.0002"]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    println!("{:?}", output);
+    let output = client.call("decimal_add", &input).await.unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +-------------+
+        | decimal_add |
+        +-------------+
+        | 0.0003      |
+        +-------------+"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_json_array_access() {
+    let client = Client::connect(SERVER_ADDR).await.unwrap();
+
+    let schema = Schema::new(vec![
+        json_field("array"),
+        Field::new("i", DataType::Int32, true),
+    ]);
+    let arg0 = StringArray::from(vec![r#"[1, null, ""]"#]);
+    let arg1 = Int32Array::from(vec![0]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let output = client.call("json_array_access", &input).await.unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +-------------------+
+        | json_array_access |
+        +-------------------+
+        | 1                 |
+        +-------------------+"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_range() {
+    let client = Client::connect(SERVER_ADDR).await.unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let mut outputs = client.call_table_function("range", &input).await.unwrap();
+
+    let output = outputs.next().await.unwrap().unwrap();
+    assert_eq!(output.schema().field(0).data_type(), &DataType::Int32);
+
+    check(
+        &[output],
+        expect![[r#"
+        +-----+-------+
+        | row | range |
+        +-----+-------+
+        | 0   | 0     |
+        | 2   | 0     |
+        | 2   | 1     |
+        | 2   | 2     |
+        +-----+-------+"#]],
+    );
+}
+
+/// Compare the actual output with the expected output.
+#[track_caller]
+fn check(actual: &[RecordBatch], expect: Expect) {
+    expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
+}
+
+/// Returns a field with JSON type.
+fn json_field(name: &str) -> Field {
+    Field::new(name, DataType::Utf8, true)
+        .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into())
+}
+
+/// Returns a field with decimal type.
+fn decimal_field(name: &str) -> Field {
+    Field::new(name, DataType::Utf8, true)
+        .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into())
 }

@@ -100,8 +100,8 @@ impl Client {
     }
 
     /// Check if the function is available and the schema is match.
-    pub async fn check(&self, id: &str, args: &Schema, returns: &Schema) -> Result<()> {
-        let descriptor = FlightDescriptor::new_path(vec![id.into()]);
+    pub async fn check(&self, name: &str, args: &Schema, returns: &Schema) -> Result<()> {
+        let descriptor = FlightDescriptor::new_path(vec![name.into()]);
 
         let response = self.client.clone().get_flight_info(descriptor).await?;
 
@@ -113,7 +113,7 @@ impl Client {
         if input_num > full_schema.fields.len() {
             return Err(Error::ServiceError(format!(
                 "function {:?} schema info not consistency: input_num: {}, total_fields: {}",
-                id,
+                name,
                 input_num,
                 full_schema.fields.len()
             )));
@@ -127,26 +127,27 @@ impl Client {
         if !data_types_match(&expect_input_types, &actual_input_types) {
             return Err(Error::TypeMismatch(format!(
                 "function: {:?}, expect arguments: {:?}, actual: {:?}",
-                id, expect_input_types, actual_input_types
+                name, expect_input_types, actual_input_types
             )));
         }
         if !data_types_match(&expect_result_types, &actual_result_types) {
             return Err(Error::TypeMismatch(format!(
                 "function: {:?}, expect return: {:?}, actual: {:?}",
-                id, expect_result_types, actual_result_types
+                name, expect_result_types, actual_result_types
             )));
         }
         Ok(())
     }
 
     /// Call a function.
-    pub async fn call(&self, id: &str, input: RecordBatch) -> Result<RecordBatch> {
-        self.call_internal(id, input).await
+    pub async fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
+        self.call_internal(name, input).await
     }
 
-    async fn call_internal(&self, id: &str, input: RecordBatch) -> Result<RecordBatch> {
+    async fn call_internal(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
+        let input = input.clone();
         let mut output_stream = self
-            .call_stream_internal(id, stream::once(async { input }))
+            .call_stream_internal(name, stream::once(async { input }))
             .await?;
         let mut batches = vec![];
         while let Some(batch) = output_stream.next().await {
@@ -159,10 +160,10 @@ impl Client {
     }
 
     /// Call a function, retry up to 5 times / 3s if connection is broken.
-    pub async fn call_with_retry(&self, id: &str, input: RecordBatch) -> Result<RecordBatch> {
+    pub async fn call_with_retry(&self, id: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let mut backoff = Duration::from_millis(100);
         for i in 0..5 {
-            match self.call(id, input.clone()).await {
+            match self.call(id, &input).await {
                 Err(err) if err.is_connection_error() && i != 4 => {
                     tracing::error!(error = %err, "UDF connection error. retry...");
                 }
@@ -178,11 +179,11 @@ impl Client {
     pub async fn call_with_always_retry_on_network_error(
         &self,
         id: &str,
-        input: RecordBatch,
+        input: &RecordBatch,
     ) -> Result<RecordBatch> {
         let mut backoff = Duration::from_millis(100);
         loop {
-            match self.call(id, input.clone()).await {
+            match self.call(id, &input).await {
                 Err(err) if err.is_tonic_error() => {
                     tracing::error!(error = %err, "UDF tonic error. retry...");
                 }
@@ -198,24 +199,25 @@ impl Client {
         }
     }
 
-    /// Call a function with streaming input and output.
-    pub async fn call_stream(
+    /// Call a table function.
+    pub async fn call_table_function(
         &self,
-        id: &str,
-        inputs: impl Stream<Item = RecordBatch> + Send + 'static,
+        name: &str,
+        input: &RecordBatch,
     ) -> Result<impl Stream<Item = Result<RecordBatch>> + Send + 'static> {
+        let input = input.clone();
         Ok(self
-            .call_stream_internal(id, inputs)
+            .call_stream_internal(name, stream::once(async { input }))
             .await?
             .map_err(|e| e.into()))
     }
 
     async fn call_stream_internal(
         &self,
-        id: &str,
+        name: &str,
         inputs: impl Stream<Item = RecordBatch> + Send + 'static,
     ) -> Result<FlightRecordBatchStream> {
-        let descriptor = FlightDescriptor::new_path(vec![id.into()]);
+        let descriptor = FlightDescriptor::new_path(vec![name.into()]);
         let flight_data_stream =
             FlightDataEncoderBuilder::new()
                 .build(inputs.map(Ok))

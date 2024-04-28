@@ -109,13 +109,16 @@ jobs:
       - name: Test flight with Python UDF Server
         run: |
           python arrow-udf-flight/python/example.py &
+          pid=$!
           sleep 1
           cargo test -p arrow-udf-flight
-          killall python
+          kill $pid
       - name: Test flight with Java UDF Server
         run: |
           cd arrow-udf-flight/java
           _JAVA_OPTIONS="--add-opens=java.base/java.nio=ALL-UNNAMED" mvn exec:java &
+          pid=$!
+          sleep 5
           cargo test -p arrow-udf-flight
-          killall java
+          kill $pid
           cd ../..

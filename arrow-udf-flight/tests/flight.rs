@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use arrow_array::{Int32Array, RecordBatch, StringArray};
 use arrow_cast::pretty::pretty_format_batches;
@@ -138,6 +138,22 @@ async fn test_range() {
         | 2   | 2     |
         +-----+-------+"#]],
     );
+}
+
+#[tokio::test]
+async fn test_list_function() {
+    let client = Client::connect(SERVER_ADDR).await.unwrap();
+
+    let functions = client.list().await.unwrap();
+    let names = functions
+        .into_iter()
+        .map(|f| f.name)
+        .collect::<HashSet<_>>();
+
+    assert!(names.contains("gcd"));
+    assert!(names.contains("range"));
+    assert!(names.contains("decimal_add"));
+    assert!(names.contains("json_array_access"));
 }
 
 /// Compare the actual output with the expected output.

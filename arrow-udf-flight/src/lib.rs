@@ -25,7 +25,7 @@ use arrow_flight::decode::FlightRecordBatchStream;
 use arrow_flight::encode::FlightDataEncoderBuilder;
 use arrow_flight::error::FlightError;
 use arrow_flight::flight_service_client::FlightServiceClient;
-use arrow_flight::{FlightData, FlightDescriptor};
+use arrow_flight::{Criteria, FlightData, FlightDescriptor};
 use arrow_schema::Schema;
 use futures_util::{stream, FutureExt, Stream, StreamExt, TryStreamExt};
 use ginepro::{LoadBalancedChannel, ResolutionStrategy};
@@ -141,6 +141,31 @@ impl Client {
         Ok(())
     }
 
+    /// List all available functions.
+    pub async fn list(&self) -> Result<Vec<Function>> {
+        let response = self
+            .client
+            .clone()
+            .list_flights(Criteria::default())
+            .await?;
+        let mut functions = vec![];
+        let mut response = response.into_inner();
+        while let Some(flight_info) = response.next().await {
+            let flight_info = flight_info?;
+            let name = flight_info.flight_descriptor.as_ref().unwrap().path[0].clone();
+            let input_num = flight_info.total_records as usize;
+            let schema = Schema::try_from(flight_info)
+                .map_err(|e| FlightError::DecodeError(format!("error decoding schema: {}", e)))?;
+            let (input_fields, return_fields) = schema.fields.split_at(input_num);
+            functions.push(Function {
+                name,
+                args: Schema::new(input_fields.to_vec()),
+                returns: Schema::new(return_fields.to_vec()),
+            });
+        }
+        Ok(functions)
+    }
+
     /// Call a function.
     pub async fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         self.call_internal(name, input).await
@@ -165,7 +190,7 @@ impl Client {
     pub async fn call_with_retry(&self, id: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let mut backoff = Duration::from_millis(100);
         for i in 0..5 {
-            match self.call(id, &input).await {
+            match self.call(id, input).await {
                 Err(err) if err.is_connection_error() && i != 4 => {
                     tracing::error!(error = %err, "UDF connection error. retry...");
                 }
@@ -185,7 +210,7 @@ impl Client {
     ) -> Result<RecordBatch> {
         let mut backoff = Duration::from_millis(100);
         loop {
-            match self.call(id, &input).await {
+            match self.call(id, input).await {
                 Err(err) if err.is_tonic_error() => {
                     tracing::error!(error = %err, "UDF tonic error. retry...");
                 }
@@ -253,4 +278,15 @@ fn data_types_match(a: &[&arrow_schema::DataType], b: &[&arrow_schema::DataType]
     }
     #[allow(clippy::disallowed_methods)]
     a.iter().zip(b.iter()).all(|(a, b)| a.equals_datatype(b))
+}
+
+/// Function signature.
+#[derive(Debug)]
+pub struct Function {
+    /// Function name.
+    pub name: String,
+    /// The schema of function arguments.
+    pub args: Schema,
+    /// The schema of function return values.
+    pub returns: Schema,
 }

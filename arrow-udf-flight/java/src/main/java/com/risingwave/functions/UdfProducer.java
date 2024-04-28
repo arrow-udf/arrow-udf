@@ -61,17 +61,32 @@ class UdfProducer extends NoOpFlightProducer {
             if (udf == null) {
                 throw new IllegalArgumentException("Unknown function: " + functionName);
             }
-            var fields = new ArrayList<Field>();
-            fields.addAll(udf.getInputSchema().getFields());
-            fields.addAll(udf.getOutputSchema().getFields());
-            var fullSchema = new Schema(fields);
-            var inputLen = udf.getInputSchema().getFields().size();
-
-            return new FlightInfo(fullSchema, descriptor, Collections.emptyList(), 0, inputLen);
+            return makeFlightInfo(functionName, udf);
         } catch (Exception e) {
             logger.error("Error occurred during getFlightInfo", e);
             throw e;
         }
+    }
+
+    @Override
+    public void listFlights(CallContext context, Criteria criteria,
+            StreamListener<FlightInfo> listener) {
+        for (var entry : functions.entrySet()) {
+            var flightInfo = makeFlightInfo(entry.getKey(), entry.getValue());
+            listener.onNext(flightInfo);
+        }
+        listener.onCompleted();
+    }
+
+    // Create a FlightInfo object for a given function
+    FlightInfo makeFlightInfo(String name, UserDefinedFunctionBatch udf) {
+        var fields = new ArrayList<Field>();
+        fields.addAll(udf.getInputSchema().getFields());
+        fields.addAll(udf.getOutputSchema().getFields());
+        var fullSchema = new Schema(fields);
+        var descriptor = FlightDescriptor.path(name);
+        var inputLen = udf.getInputSchema().getFields().size();
+        return new FlightInfo(fullSchema, descriptor, Collections.emptyList(), 0, inputLen);
     }
 
     @Override
@@ -82,7 +97,9 @@ class UdfProducer extends NoOpFlightProducer {
 
             var udf = this.functions.get(functionName);
             if (udf == null) {
-                throw new IllegalArgumentException("Unknown function: " + functionName);
+                writer.error(
+                        CallStatus.NOT_FOUND.withDescription("Unknown function: " + functionName).toRuntimeException());
+                return;
             }
 
             try (var root = VectorSchemaRoot.create(udf.getOutputSchema(), allocator)) {

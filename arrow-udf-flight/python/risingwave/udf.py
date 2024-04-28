@@ -347,19 +347,29 @@ class UdfServer(pa.flight.FlightServerBase):
         self._location = location
         self._functions = {}
 
+    @override
     def get_flight_info(self, context, descriptor):
         """Return the result schema of a function."""
         udf = self._functions[descriptor.path[0].decode("utf-8")]
+        return self._make_flight_info(udf)
+
+    def _make_flight_info(self, udf: UserDefinedFunction) -> pa.flight.FlightInfo:
+        """Return the flight info of a function."""
         # return the concatenation of input and output schema
         full_schema = pa.schema(list(udf._input_schema) + list(udf._result_schema))
         # we use `total_records` to indicate the number of input arguments
         return pa.flight.FlightInfo(
             schema=full_schema,
-            descriptor=descriptor,
+            descriptor=pa.flight.FlightDescriptor.for_path(udf._name),
             endpoints=[],
             total_records=len(udf._input_schema),
             total_bytes=0,
         )
+
+    @override
+    def list_flights(self, context, criteria):
+        """Return the list of functions."""
+        return [self._make_flight_info(udf) for udf in self._functions.values()]
 
     def add_function(self, udf: UserDefinedFunction):
         """Add a function to the server."""
@@ -369,6 +379,7 @@ class UdfServer(pa.flight.FlightServerBase):
         print(f"added function: {name}")
         self._functions[name] = udf
 
+    @override
     def do_exchange(self, context, descriptor, reader, writer):
         """Call a function from the client."""
         udf = self._functions[descriptor.path[0].decode("utf-8")]

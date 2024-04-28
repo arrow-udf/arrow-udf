@@ -28,31 +28,16 @@ async fn test_gcd() {
     let client = Client::connect(SERVER_ADDR).await.unwrap();
 
     // build `RecordBatch` to send
-    let array1 = Arc::new(Int32Array::from_iter(vec![1, 6, 10]));
-    let array2 = Arc::new(Int32Array::from_iter(vec![3, 4, 15]));
-    let input2_schema = Schema::new(vec![
+    let schema = Schema::new(vec![
         Field::new("a", DataType::Int32, true),
         Field::new("b", DataType::Int32, true),
     ]);
-    let output_schema = Schema::new(vec![Field::new("gcd", DataType::Int32, true)]);
+    let arg0 = Int32Array::from_iter(vec![1, 6, 10]);
+    let arg1 = Int32Array::from_iter(vec![3, 4, 15]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    // check function
-    client
-        .check("gcd", &input2_schema, &output_schema)
-        .await
-        .unwrap();
-
-    let input2 = RecordBatch::try_new(
-        Arc::new(input2_schema),
-        vec![array1.clone(), array2.clone()],
-    )
-    .unwrap();
-
-    let output = client
-        .call("gcd", &input2)
-        .await
-        .expect("failed to call function");
-
+    let output = client.call("gcd", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -138,6 +123,18 @@ async fn test_range() {
         | 2   | 2     |
         +-----+-------+"#]],
     );
+}
+
+#[tokio::test]
+async fn test_get() {
+    let client = Client::connect(SERVER_ADDR).await.unwrap();
+
+    let function = client.get("gcd").await.unwrap();
+
+    assert_eq!(function.name, "gcd");
+    assert_eq!(function.args.field(0).data_type(), &DataType::Int32);
+    assert_eq!(function.args.field(1).data_type(), &DataType::Int32);
+    assert_eq!(function.returns.field(0).data_type(), &DataType::Int32);
 }
 
 #[tokio::test]

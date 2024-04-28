@@ -23,7 +23,6 @@ use std::time::Duration;
 use arrow_array::RecordBatch;
 use arrow_flight::decode::FlightRecordBatchStream;
 use arrow_flight::encode::FlightDataEncoderBuilder;
-use arrow_flight::error::FlightError;
 use arrow_flight::flight_service_client::FlightServiceClient;
 use arrow_flight::{Criteria, FlightData, FlightDescriptor};
 use arrow_schema::Schema;
@@ -77,10 +76,10 @@ impl Client {
         }
         let (host, port) = addr
             .split_once(':')
-            .ok_or_else(|| Error::ServiceError(format!("invalid address: {addr}")))?;
+            .ok_or_else(|| Error::Service(format!("invalid address: {addr}")))?;
         let port: u16 = port
             .parse()
-            .map_err(|_| Error::ServiceError(format!("invalid port number: {port}")))?;
+            .map_err(|_| Error::Service(format!("invalid port number: {port}")))?;
         let channel = LoadBalancedChannel::builder((host.to_owned(), port))
             .dns_probe_interval(std::time::Duration::from_secs(DNS_PROBE_INTERVAL_SECS))
             .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
@@ -89,7 +88,7 @@ impl Client {
             .channel()
             .await
             .map_err(|e| {
-                Error::ServiceError(format!(
+                Error::Service(format!(
                     "failed to create LoadBalancedChannel, address: {}, err: {}",
                     addr, e
                 ))
@@ -101,44 +100,11 @@ impl Client {
         })
     }
 
-    /// Check if the function is available and the schema is match.
-    pub async fn check(&self, name: &str, args: &Schema, returns: &Schema) -> Result<()> {
+    /// Get function schema.
+    pub async fn get(&self, name: &str) -> Result<Function> {
         let descriptor = FlightDescriptor::new_path(vec![name.into()]);
-
         let response = self.client.clone().get_flight_info(descriptor).await?;
-
-        // check schema
-        let info = response.into_inner();
-        let input_num = info.total_records as usize;
-        let full_schema = Schema::try_from(info)
-            .map_err(|e| FlightError::DecodeError(format!("error decoding schema: {}", e)))?;
-        if input_num > full_schema.fields.len() {
-            return Err(Error::ServiceError(format!(
-                "function {:?} schema info not consistency: input_num: {}, total_fields: {}",
-                name,
-                input_num,
-                full_schema.fields.len()
-            )));
-        }
-
-        let (input_fields, return_fields) = full_schema.fields.split_at(input_num);
-        let actual_input_types: Vec<_> = input_fields.iter().map(|f| f.data_type()).collect();
-        let actual_result_types: Vec<_> = return_fields.iter().map(|f| f.data_type()).collect();
-        let expect_input_types: Vec<_> = args.fields.iter().map(|f| f.data_type()).collect();
-        let expect_result_types: Vec<_> = returns.fields.iter().map(|f| f.data_type()).collect();
-        if !data_types_match(&expect_input_types, &actual_input_types) {
-            return Err(Error::TypeMismatch(format!(
-                "function: {:?}, expect arguments: {:?}, actual: {:?}",
-                name, expect_input_types, actual_input_types
-            )));
-        }
-        if !data_types_match(&expect_result_types, &actual_result_types) {
-            return Err(Error::TypeMismatch(format!(
-                "function: {:?}, expect return: {:?}, actual: {:?}",
-                name, expect_result_types, actual_result_types
-            )));
-        }
-        Ok(())
+        Ok(Function::from_flight_info(response.into_inner())?)
     }
 
     /// List all available functions.
@@ -151,17 +117,8 @@ impl Client {
         let mut functions = vec![];
         let mut response = response.into_inner();
         while let Some(flight_info) = response.next().await {
-            let flight_info = flight_info?;
-            let name = flight_info.flight_descriptor.as_ref().unwrap().path[0].clone();
-            let input_num = flight_info.total_records as usize;
-            let schema = Schema::try_from(flight_info)
-                .map_err(|e| FlightError::DecodeError(format!("error decoding schema: {}", e)))?;
-            let (input_fields, return_fields) = schema.fields.split_at(input_num);
-            functions.push(Function {
-                name,
-                args: Schema::new(input_fields.to_vec()),
-                returns: Schema::new(return_fields.to_vec()),
-            });
+            let function = Function::from_flight_info(flight_info?)?;
+            functions.push(function);
         }
         Ok(functions)
     }
@@ -173,15 +130,15 @@ impl Client {
 
     async fn call_internal(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let input = input.clone();
-        let mut output_stream = self
-            .call_stream_internal(name, stream::once(async { input }))
-            .await?;
+        let mut output_stream = self.call_stream_internal(name, input).await?;
         let mut batches = vec![];
         while let Some(batch) = output_stream.next().await {
             batches.push(batch?);
         }
         Ok(arrow_select::concat::concat_batches(
-            output_stream.schema().ok_or(Error::NoReturned)?,
+            output_stream
+                .schema()
+                .ok_or_else(|| Error::Decode("no schema".into()))?,
             batches.iter(),
         )?)
     }
@@ -234,7 +191,7 @@ impl Client {
     ) -> Result<impl Stream<Item = Result<RecordBatch>> + Send + 'static> {
         let input = input.clone();
         Ok(self
-            .call_stream_internal(name, stream::once(async { input }))
+            .call_stream_internal(name, input)
             .await?
             .map_err(|e| e.into()))
     }
@@ -242,17 +199,15 @@ impl Client {
     async fn call_stream_internal(
         &self,
         name: &str,
-        inputs: impl Stream<Item = RecordBatch> + Send + 'static,
+        input: RecordBatch,
     ) -> Result<FlightRecordBatchStream> {
         let descriptor = FlightDescriptor::new_path(vec![name.into()]);
-        let flight_data_stream =
-            FlightDataEncoderBuilder::new()
-                .build(inputs.map(Ok))
-                .map(move |res| FlightData {
-                    // TODO: fill descriptor only for the first message
-                    flight_descriptor: Some(descriptor.clone()),
-                    ..res.unwrap()
-                });
+        let flight_data_stream = FlightDataEncoderBuilder::new()
+            .build(stream::once(async { Ok(input) }))
+            .map(move |res| FlightData {
+                flight_descriptor: Some(descriptor.clone()),
+                ..res.unwrap()
+            });
 
         // call `do_exchange` on Flight server
         let response = self.client.clone().do_exchange(flight_data_stream).await?;
@@ -271,15 +226,6 @@ impl Client {
     }
 }
 
-/// Check if two list of data types match, ignoring field names.
-fn data_types_match(a: &[&arrow_schema::DataType], b: &[&arrow_schema::DataType]) -> bool {
-    if a.len() != b.len() {
-        return false;
-    }
-    #[allow(clippy::disallowed_methods)]
-    a.iter().zip(b.iter()).all(|(a, b)| a.equals_datatype(b))
-}
-
 /// Function signature.
 #[derive(Debug)]
 pub struct Function {
@@ -289,4 +235,31 @@ pub struct Function {
     pub args: Schema,
     /// The schema of function return values.
     pub returns: Schema,
+}
+
+impl Function {
+    /// Create a function from a `FlightInfo`.
+    fn from_flight_info(info: arrow_flight::FlightInfo) -> Result<Self> {
+        let descriptor = info
+            .flight_descriptor
+            .as_ref()
+            .ok_or_else(|| Error::Decode("no descriptor in flight info".into()))?;
+        let name = descriptor
+            .path
+            .get(0)
+            .ok_or_else(|| Error::Decode("empty path in flight descriptor".into()))?
+            .clone();
+        let input_num = info.total_records as usize;
+        let schema = Schema::try_from(info)
+            .map_err(|e| Error::Decode(format!("failed to decode schema: {e}")))?;
+        if input_num > schema.fields.len() {
+            return Err(Error::Decode(format!("invalid input_number: {input_num}")));
+        }
+        let (input_fields, return_fields) = schema.fields.split_at(input_num);
+        Ok(Self {
+            name,
+            args: Schema::new(input_fields),
+            returns: Schema::new(return_fields),
+        })
+    }
 }

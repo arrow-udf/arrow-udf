@@ -27,21 +27,14 @@ pub enum Error {
     #[error("failed to call UDF: {0}")]
     Flight(#[from] FlightError),
 
-    #[error("type mismatch: {0}")]
-    TypeMismatch(String),
-
     #[error("arrow error: {0}")]
     Arrow(#[from] arrow_schema::ArrowError),
 
-    #[error("UDF unsupported: {0}")]
-    // TODO(error-handling): should prefer use error types than strings.
-    Unsupported(String),
-
-    #[error("UDF service returned no data")]
-    NoReturned,
+    #[error("invalid message from UDF service: {0}")]
+    Decode(String),
 
     #[error("Flight service error: {0}")]
-    ServiceError(String),
+    Service(String),
 }
 
 impl Error {

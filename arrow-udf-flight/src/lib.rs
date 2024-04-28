@@ -104,7 +104,7 @@ impl Client {
     pub async fn get(&self, name: &str) -> Result<Function> {
         let descriptor = FlightDescriptor::new_path(vec![name.into()]);
         let response = self.client.clone().get_flight_info(descriptor).await?;
-        Ok(Function::from_flight_info(response.into_inner())?)
+        Function::from_flight_info(response.into_inner())
     }
 
     /// List all available functions.
@@ -246,7 +246,7 @@ impl Function {
             .ok_or_else(|| Error::Decode("no descriptor in flight info".into()))?;
         let name = descriptor
             .path
-            .get(0)
+            .first()
             .ok_or_else(|| Error::Decode("empty path in flight descriptor".into()))?
             .clone();
         let input_num = info.total_records as usize;

@@ -1,93 +1,83 @@
-# RisingWave Java UDF SDK
+# Arrow UDF Java Server
 
-This library provides a Java SDK for creating user-defined functions (UDF) in RisingWave.
+This article provides a step-by-step guide for installing the RisingWave Java UDF SDK, defining functions using Java, starting a Java process as a UDF server, and declaring and using UDFs in RisingWave.
 
-## Introduction
+## Prerequisites
 
-RisingWave supports user-defined functions implemented as external functions.
-With the RisingWave Java UDF SDK, users can define custom UDFs using Java and start a Java process as a UDF server.
-RisingWave can then remotely access the UDF server to execute the defined functions.
+- Ensure that you have [Java Developer's Kit (JDK)](https://www.oracle.com/technetwork/java/javase/downloads/index.html) (11 or later) installed on your computer.
 
-## Installation
+- Ensure that you have [Apache Maven](https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html) (3.0 or later) installed on your computer. Maven is a build tool that helps manage Java projects and dependencies.
 
-To install the RisingWave Java UDF SDK:
+## 1. Create a Maven project from template
 
-```sh
-git clone https://github.com/risingwavelabs/risingwave.git
-cd risingwave/java/udf
-mvn install
-```
-
-Or you can add the following dependency to your `pom.xml` file:
-
-```xml
-<dependencies>
-    <dependency>
-        <groupId>com.risingwave</groupId>
-        <artifactId>risingwave-udf</artifactId>
-        <version>0.1.0</version>
-    </dependency>
-</dependencies>
-```
-
-
-## Creating a New Project
-
-> NOTE: You can also start from the [udf-example](../udf-example) project without creating the project from scratch.
-
-To create a new project using the RisingWave Java UDF SDK, follow these steps:
+The RisingWave Java UDF SDK is distributed as a Maven artifact. We have prepared a sample project so you don't have to create it from scratch. Run the following command to clone the template repository.
 
 ```sh
-mvn archetype:generate -DgroupId=com.example -DartifactId=udf-example -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4 -DinteractiveMode=false
+git clone https://github.com/risingwavelabs/risingwave-java-udf-template.git
 ```
 
-Configure your `pom.xml` file as follows:
+<details>
+  <summary>I'd like to start from scratch</summary>
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>com.example</groupId>
-    <artifactId>udf-example</artifactId>
-    <version>1.0-SNAPSHOT</version>
+  To create a new project using the RisingWave Java UDF SDK, follow these steps:
 
-    <dependencies>
-        <dependency>
-            <groupId>com.risingwave</groupId>
-            <artifactId>risingwave-udf</artifactId>
-            <version>0.1.0</version>
-        </dependency>
-    </dependencies>
-</project>
-```
+  Generate a new Maven project:
 
-The `--add-opens` flag must be added when running unit tests through Maven:
+  ```sh
+  mvn archetype:generate -DgroupId=com.example -DartifactId=udf-example -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4 -DinteractiveMode=false
+  ```
 
-```xml
-<build>
-    <plugins>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <version>3.0.0</version>
-            <configuration>
-                <argLine>--add-opens=java.base/java.nio=ALL-UNNAMED</argLine>
-            </configuration>
-        </plugin>
-    </plugins>
-</build>
-```
+  Configure your `pom.xml` file as follows:
 
-## Scalar Functions
+  ```xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+      <modelVersion>4.0.0</modelVersion>
+      <groupId>com.example</groupId>
+      <artifactId>udf-example</artifactId>
+      <version>1.0-SNAPSHOT</version>
+
+      <dependencies>
+          <dependency>
+              <groupId>com.risingwave.java</groupId>
+              <artifactId>risingwave-udf</artifactId>
+              <version>0.2.0</version>
+          </dependency>
+      </dependencies>
+  </project>
+  ```
+
+  The `--add-opens` flag must be added when running unit tests through Maven:
+
+  ```xml
+  <build>
+      <plugins>
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <version>3.2.5</version>
+              <configuration>
+                  <argLine>--add-opens=java.base/java.nio=ALL-UNNAMED</argLine>
+              </configuration>
+          </plugin>
+      </plugins>
+  </build>
+  ```
+
+</details>
+
+## 2. Define your functions in Java  
+
+### Scalar functions
 
 A user-defined scalar function maps zero, one, or multiple scalar values to a new scalar value.
 
-In order to define a scalar function, one has to create a new class that implements the `ScalarFunction`
+In order to define a scalar function, you have to create a new class that implements the `ScalarFunction`
 interface in `com.risingwave.functions` and implement exactly one evaluation method named `eval(...)`.
 This method must be declared public and non-static.
 
-Any [data type](#data-types) listed in the data types section can be used as a parameter or return type of an evaluation method.
+Any data type listed in [Data type mapping](udf-java.md#data-type-mapping) can be used as a parameter or return type of an evaluation method.
 
 Here's an example of a scalar function that calculates the greatest common divisor (GCD) of two integers:
 
@@ -106,21 +96,27 @@ public class Gcd implements ScalarFunction {
 }
 ```
 
-> **NOTE:** Differences with Flink
-> 1. The `ScalarFunction` is an interface instead of an abstract class.
-> 2. Multiple overloaded `eval` methods are not supported.
-> 3. Variable arguments such as `eval(Integer...)` are not supported.
+:::note Differences with Flink
 
-## Table Functions
+- The `ScalarFunction` is an interface instead of an abstract class.
+   
+- Multiple overloaded `eval` methods are not supported.
+   
+- Variable arguments such as `eval(Integer...)` are not supported.
+
+:::
+
+### Table functions
 
 A user-defined table function maps zero, one, or multiple scalar values to one or multiple
 rows (structured types).
 
-In order to define a table function, one has to create a new class that implements the `TableFunction`
+In order to define a table function, you have to create a new class that implements the `TableFunction`
 interface in `com.risingwave.functions` and implement exactly one evaluation method named `eval(...)`.
 This method must be declared public and non-static.
 
-The return type must be an `Iterator` of any [data type](#data-types) listed in the data types section.
+The return type must be an `Iterator` of any data type listed in [Data type mapping](udf-java.md#data-type-mapping).
+
 Similar to scalar functions, input and output data types are automatically extracted using reflection.
 This includes the generic argument T of the return value for determining an output data type.
 
@@ -136,16 +132,18 @@ public class Series implements TableFunction {
 }
 ```
 
-> **NOTE:** Differences with Flink
-> 1. The `TableFunction` is an interface instead of an abstract class. It has no generic arguments.
-> 2. Instead of calling `collect` to emit a row, the `eval` method returns an `Iterator` of the output rows.
-> 3. Multiple overloaded `eval` methods are not supported.
-> 4. Variable arguments such as `eval(Integer...)` are not supported.
-> 5. In SQL, table functions can be used in the `FROM` clause directly. `JOIN LATERAL TABLE` is not supported.
+:::note Differences with Flink
 
-## UDF Server
+- The `TableFunction` is an interface instead of an abstract class. It has no generic arguments.
+- Instead of calling `collect` to emit a row, the `eval` method returns an `Iterator` of the output rows.
+- Multiple overloaded `eval` methods are not supported.
+- Variable arguments such as `eval(Integer...)` are not supported.
 
-To create a UDF server and register functions:
+:::
+
+## 3. Start a UDF server
+
+Run the following command to create a UDF server and register for the functions you defined.
 
 ```java
 import com.risingwave.functions.UdfServer;
@@ -153,10 +151,10 @@ import com.risingwave.functions.UdfServer;
 public class App {
     public static void main(String[] args) {
         try (var server = new UdfServer("0.0.0.0", 8815)) {
-            // register functions
+            // Register functions
             server.addFunction("gcd", new Gcd());
             server.addFunction("series", new Series());
-            // start the server
+            // Start the server
             server.start();
             server.awaitTermination();
         } catch (Exception e) {
@@ -166,68 +164,57 @@ public class App {
 }
 ```
 
-To run the UDF server, execute the following command:
+Run the following command to start the UDF server.
 
 ```sh
 _JAVA_OPTIONS="--add-opens=java.base/java.nio=ALL-UNNAMED" mvn exec:java -Dexec.mainClass="com.example.App"
 ```
 
-## Creating Functions in RisingWave
+The UDF server will start running, allowing you to call the defined UDFs from `arrow-udf-flight`.
 
-```sql
-create function gcd(int, int) returns int
-as gcd using link 'http://localhost:8815';
+## Data type mapping
 
-create function series(int) returns table (x int)
-as series using link 'http://localhost:8815';
-```
+The following table shows the type mapping between Arrow and Java:
 
-For more detailed information and examples, please refer to the official RisingWave [documentation](https://www.risingwave.dev/docs/current/user-defined-functions/#4-declare-your-functions-in-risingwave).
+| Arrow Type        | Java Type                 |
+| ----------------- | ------------------------- |
+| Null              | Void                      |
+| Boolean           | boolean, Boolean          |
+| Int8              | byte, Byte                |
+| Int16             | short, Short              |
+| Int32             | int, Integer              |
+| Int64             | long, Long                |
+| UInt8             | byte, Byte                |
+| UInt16            | char, Character           |
+| UInt32            | int, Integer              |
+| UInt64            | long, Long                |
+| Float32           | float, Float              |
+| Float64           | double, Double            |
+| Date32            | java.time.LocalDate       |
+| Time64            | java.time.LocalTime       |
+| Timestamp         | java.time.LocalDateTime   |
+| String            | String                    |
+| LargeString       | String                    |
+| Binary            | byte[]                    |
+| LargeBinary       | byte[]                    |
+| List<T>           | T'[]                      |
+| Struct            | user-defined class. see [example](#example---struct-type). |
 
-## Using Functions in RisingWave
+| Extension Type    | Metadata            | Java Type                 |
+| ----------------- | ------------------- | ------------------------- |
+| Decimal           | `arrowudf.decimal`  | java.math.BigDecimal      |
+| Json              | `arrowudf.json`     | String (use `@DataTypeHint("JSON") String` as the type. See [example](#example---jsonb)) |
 
-Once the user-defined functions are created in RisingWave, you can use them in SQL queries just like any built-in functions. Here are a few examples:
+### Example - JSONB
 
-```sql
-select gcd(25, 15);
-
-select * from series(10);
-```
-
-## Data Types
-
-The RisingWave Java UDF SDK supports the following data types:
-
-| SQL Type         | Java Type                               | Notes              |
-| ---------------- | --------------------------------------- | ------------------ |
-| BOOLEAN          | boolean, Boolean                        |                    |
-| SMALLINT         | short, Short                            |                    |
-| INT              | int, Integer                            |                    |
-| BIGINT           | long, Long                              |                    |
-| REAL             | float, Float                            |                    |
-| DOUBLE PRECISION | double, Double                          |                    |
-| DECIMAL          | BigDecimal                              |                    |
-| DATE             | java.time.LocalDate                     |                    |
-| TIME             | java.time.LocalTime                     |                    |
-| TIMESTAMP        | java.time.LocalDateTime                 |                    |
-| INTERVAL         | com.risingwave.functions.PeriodDuration |                    |
-| VARCHAR          | String                                  |                    |
-| BYTEA            | byte[]                                  |                    |
-| JSONB            | String                                  | Use `@DataTypeHint("JSONB") String` as the type. See [example](#jsonb).           |
-| T[]              | T'[]                                    | `T` can be any of the above SQL types. `T'` should be the corresponding Java type.|
-| STRUCT<>         | user-defined class                      | Define a data class as the type. See [example](#struct-type).                     |
-| ...others        |                                         | Not supported yet. |
-
-### JSONB
-
-```java
+```java title="Define the function in Java"
 import com.google.gson.Gson;
 
 // Returns the i-th element of a JSON array.
-public class JsonbAccess implements ScalarFunction {
+public class JsonAccess implements ScalarFunction {
     static Gson gson = new Gson();
 
-    public @DataTypeHint("JSONB") String eval(@DataTypeHint("JSONB") String json, int index) {
+    public @DataTypeHint("JSON") String eval(@DataTypeHint("JSON") String json, int index) {
         if (json == null)
             return null;
         var array = gson.fromJson(json, Object[].class);
@@ -239,14 +226,9 @@ public class JsonbAccess implements ScalarFunction {
 }
 ```
 
-```sql
-create function jsonb_access(jsonb, int) returns jsonb
-as jsonb_access using link 'http://localhost:8815';
-```
+### Example - Struct type
 
-### Struct Type
-
-```java
+```java title="Define the function in Java"
 // Split a socket address into host and port.
 public static class IpPort implements ScalarFunction {
     public static class SocketAddr {
@@ -263,12 +245,3 @@ public static class IpPort implements ScalarFunction {
     }
 }
 ```
-
-```sql
-create function ip_port(varchar) returns struct<host varchar, port smallint>
-as ip_port using link 'http://localhost:8815';
-```
-
-## Full Example
-
-You can checkout [udf-example](../udf-example) and use it as a template to create your own UDFs.

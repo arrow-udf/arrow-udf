@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![doc = include_str!("../README.md")]
+
 mod error;
 
 pub use error::{Error, Result};
@@ -238,7 +240,8 @@ impl Client {
         ))
     }
 
-    pub fn get_addr(&self) -> &str {
+    /// Get the remote address of the UDF service.
+    pub fn remote_addr(&self) -> &str {
         &self.addr
     }
 }

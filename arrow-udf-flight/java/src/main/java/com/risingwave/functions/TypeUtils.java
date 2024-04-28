@@ -169,14 +169,14 @@ class TypeUtils {
     }
 
     /** Get the output schema of a scalar function from a Java method. */
-    static Schema methodToOutputSchema(Method method) {
+    static Schema methodToOutputSchema(Method method, String name) {
         var type = method.getReturnType();
         var hint = method.getAnnotation(DataTypeHint.class);
-        return new Schema(Arrays.asList(classToField(type, hint, "")));
+        return new Schema(Arrays.asList(classToField(type, hint, name)));
     }
 
     /** Get the output schema of a table function from a Java class. */
-    static Schema tableFunctionToOutputSchema(Method method) {
+    static Schema tableFunctionToOutputSchema(Method method, String name) {
         var hint = method.getAnnotation(DataTypeHint.class);
         var type = method.getReturnType();
         if (!Iterator.class.isAssignableFrom(type)) {
@@ -184,8 +184,8 @@ class TypeUtils {
         }
         var typeArguments = ((ParameterizedType) method.getGenericReturnType()).getActualTypeArguments();
         type = (Class<?>) typeArguments[0];
-        var rowIndex = Field.nullable("row_index", new ArrowType.Int(32, true));
-        return new Schema(Arrays.asList(rowIndex, classToField(type, hint, "")));
+        var rowIndex = Field.nullable("row", new ArrowType.Int(32, true));
+        return new Schema(Arrays.asList(rowIndex, classToField(type, hint, name)));
     }
 
     /** Return functions to process input values from a Java method. */

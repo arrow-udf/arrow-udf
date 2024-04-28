@@ -28,12 +28,12 @@ class TableFunctionBatch extends UserDefinedFunctionBatch {
     Function<Object, Object>[] processInputs;
     int chunkSize = 1024;
 
-    TableFunctionBatch(TableFunction function) {
+    TableFunctionBatch(String name, TableFunction function) {
         this.function = function;
         var method = Reflection.getEvalMethod(function);
         this.methodHandle = Reflection.getMethodHandle(method);
         this.inputSchema = TypeUtils.methodToInputSchema(method);
-        this.outputSchema = TypeUtils.tableFunctionToOutputSchema(method);
+        this.outputSchema = TypeUtils.tableFunctionToOutputSchema(method, name);
         this.processInputs = TypeUtils.methodToProcessInputs(method);
     }
 
@@ -44,18 +44,15 @@ class TableFunctionBatch extends UserDefinedFunctionBatch {
         row[0] = this.function;
         var indexes = new ArrayList<Integer>();
         var values = new ArrayList<Object>();
-        Runnable buildChunk =
-                () -> {
-                    var fields = this.outputSchema.getFields();
-                    var indexVector =
-                            TypeUtils.createVector(fields.get(0), allocator, indexes.toArray());
-                    var valueVector =
-                            TypeUtils.createVector(fields.get(1), allocator, values.toArray());
-                    indexes.clear();
-                    values.clear();
-                    var outputBatch = VectorSchemaRoot.of(indexVector, valueVector);
-                    outputs.add(outputBatch);
-                };
+        Runnable buildChunk = () -> {
+            var fields = this.outputSchema.getFields();
+            var indexVector = TypeUtils.createVector(fields.get(0), allocator, indexes.toArray());
+            var valueVector = TypeUtils.createVector(fields.get(1), allocator, values.toArray());
+            indexes.clear();
+            values.clear();
+            var outputBatch = VectorSchemaRoot.of(indexVector, valueVector);
+            outputs.add(outputBatch);
+        };
         for (int i = 0; i < batch.getRowCount(); i++) {
             // prepare input row
             for (int j = 0; j < row.length - 1; j++) {
@@ -68,6 +65,10 @@ class TableFunctionBatch extends UserDefinedFunctionBatch {
                 iterator = (Iterator<?>) this.methodHandle.invokeWithArguments(row);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
+            }
+            // returning null means no output
+            if (iterator == null) {
+                continue;
             }
             // push values
             while (iterator.hasNext()) {

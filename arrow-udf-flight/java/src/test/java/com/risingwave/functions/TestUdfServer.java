@@ -34,6 +34,9 @@ import org.apache.arrow.vector.types.pojo.FieldType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 
 /** Unit test for UDF server. */
 public class TestUdfServer {
@@ -46,7 +49,7 @@ public class TestUdfServer {
         server = new UdfServer("localhost", 0);
         server.addFunction("gcd", new Gcd());
         server.addFunction("return_all", new ReturnAll());
-        server.addFunction("series", new Series());
+        server.addFunction("range", new Range());
         server.start();
 
         client = new UdfClient("localhost", server.getPort());
@@ -86,7 +89,7 @@ public class TestUdfServer {
         try (var stream = client.call("gcd", input)) {
             var output = stream.getRoot();
             assertTrue(stream.next());
-            assertEquals("3", output.contentToTSVString().trim());
+            assertEquals("gcd\n3", output.contentToTSVString().trim());
         }
     }
 
@@ -308,33 +311,81 @@ public class TestUdfServer {
             var output = stream.getRoot();
             assertTrue(stream.next());
             assertEquals(
-                    "{\"bool\":true,\"i8\":1,\"i16\":1,\"i32\":1,\"i64\":1,\"u8\":1,\"u16\":\"\\u0001\",\"u32\":1,\"u64\":1,\"f32\":1.0,\"f64\":1.0,\"decimal\":1.234,\"date\":19358,\"time\":3723000000,\"timestamp\":[2023,1,1,1,2,3],\"interval\":{\"period\":\"P1000M2000D\",\"duration\":0.000003000,\"units\":[\"YEARS\",\"MONTHS\",\"DAYS\",\"SECONDS\",\"NANOS\"]},\"string\":\"string\",\"binary\":\"YmluYXJ5\",\"large_string\":\"large_string\",\"large_binary\":\"bGFyZ2VfYmluYXJ5\",\"json\":\"{ \\\"key\\\": 1 }\",\"struct\":{\"f1\":1,\"f2\":2}}\n"
+                    "return_all\n{\"bool\":true,\"i8\":1,\"i16\":1,\"i32\":1,\"i64\":1,\"u8\":1,\"u16\":\"\\u0001\",\"u32\":1,\"u64\":1,\"f32\":1.0,\"f64\":1.0,\"decimal\":1.234,\"date\":19358,\"time\":3723000000,\"timestamp\":[2023,1,1,1,2,3],\"interval\":{\"period\":\"P1000M2000D\",\"duration\":0.000003000,\"units\":[\"YEARS\",\"MONTHS\",\"DAYS\",\"SECONDS\",\"NANOS\"]},\"string\":\"string\",\"binary\":\"YmluYXJ5\",\"large_string\":\"large_string\",\"large_binary\":\"bGFyZ2VfYmluYXJ5\",\"json\":\"{ \\\"key\\\": 1 }\",\"struct\":{\"f1\":1,\"f2\":2}}\n"
                             + "{}",
                     output.contentToTSVString().trim());
         }
     }
 
-    public static class Series implements TableFunction {
-        public Iterator<Integer> eval(int n) {
+    public static class Range implements TableFunction {
+        public Iterator<Integer> eval(Integer n) {
+            if (n == null) {
+                return null;
+            }
             return IntStream.range(0, n).iterator();
         }
     }
 
     @Test
-    public void series() throws Exception {
+    public void range() throws Exception {
         var c0 = new IntVector("", allocator);
         c0.allocateNew(3);
-        c0.set(0, 0);
-        c0.set(1, 1);
-        c0.set(2, 2);
+        c0.set(0, 1);
+        c0.set(2, 3);
         c0.setValueCount(3);
 
         var input = VectorSchemaRoot.of(c0);
 
-        try (var stream = client.call("series", input)) {
+        try (var stream = client.call("range", input)) {
             var output = stream.getRoot();
             assertTrue(stream.next());
-            assertEquals("row_index\t\n1\t0\n2\t0\n2\t1\n", output.contentToTSVString());
+            assertEquals("row\trange\n" + //
+                    "0\t0\n" + //
+                    "2\t0\n" + //
+                    "2\t1\n" + //
+                    "2\t2\n", output.contentToTSVString());
+        }
+    }
+
+    public static class JsonArrayAccess implements ScalarFunction {
+        static Gson gson = new GsonBuilder()
+                // avoid converting integers to double
+                .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+                .create();
+
+        public @DataTypeHint("JSON") String eval(@DataTypeHint("JSON") String json, int index) {
+            if (json == null) {
+                return null;
+            }
+            var array = gson.fromJson(json, Object[].class);
+            if (index >= array.length || index < 0) {
+                return null;
+            }
+            var obj = array[index];
+            System.out.println(obj);
+            return gson.toJson(obj);
+        }
+    }
+
+    public static class DecimalAdd implements ScalarFunction {
+        public BigDecimal eval(BigDecimal a, BigDecimal b) {
+            return a.add(b);
+        }
+    }
+
+    public static void main(String[] args) {
+        try (var server = new UdfServer("localhost", 8815)) {
+            // Register functions
+            server.addFunction("gcd", new Gcd());
+            server.addFunction("decimal_add", new DecimalAdd());
+            server.addFunction("json_array_access", new JsonArrayAccess());
+            server.addFunction("return_all", new ReturnAll());
+            server.addFunction("range", new Range());
+            // Start the server
+            server.start();
+            server.awaitTermination();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

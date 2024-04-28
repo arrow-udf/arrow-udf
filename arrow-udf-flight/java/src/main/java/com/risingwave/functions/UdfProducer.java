@@ -40,9 +40,9 @@ class UdfProducer extends NoOpFlightProducer {
     void addFunction(String name, UserDefinedFunction function) throws IllegalArgumentException {
         UserDefinedFunctionBatch udf;
         if (function instanceof ScalarFunction) {
-            udf = new ScalarFunctionBatch((ScalarFunction) function);
+            udf = new ScalarFunctionBatch(name, (ScalarFunction) function);
         } else if (function instanceof TableFunction) {
-            udf = new TableFunctionBatch((TableFunction) function);
+            udf = new TableFunctionBatch(name, (TableFunction) function);
         } else {
             throw new IllegalArgumentException(
                     "Unknown function type: " + function.getClass().getName());
@@ -81,6 +81,10 @@ class UdfProducer extends NoOpFlightProducer {
             logger.debug("call function: " + functionName);
 
             var udf = this.functions.get(functionName);
+            if (udf == null) {
+                throw new IllegalArgumentException("Unknown function: " + functionName);
+            }
+
             try (var root = VectorSchemaRoot.create(udf.getOutputSchema(), allocator)) {
                 var loader = new VectorLoader(root);
                 writer.start(root);

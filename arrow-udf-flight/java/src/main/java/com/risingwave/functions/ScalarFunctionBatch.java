@@ -27,12 +27,12 @@ class ScalarFunctionBatch extends UserDefinedFunctionBatch {
     MethodHandle methodHandle;
     Function<Object, Object>[] processInputs;
 
-    ScalarFunctionBatch(ScalarFunction function) {
+    ScalarFunctionBatch(String name, ScalarFunction function) {
         this.function = function;
         var method = Reflection.getEvalMethod(function);
         this.methodHandle = Reflection.getMethodHandle(method);
         this.inputSchema = TypeUtils.methodToInputSchema(method);
-        this.outputSchema = TypeUtils.methodToOutputSchema(method);
+        this.outputSchema = TypeUtils.methodToOutputSchema(method, name);
         this.processInputs = TypeUtils.methodToProcessInputs(method);
     }
 

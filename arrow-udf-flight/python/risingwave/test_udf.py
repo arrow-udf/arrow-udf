@@ -14,8 +14,7 @@
 
 from decimal import Decimal
 from multiprocessing import Process
-import pytest
-from risingwave.udf import udf, UdfServer, _to_data_type, DecimalType, JsonType
+from risingwave.udf import udf, UdfServer, DecimalType, JsonType
 import pyarrow as pa
 import pyarrow.flight as flight
 import time
@@ -174,7 +173,7 @@ def test_simple():
 
             chunk = reader.read_chunk()
             assert len(chunk.data) == LEN
-            assert chunk.data.column("output").equals(
+            assert chunk.data.column("add").equals(
                 pa.array(range(0, LEN * 2, 2), type=pa.int32())
             )
 

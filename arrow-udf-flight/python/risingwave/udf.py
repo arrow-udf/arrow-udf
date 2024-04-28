@@ -485,6 +485,8 @@ def _string_to_data_type(type: str):
             t = t.strip()
             fields.append(pa.field(name, _string_to_data_type(t)))
         return pa.struct(fields)
+    elif t in ("NULL"):
+        return pa.null()
     elif t in ("BOOLEAN", "BOOL"):
         return pa.bool_()
     elif t in ("TINYINT", "INT8"):

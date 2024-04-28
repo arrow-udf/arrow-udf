@@ -57,6 +57,7 @@ def wait_concurrent(x):
 
 @udf(
     input_types=[
+        "null",
         "boolean",
         "int8",
         "int16",
@@ -80,6 +81,7 @@ def wait_concurrent(x):
         "json",
     ],
     result_type="""struct<
+        null: null,
         boolean: boolean,
         int8: int8,
         int16: int16,
@@ -104,6 +106,7 @@ def wait_concurrent(x):
     >""",
 )
 def return_all(
+    null,
     bool,
     i8,
     i16,
@@ -127,6 +130,7 @@ def return_all(
     jsonb,
 ):
     return {
+        "null": null,
         "boolean": bool,
         "int8": i8,
         "int16": i16,
@@ -222,6 +226,7 @@ def test_io_concurrency():
 
 def test_all_types():
     arrays = [
+        pa.array([None], type=pa.null()),
         pa.array([True], type=pa.bool_()),
         pa.array([1], type=pa.int8()),
         pa.array([2], type=pa.int16()),
@@ -264,6 +269,7 @@ def test_all_types():
 
             chunk = reader.read_chunk()
             assert [v.as_py() for _, v in chunk.data.column(0)[0].items()] == [
+                None,
                 True,
                 1,
                 2,

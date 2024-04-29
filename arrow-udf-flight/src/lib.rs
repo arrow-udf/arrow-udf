@@ -25,7 +25,7 @@ use arrow_flight::flight_service_client::FlightServiceClient;
 use arrow_flight::{Action, Criteria, FlightData, FlightDescriptor};
 use arrow_schema::Schema;
 use futures_util::{stream, Stream, StreamExt, TryStreamExt};
-use tonic::transport::{Channel, Endpoint};
+use tonic::transport::Channel;
 
 /// Client for a remote Arrow UDF service.
 #[derive(Debug)]
@@ -36,12 +36,10 @@ pub struct Client {
 
 impl Client {
     /// Connect to a UDF service.
-    pub async fn connect<D>(addr: D) -> Result<Self>
-    where
-        D: TryInto<Endpoint>,
-        D::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-    {
-        let conn = tonic::transport::Endpoint::new(addr)?.connect().await?;
+    pub async fn connect(addr: impl Into<String>) -> Result<Self> {
+        let conn = tonic::transport::Endpoint::new(addr.into())?
+            .connect()
+            .await?;
         Self::new(conn).await
     }
 

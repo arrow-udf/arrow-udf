@@ -22,7 +22,7 @@ use anyhow::{anyhow, Context as _, Result};
 use arrow_array::{builder::Int32Builder, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
 use rquickjs::{
-    context::intrinsic::{BaseObjects, BigDecimal, Eval, Json, TypedArrays},
+    context::intrinsic::{BaseObjects, BigDecimal, Date, Eval, Json, TypedArrays},
     function::Args,
     Context, Ctx, Object, Persistent, Value,
 };
@@ -81,7 +81,7 @@ impl Runtime {
         let runtime = rquickjs::Runtime::new().context("failed to create quickjs runtime")?;
         // `Eval` is required to compile JS code.
         let context =
-            rquickjs::Context::custom::<(BaseObjects, Eval, Json, BigDecimal, TypedArrays)>(
+            rquickjs::Context::custom::<(BaseObjects, Date, Eval, Json, BigDecimal, TypedArrays)>(
                 &runtime,
             )
             .context("failed to create quickjs context")?;

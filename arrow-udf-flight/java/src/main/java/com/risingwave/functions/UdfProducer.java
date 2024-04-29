@@ -37,6 +37,17 @@ class UdfProducer extends NoOpFlightProducer {
         this.allocator = allocator;
     }
 
+    @Override
+    public void doAction(CallContext context, Action action,
+            StreamListener<Result> listener) {
+        if (action.getType().equals("protocol_version")) {
+            listener.onNext(new Result(new byte[] { 2 }));
+            listener.onCompleted();
+        } else {
+            listener.onError(CallStatus.UNIMPLEMENTED.toRuntimeException());
+        }
+    }
+
     void addFunction(String name, UserDefinedFunction function) throws IllegalArgumentException {
         UserDefinedFunctionBatch udf;
         if (function instanceof ScalarFunction) {

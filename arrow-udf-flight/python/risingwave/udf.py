@@ -390,6 +390,12 @@ class UdfServer(pa.flight.FlightServerBase):
             print(traceback.print_exc())
             raise e
 
+    def do_action(self, context, action):
+        if action.type == "protocol_version":
+            yield b"\x02"
+        else:
+            raise NotImplementedError
+
     def serve(self):
         """
         Block until the server shuts down.

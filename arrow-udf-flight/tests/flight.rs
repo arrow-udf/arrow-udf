@@ -126,6 +126,12 @@ async fn test_range() {
 }
 
 #[tokio::test]
+async fn test_get_protocol_version() {
+    let client = Client::connect(SERVER_ADDR).await.unwrap();
+    assert_eq!(client.protocol_version(), 2);
+}
+
+#[tokio::test]
 async fn test_get() {
     let client = Client::connect(SERVER_ADDR).await.unwrap();
 

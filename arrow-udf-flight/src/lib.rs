@@ -24,7 +24,7 @@ use arrow_array::RecordBatch;
 use arrow_flight::decode::FlightRecordBatchStream;
 use arrow_flight::encode::FlightDataEncoderBuilder;
 use arrow_flight::flight_service_client::FlightServiceClient;
-use arrow_flight::{Criteria, FlightData, FlightDescriptor};
+use arrow_flight::{Action, Criteria, FlightData, FlightDescriptor};
 use arrow_schema::Schema;
 use futures_util::{stream, FutureExt, Stream, StreamExt, TryStreamExt};
 use ginepro::{LoadBalancedChannel, ResolutionStrategy};
@@ -43,6 +43,7 @@ const CONNECT_TIMEOUT_SECS: u64 = 5;
 pub struct Client {
     client: FlightServiceClient<Channel>,
     addr: String,
+    protocol_version: u8,
 }
 
 impl Client {
@@ -93,11 +94,33 @@ impl Client {
                     addr, e
                 ))
             })?;
-        let client = FlightServiceClient::new(channel.into());
+        let mut client = FlightServiceClient::new(channel.into());
+
+        // get protocol version in server
+        let protocol_version = match client.do_action(Action::new("protocol_version", "")).await {
+            // if `do_action` is not implemented, assume protocol version is 1
+            Err(_) => 1,
+            // >= 2
+            Ok(response) => *response
+                .into_inner()
+                .next()
+                .await
+                .ok_or_else(|| Error::Decode("no protocol version".into()))??
+                .body
+                .first()
+                .ok_or_else(|| Error::Decode("invalid protocol version".into()))?,
+        };
+
         Ok(Self {
             client,
             addr: addr.into(),
+            protocol_version,
         })
+    }
+
+    /// Get protocol version.
+    pub fn protocol_version(&self) -> u8 {
+        self.protocol_version
     }
 
     /// Get function schema.

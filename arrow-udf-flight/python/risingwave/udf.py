@@ -347,7 +347,6 @@ class UdfServer(pa.flight.FlightServerBase):
         self._location = location
         self._functions = {}
 
-    @override
     def get_flight_info(self, context, descriptor):
         """Return the result schema of a function."""
         udf = self._functions[descriptor.path[0].decode("utf-8")]
@@ -366,7 +365,6 @@ class UdfServer(pa.flight.FlightServerBase):
             total_bytes=0,
         )
 
-    @override
     def list_flights(self, context, criteria):
         """Return the list of functions."""
         return [self._make_flight_info(udf) for udf in self._functions.values()]
@@ -379,7 +377,6 @@ class UdfServer(pa.flight.FlightServerBase):
         print(f"added function: {name}")
         self._functions[name] = udf
 
-    @override
     def do_exchange(self, context, descriptor, reader, writer):
         """Call a function from the client."""
         udf = self._functions[descriptor.path[0].decode("utf-8")]
@@ -474,7 +471,7 @@ def _string_to_data_type(type: str):
     if t.endswith("[]"):
         return pa.list_(_string_to_data_type(type[:-2]))
     elif t.startswith("STRUCT"):
-        # extract 'STRUCT<a:INT, b:VARCHAR, c:STRUCT<INT>, ...>'
+        # extract 'STRUCT<a:INT, b:VARCHAR, c:STRUCT<d:INT>, ...>'
         type_list = type[7:-1]  # strip "STRUCT<>"
         fields = []
         start = 0

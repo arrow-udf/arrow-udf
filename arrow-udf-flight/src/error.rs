@@ -24,6 +24,9 @@ pub enum Error {
     #[error("failed to send requests to UDF service: {0}")]
     Tonic(#[from] tonic::Status),
 
+    #[error("failed to connect to UDF service: {0}")]
+    Connect(#[from] tonic::transport::Error),
+
     #[error("failed to call UDF: {0}")]
     Flight(#[from] FlightError),
 
@@ -35,19 +38,4 @@ pub enum Error {
 
     #[error("Flight service error: {0}")]
     Service(String),
-}
-
-impl Error {
-    /// Returns true if the error is caused by a connection error.
-    pub fn is_connection_error(&self) -> bool {
-        match self {
-            // Connection refused
-            Error::Tonic(status) if status.code() == tonic::Code::Unavailable => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_tonic_error(&self) -> bool {
-        matches!(self, Error::Tonic(_) | Error::Flight(FlightError::Tonic(_)))
-    }
 }

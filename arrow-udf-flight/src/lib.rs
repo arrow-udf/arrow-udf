@@ -18,83 +18,36 @@ mod error;
 
 pub use error::{Error, Result};
 
-use std::time::Duration;
-
 use arrow_array::RecordBatch;
 use arrow_flight::decode::FlightRecordBatchStream;
 use arrow_flight::encode::FlightDataEncoderBuilder;
 use arrow_flight::flight_service_client::FlightServiceClient;
 use arrow_flight::{Action, Criteria, FlightData, FlightDescriptor};
 use arrow_schema::Schema;
-use futures_util::{stream, FutureExt, Stream, StreamExt, TryStreamExt};
-use ginepro::{LoadBalancedChannel, ResolutionStrategy};
-use tokio::time::Duration as TokioDuration;
-use tonic::transport::Channel;
-
-// Interval between two successive probes of the UDF DNS.
-const DNS_PROBE_INTERVAL_SECS: u64 = 5;
-// Timeout duration for performing an eager DNS resolution.
-const EAGER_DNS_RESOLVE_TIMEOUT_SECS: u64 = 5;
-const REQUEST_TIMEOUT_SECS: u64 = 5;
-const CONNECT_TIMEOUT_SECS: u64 = 5;
+use futures_util::{stream, Stream, StreamExt, TryStreamExt};
+use tonic::transport::{Channel, Endpoint};
 
 /// Client for a remote Arrow UDF service.
 #[derive(Debug)]
 pub struct Client {
     client: FlightServiceClient<Channel>,
-    addr: String,
     protocol_version: u8,
 }
 
 impl Client {
     /// Connect to a UDF service.
-    pub async fn connect(addr: &str) -> Result<Self> {
-        Self::connect_inner(
-            addr,
-            ResolutionStrategy::Eager {
-                timeout: TokioDuration::from_secs(EAGER_DNS_RESOLVE_TIMEOUT_SECS),
-            },
-        )
-        .await
+    pub async fn connect<D>(addr: D) -> Result<Self>
+    where
+        D: TryInto<Endpoint>,
+        D::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    {
+        let conn = tonic::transport::Endpoint::new(addr)?.connect().await?;
+        Self::new(conn).await
     }
 
-    /// Connect to a UDF service lazily (i.e. only when the first request is sent).
-    pub fn connect_lazy(addr: &str) -> Result<Self> {
-        Self::connect_inner(addr, ResolutionStrategy::Lazy)
-            .now_or_never()
-            .unwrap()
-    }
-
-    async fn connect_inner(
-        mut addr: &str,
-        resolution_strategy: ResolutionStrategy,
-    ) -> Result<Self> {
-        if let Some(a) = addr.strip_prefix("http://") {
-            addr = a;
-        }
-        if let Some(a) = addr.strip_prefix("https://") {
-            addr = a;
-        }
-        let (host, port) = addr
-            .split_once(':')
-            .ok_or_else(|| Error::Service(format!("invalid address: {addr}")))?;
-        let port: u16 = port
-            .parse()
-            .map_err(|_| Error::Service(format!("invalid port number: {port}")))?;
-        let channel = LoadBalancedChannel::builder((host.to_owned(), port))
-            .dns_probe_interval(std::time::Duration::from_secs(DNS_PROBE_INTERVAL_SECS))
-            .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
-            .connect_timeout(Duration::from_secs(CONNECT_TIMEOUT_SECS))
-            .resolution_strategy(resolution_strategy)
-            .channel()
-            .await
-            .map_err(|e| {
-                Error::Service(format!(
-                    "failed to create LoadBalancedChannel, address: {}, err: {}",
-                    addr, e
-                ))
-            })?;
-        let mut client = FlightServiceClient::new(channel.into());
+    /// Create a new client.
+    pub async fn new(channel: Channel) -> Result<Self> {
+        let mut client = FlightServiceClient::new(channel);
 
         // get protocol version in server
         let protocol_version = match client.do_action(Action::new("protocol_version", "")).await {
@@ -113,7 +66,6 @@ impl Client {
 
         Ok(Self {
             client,
-            addr: addr.into(),
             protocol_version,
         })
     }
@@ -166,46 +118,6 @@ impl Client {
         )?)
     }
 
-    /// Call a function, retry up to 5 times / 3s if connection is broken.
-    pub async fn call_with_retry(&self, id: &str, input: &RecordBatch) -> Result<RecordBatch> {
-        let mut backoff = Duration::from_millis(100);
-        for i in 0..5 {
-            match self.call(id, input).await {
-                Err(err) if err.is_connection_error() && i != 4 => {
-                    tracing::error!(error = %err, "UDF connection error. retry...");
-                }
-                ret => return ret,
-            }
-            tokio::time::sleep(backoff).await;
-            backoff *= 2;
-        }
-        unreachable!()
-    }
-
-    /// Always retry on connection error
-    pub async fn call_with_always_retry_on_network_error(
-        &self,
-        id: &str,
-        input: &RecordBatch,
-    ) -> Result<RecordBatch> {
-        let mut backoff = Duration::from_millis(100);
-        loop {
-            match self.call(id, input).await {
-                Err(err) if err.is_tonic_error() => {
-                    tracing::error!(error = %err, "UDF tonic error. retry...");
-                }
-                ret => {
-                    if ret.is_err() {
-                        tracing::error!(error = %ret.as_ref().unwrap_err(), "UDF error. exiting...");
-                    }
-                    return ret;
-                }
-            }
-            tokio::time::sleep(backoff).await;
-            backoff *= 2;
-        }
-    }
-
     /// Call a table function.
     pub async fn call_table_function(
         &self,
@@ -241,11 +153,6 @@ impl Client {
             // convert tonic::Status to FlightError
             stream.map_err(|e| e.into()),
         ))
-    }
-
-    /// Get the remote address of the UDF service.
-    pub fn remote_addr(&self) -> &str {
-        &self.addr
     }
 }
 

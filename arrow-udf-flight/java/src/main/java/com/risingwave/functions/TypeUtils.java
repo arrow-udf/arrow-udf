@@ -520,6 +520,14 @@ class TypeUtils {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(Integer[]::new);
             } else if (subfield.getType().equals(new ArrowType.Int(64, true))) {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(Long[]::new);
+            } else if (subfield.getType().equals(new ArrowType.Int(8, false))) {
+                return obj -> ((List<?>) obj).stream().map(subfunc).toArray(Byte[]::new);
+            } else if (subfield.getType().equals(new ArrowType.Int(16, false))) {
+                return obj -> ((List<?>) obj).stream().map(subfunc).toArray(Character[]::new);
+            } else if (subfield.getType().equals(new ArrowType.Int(32, false))) {
+                return obj -> ((List<?>) obj).stream().map(subfunc).toArray(Integer[]::new);
+            } else if (subfield.getType().equals(new ArrowType.Int(64, false))) {
+                return obj -> ((List<?>) obj).stream().map(subfunc).toArray(Long[]::new);
             } else if (subfield.getType()
                     .equals(new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE))) {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(Float[]::new);
@@ -540,6 +548,10 @@ class TypeUtils {
             } else if (subfield.getType() instanceof ArrowType.Binary
                     || subfield.getType() instanceof ArrowType.LargeBinary) {
                 return obj -> ((List<?>) obj).stream().map(subfunc).toArray(byte[][]::new);
+            } else if (subfield.getType() instanceof DecimalType) {
+                return obj -> ((List<?>) obj).stream().map(subfunc).toArray(BigDecimal[]::new);
+            } else if (subfield.getType() instanceof JsonType) {
+                return obj -> ((List<?>) obj).stream().map(subfunc).toArray(String[]::new);
             } else if (subfield.getType() instanceof ArrowType.Struct) {
                 return obj -> {
                     var list = (List<?>) obj;

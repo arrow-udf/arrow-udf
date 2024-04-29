@@ -49,6 +49,7 @@ public class TestUdfServer {
         server = new UdfServer("localhost", 0);
         server.addFunction("gcd", new Gcd());
         server.addFunction("return_all", new ReturnAll());
+        server.addFunction("return_all_arrays", new ReturnAllArrays());
         server.addFunction("range", new Range());
         server.start();
 
@@ -317,6 +318,91 @@ public class TestUdfServer {
         }
     }
 
+    public static class ReturnAllArrays implements ScalarFunction {
+        public static class Row {
+            public Boolean[] bool;
+            public Byte[] i8;
+            public Short[] i16;
+            public Integer[] i32;
+            public Long[] i64;
+            public @DataTypeHint("uint8[]") Byte[] u8;
+            public Character[] u16;
+            public @DataTypeHint("uint32[]") Integer[] u32;
+            public @DataTypeHint("uint64[]") Long[] u64;
+            public Float[] f32;
+            public Double[] f64;
+            public BigDecimal[] decimal;
+            public LocalDate[] date;
+            public LocalTime[] time;
+            public LocalDateTime[] timestamp;
+            public PeriodDuration[] interval;
+            public String[] str;
+            public byte[][] bytes;
+            public @DataTypeHint("large_string[]") String[] large_string;
+            public @DataTypeHint("large_binary[]") byte[][] large_binary;
+            public @DataTypeHint("JSON[]") String[] json;
+            public Struct[] struct;
+        }
+
+        public static class Struct {
+            public Integer f1;
+            public Integer f2;
+
+            public String toString() {
+                return String.format("(%d, %d)", f1, f2);
+            }
+        }
+
+        public Row eval(
+                Boolean[] bool,
+                Byte[] i8,
+                Short[] i16,
+                Integer[] i32,
+                Long[] i64,
+                @DataTypeHint("uint8[]") Byte[] u8,
+                Character[] u16,
+                @DataTypeHint("uint32[]") Integer[] u32,
+                @DataTypeHint("uint64[]") Long[] u64,
+                Float[] f32,
+                Double[] f64,
+                BigDecimal[] decimal,
+                LocalDate[] date,
+                LocalTime[] time,
+                LocalDateTime[] timestamp,
+                PeriodDuration[] interval,
+                String[] str,
+                byte[][] bytes,
+                @DataTypeHint("large_string[]") String[] large_string,
+                @DataTypeHint("large_binary[]") byte[][] large_binary,
+                @DataTypeHint("JSON[]") String[] json,
+                Struct[] struct) {
+            var row = new Row();
+            row.bool = bool;
+            row.i8 = i8;
+            row.i16 = i16;
+            row.i32 = i32;
+            row.i64 = i64;
+            row.u8 = u8;
+            row.u16 = u16;
+            row.u32 = u32;
+            row.u64 = u64;
+            row.f32 = f32;
+            row.f64 = f64;
+            row.decimal = decimal;
+            row.date = date;
+            row.time = time;
+            row.timestamp = timestamp;
+            row.interval = interval;
+            row.str = str;
+            row.bytes = bytes;
+            row.large_string = large_string;
+            row.large_binary = large_binary;
+            row.json = json;
+            row.struct = struct;
+            return row;
+        }
+    }
+
     public static class Range implements TableFunction {
         public Iterator<Integer> eval(Integer n) {
             if (n == null) {
@@ -380,6 +466,7 @@ public class TestUdfServer {
             server.addFunction("decimal_add", new DecimalAdd());
             server.addFunction("json_array_access", new JsonArrayAccess());
             server.addFunction("return_all", new ReturnAll());
+            server.addFunction("return_all_arrays", new ReturnAllArrays());
             server.addFunction("range", new Range());
             // Start the server
             server.start();

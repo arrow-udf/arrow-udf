@@ -76,4 +76,49 @@ jobs:
         with:
           command: test
           # Skip test_no_gil because there is only 1 core in the CI
-          args: --all-features --no-fail-fast -- --skip test_no_gil
+          args: --all-features --no-fail-fast --workspace --exclude arrow-udf-flight -- --skip test_no_gil
+
+  test-flight:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+      - name: Test Python UDF Server
+        run: |
+          pip install pyarrow pytest
+          pytest arrow-udf-flight/python/risingwave/test_udf.py
+      - name: Test Java UDF Server
+        run: |
+          cd arrow-udf-flight/java
+          mvn test
+          cd ../..
+      - name: Build flight test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p arrow-udf-flight --no-run
+      - name: Test flight with Python UDF Server
+        run: |
+          python arrow-udf-flight/python/example.py &
+          pid=$!
+          sleep 1
+          cargo test -p arrow-udf-flight
+          kill $pid
+      - name: Test flight with Java UDF Server
+        run: |
+          cd arrow-udf-flight/java
+          _JAVA_OPTIONS="--add-opens=java.base/java.nio=ALL-UNNAMED" mvn exec:java &
+          pid=$!
+          sleep 5
+          cargo test -p arrow-udf-flight
+          kill $pid
+          cd ../..

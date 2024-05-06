@@ -4,6 +4,7 @@ members = [
     "arrow-udf",
     "arrow-udf-bench",
     "arrow-udf-example",
+    "arrow-udf-flight",
     "arrow-udf-js",
     "arrow-udf-js-deno",
     "arrow-udf-js-deno-runtime",

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1714404547549,
+  "lastUpdate": 1715008569682,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -6143,6 +6143,114 @@ window.BENCHMARK_DATA = {
             "name": "decimal/deno",
             "value": 820860,
             "range": "± 12251",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "574ce0f0d08640876e906c4e24b4f668f636d7a5",
+          "message": "feat: move arrow-flight-based remote UDF libraries from risingwave repo (#18)\n\n* copy from risingwave\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix all_types test\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* java: update dependencies\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* add i8 and u8-u64\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix build\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* java: use extension type for json and decimal\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* pass unit test for python\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* python: support null type\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* pass flight test for java\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* setup flight test in github actions\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* update docs\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* update arrow to v51\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* support listing functions\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix java test\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* change `check` to `get` and simplify errors\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix ci\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix python 3.8\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* provide protocol version via do_action\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* remove DNS resolution and retry logic\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* java: fix decimal array and json array\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* downgrade arrow to v50\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* simplify `Client::connect`\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n---------\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-05-06T23:01:24+08:00",
+          "tree_id": "2dcfdc0d4a9a917b43cf8c91be805147fb4e0845",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/574ce0f0d08640876e906c4e24b4f668f636d7a5"
+        },
+        "date": 1715008569064,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3882,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3983,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 25157,
+            "range": "± 1723",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 180607,
+            "range": "± 7606",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 187432,
+            "range": "± 4140",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 254209,
+            "range": "± 7515",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 97353,
+            "range": "± 577",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 430291,
+            "range": "± 18094",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5795813,
+            "range": "± 231425",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9334280,
+            "range": "± 182856",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 925879,
+            "range": "± 16190",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 55104,
+            "range": "± 1419",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 593178,
+            "range": "± 2635",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 819041,
+            "range": "± 16746",
             "unit": "ns/iter"
           }
         ]

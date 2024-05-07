@@ -3,7 +3,7 @@
 Install the build tool:
 
 ```sh
-pip3 install build
+pip3 install build twine
 ```
 
 Build the library:

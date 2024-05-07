@@ -3,7 +3,7 @@
 ## Installation
 
 ```sh
-pip install risingwave
+pip install arrow-udf
 ```
 
 ## Usage
@@ -12,7 +12,7 @@ Define functions in a Python file:
 
 ```python
 # udf.py
-from risingwave.udf import udf, udtf, UdfServer
+from arrow_udf import udf, udtf, UdfServer
 import struct
 import socket
 

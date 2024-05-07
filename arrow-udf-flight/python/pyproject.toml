@@ -3,10 +3,10 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "risingwave"
+name = "arrow-udf"
 version = "0.2.0"
 authors = [{ name = "RisingWave Labs" }]
-description = "RisingWave Python API"
+description = "A user-defined function framework for Apache Arrow"
 readme = "README.md"
 license = { text = "Apache Software License" }
 classifiers = [

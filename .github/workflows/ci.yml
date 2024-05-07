@@ -95,7 +95,7 @@ jobs:
       - name: Test Python UDF Server
         run: |
           pip install pyarrow pytest
-          pytest arrow-udf-flight/python/risingwave/test_udf.py
+          pytest arrow-udf-flight/python/arrow_udf/test_udf.py
       - name: Test Java UDF Server
         run: |
           cd arrow-udf-flight/java

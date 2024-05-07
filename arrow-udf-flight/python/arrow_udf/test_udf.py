@@ -14,7 +14,7 @@
 
 from decimal import Decimal
 from multiprocessing import Process
-from risingwave.udf import udf, UdfServer, DecimalType, JsonType
+from arrow_udf import udf, UdfServer, DecimalType, JsonType
 import pyarrow as pa
 import pyarrow.flight as flight
 import time

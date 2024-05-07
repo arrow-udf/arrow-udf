@@ -18,7 +18,7 @@ import time
 from typing import Iterator, List, Optional, Tuple, Any
 from decimal import Decimal
 
-from risingwave.udf import udf, udtf, UdfServer
+from arrow_udf import udf, udtf, UdfServer
 
 
 @udf(input_types=[], result_type="INT")

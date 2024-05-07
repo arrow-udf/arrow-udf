@@ -94,22 +94,27 @@ def _to_arrow_array(column: List, type: pa.DataType) -> pa.Array:
         # flatten the list of lists
         offsets = [0]
         values = []
+        mask = []
         for array in column:
             if array is not None:
                 values.extend(array)
-                offsets.append(len(values))
-            else:
-                offsets.append(None)
+            offsets.append(len(values))
+            mask.append(array is None)
         offsets = pa.array(offsets, type=pa.int32())
         values = _to_arrow_array(values, type.value_type)
-        return pa.ListArray.from_arrays(offsets, values)
+        mask = pa.array(mask, type=pa.bool_())
+        return pa.ListArray.from_arrays(offsets, values, mask=mask)
 
     if pa.types.is_struct(type):
-        fields = [
-            _to_arrow_array([v.get(field.name) for v in column], field.type)
+        arrays = [
+            _to_arrow_array(
+                [v.get(field.name) if v is not None else None for v in column],
+                field.type,
+            )
             for field in type
         ]
-        return pa.StructArray.from_arrays(fields, fields=type)
+        mask = pa.array([v is None for v in column], type=pa.bool_())
+        return pa.StructArray.from_arrays(arrays, fields=type, mask=mask)
 
     if type.equals(JsonType()):
         s = pa.array(

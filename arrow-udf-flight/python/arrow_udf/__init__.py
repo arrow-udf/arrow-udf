@@ -91,9 +91,18 @@ class ScalarFunction(UserDefinedFunction):
 def _to_arrow_array(column: List, type: pa.DataType) -> pa.Array:
     """Return a function to convert a list of python objects to an arrow array."""
     if pa.types.is_list(type):
-        # FIXME
-        func = _to_arrow_array(type.value_type)
-        return lambda array: [(func(v) if v is not None else None) for v in array]
+        # flatten the list of lists
+        offsets = [0]
+        values = []
+        for array in column:
+            if array is not None:
+                values.extend(array)
+                offsets.append(len(values))
+            else:
+                offsets.append(None)
+        offsets = pa.array(offsets, type=pa.int32())
+        values = _to_arrow_array(values, type.value_type)
+        return pa.ListArray.from_arrays(offsets, values)
 
     if pa.types.is_struct(type):
         fields = [

@@ -103,7 +103,9 @@ def _to_arrow_array(column: List, type: pa.DataType) -> pa.Array:
         return pa.StructArray.from_arrays(fields, fields=type)
 
     if type.equals(JsonType()):
-        s = pa.array([json.dumps(v) for v in column], type=pa.string())
+        s = pa.array(
+            [json.dumps(v) if v is not None else None for v in column], type=pa.string()
+        )
         return pa.ExtensionArray.from_storage(JsonType(), s)
 
     if type.equals(DecimalType()):
@@ -409,7 +411,7 @@ class UdfServer(pa.flight.FlightServerBase):
 
 class JsonScalar(pa.ExtensionScalar):
     def as_py(self):
-        return json.loads(self.value.as_py())
+        return json.loads(self.value.as_py()) if self.value is not None else None
 
 
 class JsonType(pa.ExtensionType):
@@ -433,7 +435,7 @@ class JsonType(pa.ExtensionType):
 
 class DecimalScalar(pa.ExtensionScalar):
     def as_py(self):
-        return Decimal(self.value.as_py())
+        return Decimal(self.value.as_py()) if self.value is not None else None
 
 
 class DecimalType(pa.ExtensionType):

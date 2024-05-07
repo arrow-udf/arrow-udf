@@ -91,19 +91,35 @@ class ScalarFunction(UserDefinedFunction):
 def _to_arrow_array(column: List, type: pa.DataType) -> pa.Array:
     """Return a function to convert a list of python objects to an arrow array."""
     if pa.types.is_list(type):
-        # FIXME
-        func = _to_arrow_array(type.value_type)
-        return lambda array: [(func(v) if v is not None else None) for v in array]
+        # flatten the list of lists
+        offsets = [0]
+        values = []
+        mask = []
+        for array in column:
+            if array is not None:
+                values.extend(array)
+            offsets.append(len(values))
+            mask.append(array is None)
+        offsets = pa.array(offsets, type=pa.int32())
+        values = _to_arrow_array(values, type.value_type)
+        mask = pa.array(mask, type=pa.bool_())
+        return pa.ListArray.from_arrays(offsets, values, mask=mask)
 
     if pa.types.is_struct(type):
-        fields = [
-            _to_arrow_array([v.get(field.name) for v in column], field.type)
+        arrays = [
+            _to_arrow_array(
+                [v.get(field.name) if v is not None else None for v in column],
+                field.type,
+            )
             for field in type
         ]
-        return pa.StructArray.from_arrays(fields, fields=type)
+        mask = pa.array([v is None for v in column], type=pa.bool_())
+        return pa.StructArray.from_arrays(arrays, fields=type, mask=mask)
 
     if type.equals(JsonType()):
-        s = pa.array([json.dumps(v) for v in column], type=pa.string())
+        s = pa.array(
+            [json.dumps(v) if v is not None else None for v in column], type=pa.string()
+        )
         return pa.ExtensionArray.from_storage(JsonType(), s)
 
     if type.equals(DecimalType()):
@@ -409,7 +425,7 @@ class UdfServer(pa.flight.FlightServerBase):
 
 class JsonScalar(pa.ExtensionScalar):
     def as_py(self):
-        return json.loads(self.value.as_py())
+        return json.loads(self.value.as_py()) if self.value is not None else None
 
 
 class JsonType(pa.ExtensionType):
@@ -433,7 +449,7 @@ class JsonType(pa.ExtensionType):
 
 class DecimalScalar(pa.ExtensionScalar):
     def as_py(self):
-        return Decimal(self.value.as_py())
+        return Decimal(self.value.as_py()) if self.value is not None else None
 
 
 class DecimalType(pa.ExtensionType):
@@ -488,13 +504,13 @@ def _string_to_data_type(type: str):
             elif c == ">":
                 depth -= 1
             elif c == "," and depth == 0:
-                name, t = type_list[start:i].split(":")
+                name, t = type_list[start:i].split(":", maxsplit=1)
                 name = name.strip()
                 t = t.strip()
                 fields.append(pa.field(name, _string_to_data_type(t)))
                 start = i + 1
         if ":" in type_list[start:].strip():
-            name, t = type_list[start:].split(":")
+            name, t = type_list[start:].split(":", maxsplit=1)
             name = name.strip()
             t = t.strip()
             fields.append(pa.field(name, _string_to_data_type(t)))

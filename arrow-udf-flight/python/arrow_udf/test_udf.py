@@ -78,6 +78,7 @@ def wait_concurrent(x):
         "binary",
         "large_binary",
         "json",
+        "struct<a:int, b:string>",
     ],
     result_type="""struct<
         null: null,
@@ -102,6 +103,7 @@ def wait_concurrent(x):
         binary: binary,
         large_binary: large_binary,
         json: json,
+        struct: struct<a:int, b:string>,
     >""",
 )
 def return_all(
@@ -127,6 +129,7 @@ def return_all(
     binary,
     large_binary,
     jsonb,
+    struct,
 ):
     return {
         "null": null,
@@ -151,6 +154,7 @@ def return_all(
         "binary": binary,
         "large_binary": large_binary,
         "json": jsonb,
+        "struct": struct,
     }
 
 
@@ -255,6 +259,10 @@ def test_all_types():
         pa.ExtensionArray.from_storage(
             JsonType(), pa.array(['{ "key": 1 }'], type=pa.string())
         ),
+        pa.array(
+            [{"a": 1, "b": "string"}],
+            type=pa.struct([pa.field("a", pa.int32()), pa.field("b", pa.string())]),
+        ),
     ]
     batch = pa.RecordBatch.from_arrays(arrays, names=["" for _ in arrays])
 
@@ -290,4 +298,5 @@ def test_all_types():
                 b"binary",
                 b"large_binary",
                 {"key": 1},
+                {"a": 1, "b": "string"},
             ]

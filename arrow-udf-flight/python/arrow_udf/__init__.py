@@ -488,13 +488,13 @@ def _string_to_data_type(type: str):
             elif c == ">":
                 depth -= 1
             elif c == "," and depth == 0:
-                name, t = type_list[start:i].split(":")
+                name, t = type_list[start:i].split(":", maxsplit=1)
                 name = name.strip()
                 t = t.strip()
                 fields.append(pa.field(name, _string_to_data_type(t)))
                 start = i + 1
         if ":" in type_list[start:].strip():
-            name, t = type_list[start:].split(":")
+            name, t = type_list[start:].split(":", maxsplit=1)
             name = name.strip()
             t = t.strip()
             fields.append(pa.field(name, _string_to_data_type(t)))

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1715008569682,
+  "lastUpdate": 1715088228156,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -6251,6 +6251,114 @@ window.BENCHMARK_DATA = {
             "name": "decimal/deno",
             "value": 819041,
             "range": "± 16746",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e742b98ccf994f5c96fb5912b7c79970a87225b5",
+          "message": "rename Python package to `arrow-udf` and fix several bugs (#20)\n\n* rename Python project to arrow-udf\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix struct in struct\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix null for json and decimal type\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* support list input\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix null bugs\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* update changelog\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* add changelog for flight\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* fix clippy\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* test null input\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n---------\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-05-07T21:09:08+08:00",
+          "tree_id": "c3d3705de56a19541051f8a498b36e1126aeaae9",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/e742b98ccf994f5c96fb5912b7c79970a87225b5"
+        },
+        "date": 1715088227154,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3881,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3990,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 25218,
+            "range": "± 1519",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 168281,
+            "range": "± 4273",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 197984,
+            "range": "± 1671",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 252845,
+            "range": "± 1468",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 94687,
+            "range": "± 1375",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 422794,
+            "range": "± 22560",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5638292,
+            "range": "± 103402",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9377425,
+            "range": "± 310374",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 947333,
+            "range": "± 36491",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 55475,
+            "range": "± 1033",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 613767,
+            "range": "± 49127",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 810504,
+            "range": "± 12471",
             "unit": "ns/iter"
           }
         ]

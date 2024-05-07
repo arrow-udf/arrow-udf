@@ -233,39 +233,39 @@ def test_io_concurrency():
 
 def test_all_types():
     arrays = [
-        pa.array([None], type=pa.null()),
-        pa.array([True], type=pa.bool_()),
-        pa.array([1], type=pa.int8()),
-        pa.array([2], type=pa.int16()),
-        pa.array([3], type=pa.int32()),
-        pa.array([4], type=pa.int64()),
-        pa.array([5], type=pa.uint8()),
-        pa.array([6], type=pa.uint16()),
-        pa.array([7], type=pa.uint32()),
-        pa.array([8], type=pa.uint64()),
-        pa.array([9], type=pa.float32()),
-        pa.array([10], type=pa.float64()),
+        pa.array([None, None], type=pa.null()),
+        pa.array([None, True], type=pa.bool_()),
+        pa.array([None, 1], type=pa.int8()),
+        pa.array([None, 2], type=pa.int16()),
+        pa.array([None, 3], type=pa.int32()),
+        pa.array([None, 4], type=pa.int64()),
+        pa.array([None, 5], type=pa.uint8()),
+        pa.array([None, 6], type=pa.uint16()),
+        pa.array([None, 7], type=pa.uint32()),
+        pa.array([None, 8], type=pa.uint64()),
+        pa.array([None, 9], type=pa.float32()),
+        pa.array([None, 10], type=pa.float64()),
         pa.ExtensionArray.from_storage(
             DecimalType(),
-            pa.array(["12345678901234567890.1234567890"], type=pa.string()),
+            pa.array([None, "12345678901234567890.1234567890"], type=pa.string()),
         ),
-        pa.array([datetime.date(2023, 6, 1)], type=pa.date32()),
-        pa.array([datetime.time(1, 2, 3, 456789)], type=pa.time64("us")),
+        pa.array([None, datetime.date(2023, 6, 1)], type=pa.date32()),
+        pa.array([None, datetime.time(1, 2, 3, 456789)], type=pa.time64("us")),
         pa.array(
-            [datetime.datetime(2023, 6, 1, 1, 2, 3, 456789)],
+            [None, datetime.datetime(2023, 6, 1, 1, 2, 3, 456789)],
             type=pa.timestamp("us"),
         ),
-        pa.array([(1, 2, 3)], type=pa.month_day_nano_interval()),
-        pa.array(["string"], type=pa.string()),
-        pa.array(["large_string"], type=pa.large_string()),
-        pa.array(["binary"], type=pa.binary()),
-        pa.array(["large_binary"], type=pa.large_binary()),
+        pa.array([None, (1, 2, 3)], type=pa.month_day_nano_interval()),
+        pa.array([None, "string"], type=pa.string()),
+        pa.array([None, "large_string"], type=pa.large_string()),
+        pa.array([None, "binary"], type=pa.binary()),
+        pa.array([None, "large_binary"], type=pa.large_binary()),
         pa.ExtensionArray.from_storage(
-            JsonType(), pa.array(['{ "key": 1 }'], type=pa.string())
+            JsonType(), pa.array([None, '{ "key": 1 }'], type=pa.string())
         ),
-        pa.array([[1]], type=pa.list_(pa.int32())),
+        pa.array([None, [1]], type=pa.list_(pa.int32())),
         pa.array(
-            [{"a": 1, "b": "string"}],
+            [None, {"a": 1, "b": "string"}],
             type=pa.struct([pa.field("a", pa.int32()), pa.field("b", pa.string())]),
         ),
     ]
@@ -280,7 +280,9 @@ def test_all_types():
             writer.done_writing()
 
             chunk = reader.read_chunk()
-            assert [v.as_py() for _, v in chunk.data.column(0)[0].items()] == [
+            column = chunk.data.column(0)
+            assert all(v.as_py() is None for _, v in column[0].items())
+            assert [v.as_py() for _, v in column[1].items()] == [
                 None,
                 True,
                 1,

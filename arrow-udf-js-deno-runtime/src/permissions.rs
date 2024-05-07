@@ -521,11 +521,11 @@ impl FromStr for RunDescriptor {
     }
 }
 
-impl ToString for RunDescriptor {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for RunDescriptor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RunDescriptor::Name(s) => s.clone(),
-            RunDescriptor::Path(p) => p.to_string_lossy().to_string(),
+            RunDescriptor::Name(s) => f.write_str(s),
+            RunDescriptor::Path(p) => f.write_str(&p.to_string_lossy()),
         }
     }
 }
@@ -1591,9 +1591,15 @@ pub fn create_child_permissions(
         }
     }
     worker_perms.env.flag_denied_global = main_perms.env.flag_denied_global;
-    worker_perms.env.flag_denied_list = main_perms.env.flag_denied_list.clone();
+    worker_perms
+        .env
+        .flag_denied_list
+        .clone_from(&main_perms.env.flag_denied_list);
     worker_perms.env.prompt_denied_global = main_perms.env.prompt_denied_global;
-    worker_perms.env.prompt_denied_list = main_perms.env.prompt_denied_list.clone();
+    worker_perms
+        .env
+        .prompt_denied_list
+        .clone_from(&main_perms.env.prompt_denied_list);
     worker_perms.env.prompt = main_perms.env.prompt;
     match child_permissions_arg.sys {
         ChildUnaryPermissionArg::Inherit => {
@@ -1619,9 +1625,15 @@ pub fn create_child_permissions(
         }
     }
     worker_perms.sys.flag_denied_global = main_perms.sys.flag_denied_global;
-    worker_perms.sys.flag_denied_list = main_perms.sys.flag_denied_list.clone();
+    worker_perms
+        .sys
+        .flag_denied_list
+        .clone_from(&main_perms.sys.flag_denied_list);
     worker_perms.sys.prompt_denied_global = main_perms.sys.prompt_denied_global;
-    worker_perms.sys.prompt_denied_list = main_perms.sys.prompt_denied_list.clone();
+    worker_perms
+        .sys
+        .prompt_denied_list
+        .clone_from(&main_perms.sys.prompt_denied_list);
     worker_perms.sys.prompt = main_perms.sys.prompt;
     match child_permissions_arg.hrtime {
         ChildUnitPermissionArg::Inherit => {
@@ -1663,9 +1675,15 @@ pub fn create_child_permissions(
         }
     }
     worker_perms.net.flag_denied_global = main_perms.net.flag_denied_global;
-    worker_perms.net.flag_denied_list = main_perms.net.flag_denied_list.clone();
+    worker_perms
+        .net
+        .flag_denied_list
+        .clone_from(&main_perms.net.flag_denied_list);
     worker_perms.net.prompt_denied_global = main_perms.net.prompt_denied_global;
-    worker_perms.net.prompt_denied_list = main_perms.net.prompt_denied_list.clone();
+    worker_perms
+        .net
+        .prompt_denied_list
+        .clone_from(&main_perms.net.prompt_denied_list);
     worker_perms.net.prompt = main_perms.net.prompt;
     match child_permissions_arg.ffi {
         ChildUnaryPermissionArg::Inherit => {
@@ -1694,9 +1712,15 @@ pub fn create_child_permissions(
         }
     }
     worker_perms.ffi.flag_denied_global = main_perms.env.flag_denied_global;
-    worker_perms.ffi.flag_denied_list = main_perms.ffi.flag_denied_list.clone();
+    worker_perms
+        .ffi
+        .flag_denied_list
+        .clone_from(&main_perms.ffi.flag_denied_list);
     worker_perms.ffi.prompt_denied_global = main_perms.ffi.prompt_denied_global;
-    worker_perms.ffi.prompt_denied_list = main_perms.ffi.prompt_denied_list.clone();
+    worker_perms
+        .ffi
+        .prompt_denied_list
+        .clone_from(&main_perms.ffi.prompt_denied_list);
     worker_perms.ffi.prompt = main_perms.ffi.prompt;
     match child_permissions_arg.read {
         ChildUnaryPermissionArg::Inherit => {
@@ -1725,9 +1749,15 @@ pub fn create_child_permissions(
         }
     }
     worker_perms.read.flag_denied_global = main_perms.read.flag_denied_global;
-    worker_perms.read.flag_denied_list = main_perms.read.flag_denied_list.clone();
+    worker_perms
+        .read
+        .flag_denied_list
+        .clone_from(&main_perms.read.flag_denied_list);
     worker_perms.read.prompt_denied_global = main_perms.read.prompt_denied_global;
-    worker_perms.read.prompt_denied_list = main_perms.read.prompt_denied_list.clone();
+    worker_perms
+        .read
+        .prompt_denied_list
+        .clone_from(&main_perms.read.prompt_denied_list);
     worker_perms.read.prompt = main_perms.read.prompt;
     match child_permissions_arg.run {
         ChildUnaryPermissionArg::Inherit => {
@@ -1753,9 +1783,15 @@ pub fn create_child_permissions(
         }
     }
     worker_perms.run.flag_denied_global = main_perms.run.flag_denied_global;
-    worker_perms.run.flag_denied_list = main_perms.run.flag_denied_list.clone();
+    worker_perms
+        .run
+        .flag_denied_list
+        .clone_from(&main_perms.run.flag_denied_list);
     worker_perms.run.prompt_denied_global = main_perms.run.prompt_denied_global;
-    worker_perms.run.prompt_denied_list = main_perms.run.prompt_denied_list.clone();
+    worker_perms
+        .run
+        .prompt_denied_list
+        .clone_from(&main_perms.run.prompt_denied_list);
     worker_perms.run.prompt = main_perms.run.prompt;
     match child_permissions_arg.write {
         ChildUnaryPermissionArg::Inherit => {
@@ -1784,9 +1820,15 @@ pub fn create_child_permissions(
         }
     }
     worker_perms.write.flag_denied_global = main_perms.write.flag_denied_global;
-    worker_perms.write.flag_denied_list = main_perms.write.flag_denied_list.clone();
+    worker_perms
+        .write
+        .flag_denied_list
+        .clone_from(&main_perms.write.flag_denied_list);
     worker_perms.write.prompt_denied_global = main_perms.write.prompt_denied_global;
-    worker_perms.write.prompt_denied_list = main_perms.write.prompt_denied_list.clone();
+    worker_perms
+        .write
+        .prompt_denied_list
+        .clone_from(&main_perms.write.prompt_denied_list);
     worker_perms.write.prompt = main_perms.write.prompt;
     Ok(worker_perms)
 }

@@ -40,7 +40,7 @@ git clone https://github.com/risingwavelabs/risingwave-java-udf-template.git
 
       <dependencies>
           <dependency>
-              <groupId>com.risingwave.java</groupId>
+              <groupId>com.risingwave</groupId>
               <artifactId>risingwave-udf</artifactId>
               <version>0.2.0</version>
           </dependency>

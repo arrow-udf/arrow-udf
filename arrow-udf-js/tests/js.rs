@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use arrow_array::{
     types::*, ArrayRef, BinaryArray, Int32Array, ListArray, RecordBatch, StringArray, StructArray,
@@ -482,6 +482,95 @@ fn test_range() {
         | 2   | 2     |
         +-----+-------+"#]],
     );
+}
+
+#[test]
+fn test_timeout() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime.set_timeout(Some(Duration::from_millis(1)));
+
+    let js_code = r#"
+        export function square(x) {
+            let sum = 0;
+            for (let i = 0; i < x; i++) {
+                sum += x;
+            }
+            return sum;
+        }
+    "#;
+    runtime
+        .add_function(
+            "square",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            js_code,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![100]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("square", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | square |
+        +--------+
+        | 10000  |
+        +--------+"#]],
+    );
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![i32::MAX]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let err = runtime.call("square", &input).unwrap_err();
+    assert!(format!("{err:?}").contains("interrupted"))
+}
+
+#[test]
+fn test_memory_limit() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime.set_memory_limit(Some(1 << 20)); // 1MB
+
+    let js_code = r#"
+        export function alloc(x) {
+            new Array(x).fill(0);
+            return x;
+        }
+    "#;
+    runtime
+        .add_function(
+            "alloc",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            js_code,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![100]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("alloc", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +-------+
+        | alloc |
+        +-------+
+        | 100   |
+        +-------+"#]],
+    );
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![1 << 20]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let err = runtime.call("alloc", &input).unwrap_err();
+    assert!(format!("{err:?}").contains("out of memory"))
 }
 
 /// assert Runtime is Send and Sync

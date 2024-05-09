@@ -16,7 +16,10 @@
 
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::time::Duration;
+use std::time::Instant;
 
 use anyhow::{anyhow, Context as _, Result};
 use arrow_array::{builder::Int32Builder, RecordBatch};
@@ -38,8 +41,12 @@ pub struct Runtime {
     /// The `BigDecimal` constructor.
     bigdecimal: Persistent<rquickjs::Function<'static>>,
     // NOTE: `functions` and `bigdecimal` must be put before the runtime and context to be dropped first.
-    _runtime: rquickjs::Runtime,
+    runtime: rquickjs::Runtime,
     context: Context,
+    /// Timeout of each function call.
+    timeout: Option<Duration>,
+    /// Deadline of the current function call.
+    deadline: Arc<atomic_time::AtomicOptionInstant>,
 }
 
 impl Debug for Runtime {
@@ -92,9 +99,32 @@ impl Runtime {
         Ok(Self {
             functions: HashMap::new(),
             bigdecimal,
-            _runtime: runtime,
+            runtime,
             context,
+            timeout: None,
+            deadline: Default::default(),
         })
+    }
+
+    /// Set the memory limit of the runtime.
+    pub fn set_memory_limit(&self, limit: Option<usize>) {
+        self.runtime.set_memory_limit(limit.unwrap_or(0));
+    }
+
+    /// Set the timeout of each function call.
+    pub fn set_timeout(&mut self, timeout: Option<Duration>) {
+        self.timeout = timeout;
+        if timeout.is_some() {
+            let deadline = self.deadline.clone();
+            self.runtime.set_interrupt_handler(Some(Box::new(move || {
+                if let Some(deadline) = deadline.load(Ordering::Relaxed) {
+                    return deadline <= Instant::now();
+                }
+                false
+            })));
+        } else {
+            self.runtime.set_interrupt_handler(None);
+        }
     }
 
     /// Add a JS function.
@@ -161,8 +191,8 @@ impl Runtime {
                 }
                 let mut args = Args::new(ctx.clone(), row.len());
                 args.push_args(row.drain(..))?;
-                let result = js_function
-                    .call_arg(args)
+                let result = self
+                    .with_timeout(|| js_function.call_arg(args))
                     .map_err(|e| check_exception(e, &ctx))
                     .context("failed to call function")?;
                 results.push(result);
@@ -186,8 +216,7 @@ impl Runtime {
 
         // initial state
         Ok(RecordBatchIter {
-            context: &self.context,
-            bigdecimal: &self.bigdecimal,
+            rt: self,
             input,
             function,
             schema: Arc::new(Schema::new(vec![
@@ -199,12 +228,24 @@ impl Runtime {
             generator: None,
         })
     }
+
+    /// Call a function `f` with timeout if set.
+    fn with_timeout<T>(&self, f: impl FnOnce() -> T) -> T {
+        if let Some(timeout) = self.timeout {
+            self.deadline
+                .store(Some(Instant::now() + timeout), Ordering::Relaxed);
+            let result = f();
+            self.deadline.store(None, Ordering::Relaxed);
+            result
+        } else {
+            f()
+        }
+    }
 }
 
 /// An iterator over the result of a table function.
 pub struct RecordBatchIter<'a> {
-    context: &'a Context,
-    bigdecimal: &'a Persistent<rquickjs::Function<'static>>,
+    rt: &'a Runtime,
     input: &'a RecordBatch,
     function: &'a Function,
     schema: SchemaRef,
@@ -229,8 +270,8 @@ impl RecordBatchIter<'_> {
         if self.row == self.input.num_rows() {
             return Ok(None);
         }
-        self.context.with(|ctx| {
-            let bigdecimal = self.bigdecimal.clone().restore(&ctx)?;
+        self.rt.context.with(|ctx| {
+            let bigdecimal = self.rt.bigdecimal.clone().restore(&ctx)?;
             let js_function = self.function.function.clone().restore(&ctx)?;
             let mut indexes = Int32Builder::with_capacity(self.chunk_size);
             let mut results = Vec::with_capacity(self.input.num_rows());
@@ -266,8 +307,9 @@ impl RecordBatchIter<'_> {
                     }
                     let mut args = Args::new(ctx.clone(), row.len());
                     args.push_args(row.drain(..))?;
-                    let gen = js_function
-                        .call_arg::<Object>(args)
+                    let gen = self
+                        .rt
+                        .with_timeout(|| js_function.call_arg::<Object>(args))
                         .map_err(|e| check_exception(e, &ctx))
                         .context("failed to call function")?;
                     let next: rquickjs::Function =
@@ -278,8 +320,9 @@ impl RecordBatchIter<'_> {
                 };
                 let mut args = Args::new(ctx.clone(), 0);
                 args.this(gen.clone())?;
-                let object: Object = next
-                    .call_arg(args)
+                let object: Object = self
+                    .rt
+                    .with_timeout(|| next.call_arg(args))
                     .map_err(|e| check_exception(e, &ctx))
                     .context("failed to call next")?;
                 let value: Value = object.get("value")?;

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `Runtime::{set_memory_limit, set_timeout}` to limit memory usage and execution time.
+
 ## [0.2.0] - 2024-04-25
 
 ### Breaking Changes

@@ -285,7 +285,7 @@ async fn test_decimal_add() {
     runtime
         .add_function(
             "decimal_add",
-            decimal_field("decimal_add"),
+            decimal_field("add"),
             CallMode::ReturnNullOnNullInput,
             r#"
             export function decimal_add(a, b) {
@@ -303,14 +303,15 @@ async fn test_decimal_add() {
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("decimal_add", input).await.unwrap();
+    assert_eq!(output.schema().field(0), &decimal_field("add"));
     check(
         &[output],
         expect![[r#"
-        +-------------+
-        | decimal_add |
-        +-------------+
-        | 0.0003      |
-        +-------------+"#]],
+        +--------+
+        | add    |
+        +--------+
+        | 0.0003 |
+        +--------+"#]],
     );
 }
 

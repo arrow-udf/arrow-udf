@@ -469,7 +469,7 @@ impl InternalRuntime {
 
         let array = deno_arrow::build_array(&function.return_field, try_catch, results)
             .context("failed to build arrow array from return values")?;
-        let schema = Schema::new(vec![Field::new(name, array.data_type().clone(), true)]);
+        let schema = Schema::new(vec![function.return_field.clone()]);
         Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
     }
 

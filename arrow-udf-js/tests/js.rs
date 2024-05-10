@@ -238,6 +238,7 @@ fn test_decimal_add() {
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
     let output = runtime.call("decimal_add", &input).unwrap();
+    assert_eq!(output.schema().field(0), &decimal_field("add"));
     check(
         &[output],
         expect![[r#"

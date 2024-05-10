@@ -416,7 +416,6 @@ impl Converter {
                     }
                 }
             }
-            //todo test and dedupe and add inverse
             DataType::Date32 => {
                 build_timestamp_array!(Date32Builder, i32, ctx, values, /, 1000 * 60 * 60 * 24)
             }

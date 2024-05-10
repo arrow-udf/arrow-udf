@@ -432,6 +432,7 @@ fn test_weighted_avg() {
                 ]
                 .into(),
             ),
+            DataType::Float32,
             CallMode::ReturnNullOnNullInput,
             r#"
 class State:
@@ -442,7 +443,7 @@ class State:
 def create_state():
     return State()
 
-def get_value(state):
+def finish(state):
     if state.weight == 0:
         return None
     else:
@@ -481,13 +482,24 @@ def retract(state, value, weight):
 
     let state = runtime.accumulate("weighted_avg", &state, &input).unwrap();
     check_array(
-        &[state],
+        std::slice::from_ref(&state),
         expect![[r#"
             +-----------------------+
             | array                 |
             +-----------------------+
             | {sum: 44, weight: 12} |
             +-----------------------+"#]],
+    );
+
+    let output = runtime.finish("weighted_avg", &state).unwrap();
+    check_array(
+        &[output],
+        expect![[r#"
+            +-----------+
+            | array     |
+            +-----------+
+            | 3.6666667 |
+            +-----------+"#]],
     );
 }
 

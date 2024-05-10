@@ -28,7 +28,7 @@ use self::interpreter::SubInterpreter;
 use anyhow::{Context, Result};
 use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
 use arrow_array::{Array, ArrayRef, RecordBatch};
-use arrow_schema::{DataType, Field, Schema, SchemaRef};
+use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
 use into_field::IntoField;
 use pyo3::types::{PyAnyMethods, PyIterator, PyModule, PyTuple};
 use pyo3::{Py, PyObject};
@@ -61,16 +61,18 @@ impl Debug for Runtime {
 /// A user defined function.
 struct Function {
     function: PyObject,
-    return_field: Field,
+    return_field: FieldRef,
     mode: CallMode,
 }
 
 /// A user defined aggregate function.
 struct Aggregate {
-    state_field: Field,
+    state_field: FieldRef,
+    output_field: FieldRef,
     mode: CallMode,
     create_state: PyObject,
     accumulate: PyObject,
+    finish: PyObject,
 }
 
 /// A builder for `Runtime`.
@@ -212,7 +214,7 @@ impl Runtime {
         })?;
         let function = Function {
             function,
-            return_field: return_type.into_field(name),
+            return_field: return_type.into_field(name).into(),
             mode,
         };
         self.functions.insert(name.to_string(), function);
@@ -224,20 +226,24 @@ impl Runtime {
         &mut self,
         name: &str,
         state_type: impl IntoField,
+        output_type: impl IntoField,
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
-        let (create_state, accumulate) = self.interpreter.with_gil(|py| {
+        let (create_state, accumulate, finish) = self.interpreter.with_gil(|py| {
             let module = PyModule::from_code_bound(py, code, "", "")?;
             let create_state = module.getattr("create_state")?;
             let accumulate = module.getattr("accumulate")?;
-            Ok((create_state.into(), accumulate.into()))
+            let finish = module.getattr("finish")?;
+            Ok((create_state.into(), accumulate.into(), finish.into()))
         })?;
         let aggregate = Aggregate {
-            state_field: state_type.into_field(name),
+            state_field: state_type.into_field(name).into(),
+            output_field: output_type.into_field(name).into(),
             mode,
             create_state,
             accumulate,
+            finish,
         };
         self.aggregates.insert(name.to_string(), aggregate);
         Ok(())
@@ -299,7 +305,7 @@ impl Runtime {
         if let Some(error) = error {
             let schema = Schema::new(vec![
                 function.return_field.clone(),
-                Field::new("error", DataType::Utf8, true),
+                Field::new("error", DataType::Utf8, true).into(),
             ]);
             Ok(RecordBatch::try_new(Arc::new(schema), vec![output, error])?)
         } else {
@@ -324,7 +330,7 @@ impl Runtime {
             input,
             function,
             schema: Arc::new(Schema::new(vec![
-                Field::new("row", DataType::Int32, true),
+                Field::new("row", DataType::Int32, true).into(),
                 function.return_field.clone(),
             ])),
             chunk_size,
@@ -376,6 +382,20 @@ impl Runtime {
             Ok(output)
         })?;
         Ok(new_state)
+    }
+
+    /// Get the result of an aggregate function.
+    pub fn finish(&self, name: &str, state: &dyn Array) -> Result<ArrayRef> {
+        let aggregate = self.aggregates.get(name).context("function not found")?;
+        let output = self.interpreter.with_gil(|py| {
+            let state = pyarrow::get_pyobject(py, &aggregate.state_field, state, 0)?;
+            let result = aggregate
+                .finish
+                .call1(py, PyTuple::new_bound(py, [state]))?;
+            let output = pyarrow::build_array(&aggregate.output_field, py, &[result])?;
+            Ok(output)
+        })?;
+        Ok(output)
     }
 }
 

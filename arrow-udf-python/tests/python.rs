@@ -15,7 +15,7 @@
 use std::sync::Arc;
 
 use arrow_array::*;
-use arrow_cast::pretty::pretty_format_batches;
+use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_python::{CallMode, Runtime};
 use expect_test::{expect, Expect};
@@ -420,6 +420,78 @@ def range1(n: int):
 }
 
 #[test]
+fn test_weighted_avg() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_aggregate(
+            "weighted_avg",
+            DataType::Struct(
+                vec![
+                    Field::new("sum", DataType::Int32, false),
+                    Field::new("weight", DataType::Int32, false),
+                ]
+                .into(),
+            ),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+class State:
+    def __init__(self):
+        self.sum = 0
+        self.weight = 0
+
+def create_state():
+    return State()
+
+def get_value(state):
+    if state.weight == 0:
+        return None
+    else:
+        return state.sum / state.weight
+
+def accumulate(state, value, weight):
+    state.sum += value * weight
+    state.weight += weight
+
+def retract(state, value, weight):
+    state.sum -= value * weight
+    state.weight -= weight
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("value", DataType::Int32, true),
+        Field::new("weight", DataType::Int32, true),
+    ]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    let arg1 = Int32Array::from(vec![Some(2), None, Some(4), Some(6)]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let state = runtime.create_state("weighted_avg").unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +---------------------+
+            | array               |
+            +---------------------+
+            | {sum: 0, weight: 0} |
+            +---------------------+"#]],
+    );
+
+    let state = runtime.accumulate("weighted_avg", &state, &input).unwrap();
+    check_array(
+        &[state],
+        expect![[r#"
+            +-----------------------+
+            | array                 |
+            +-----------------------+
+            | {sum: 44, weight: 12} |
+            +-----------------------+"#]],
+    );
+}
+
+#[test]
 fn test_error() {
     let mut runtime = Runtime::new().unwrap();
     runtime
@@ -679,6 +751,12 @@ def neg(x):
 #[track_caller]
 fn check(actual: &[RecordBatch], expect: Expect) {
     expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
+}
+
+/// Compare the actual output with the expected output.
+#[track_caller]
+fn check_array(actual: &[ArrayRef], expect: Expect) {
+    expect.assert_eq(&pretty_format_columns("array", actual).unwrap().to_string());
 }
 
 /// Returns a field with JSON type.

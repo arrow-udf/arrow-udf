@@ -27,7 +27,7 @@
 use self::interpreter::SubInterpreter;
 use anyhow::{Context, Result};
 use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
-use arrow_array::{ArrayRef, RecordBatch};
+use arrow_array::{Array, ArrayRef, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use into_field::IntoField;
 use pyo3::types::{PyAnyMethods, PyIterator, PyModule, PyTuple};
@@ -47,6 +47,7 @@ mod pyarrow;
 pub struct Runtime {
     interpreter: SubInterpreter,
     functions: HashMap<String, Function>,
+    aggregates: HashMap<String, Aggregate>,
 }
 
 impl Debug for Runtime {
@@ -62,6 +63,14 @@ struct Function {
     function: PyObject,
     return_field: Field,
     mode: CallMode,
+}
+
+/// A user defined aggregate function.
+struct Aggregate {
+    state_field: Field,
+    mode: CallMode,
+    create_state: PyObject,
+    accumulate: PyObject,
 }
 
 /// A builder for `Runtime`.
@@ -160,6 +169,7 @@ del limited_import
         Ok(Runtime {
             interpreter,
             functions: HashMap::new(),
+            aggregates: HashMap::new(),
         })
     }
 }
@@ -209,11 +219,45 @@ impl Runtime {
         Ok(())
     }
 
+    /// Add a new aggregate function from Python code.
+    pub fn add_aggregate(
+        &mut self,
+        name: &str,
+        state_type: impl IntoField,
+        mode: CallMode,
+        code: &str,
+    ) -> Result<()> {
+        let (create_state, accumulate) = self.interpreter.with_gil(|py| {
+            let module = PyModule::from_code_bound(py, code, "", "")?;
+            let create_state = module.getattr("create_state")?;
+            let accumulate = module.getattr("accumulate")?;
+            Ok((create_state.into(), accumulate.into()))
+        })?;
+        let aggregate = Aggregate {
+            state_field: state_type.into_field(name),
+            mode,
+            create_state,
+            accumulate,
+        };
+        self.aggregates.insert(name.to_string(), aggregate);
+        Ok(())
+    }
+
     /// Remove a function.
     pub fn del_function(&mut self, name: &str) -> Result<()> {
         let function = self.functions.remove(name).context("function not found")?;
         _ = self.interpreter.with_gil(|_| {
             drop(function);
+            Ok(())
+        });
+        Ok(())
+    }
+
+    /// Remove an aggregate function.
+    pub fn del_aggregate(&mut self, name: &str) -> Result<()> {
+        let aggregate = self.functions.remove(name).context("function not found")?;
+        _ = self.interpreter.with_gil(|_| {
+            drop(aggregate);
             Ok(())
         });
         Ok(())
@@ -228,16 +272,16 @@ impl Runtime {
             let mut errors = vec![];
             let mut row = Vec::with_capacity(input.num_columns());
             for i in 0..input.num_rows() {
+                if function.mode == CallMode::ReturnNullOnNullInput
+                    && input.columns().iter().any(|column| column.is_null(i))
+                {
+                    results.push(py.None());
+                    continue;
+                }
                 row.clear();
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
                     let pyobj = pyarrow::get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
-                }
-                if function.mode == CallMode::ReturnNullOnNullInput
-                    && row.iter().any(|v| v.is_none(py))
-                {
-                    results.push(py.None());
-                    continue;
                 }
                 let args = PyTuple::new_bound(py, row.drain(..));
                 match function.function.call1(py, args) {
@@ -288,6 +332,51 @@ impl Runtime {
             generator: None,
         })
     }
+
+    /// Create a new state for an aggregate function.
+    pub fn create_state(&self, name: &str) -> Result<ArrayRef> {
+        let aggregate = self.aggregates.get(name).context("function not found")?;
+        let state = self.interpreter.with_gil(|py| {
+            let state = aggregate.create_state.call0(py)?;
+            let state = pyarrow::build_array(&aggregate.state_field, py, &[state])?;
+            Ok(state)
+        })?;
+        Ok(state)
+    }
+
+    /// Call accumulate of an aggregate function.
+    pub fn accumulate(
+        &self,
+        name: &str,
+        state: &dyn Array,
+        input: &RecordBatch,
+    ) -> Result<ArrayRef> {
+        let aggregate = self.aggregates.get(name).context("function not found")?;
+        // convert each row to python objects and call the accumulate function
+        let new_state = self.interpreter.with_gil(|py| {
+            let state = pyarrow::get_pyobject(py, &aggregate.state_field, state, 0)?;
+
+            let mut row = Vec::with_capacity(1 + input.num_columns());
+            for i in 0..input.num_rows() {
+                if aggregate.mode == CallMode::ReturnNullOnNullInput
+                    && input.columns().iter().any(|column| column.is_null(i))
+                {
+                    continue;
+                }
+                row.clear();
+                row.push(state.clone());
+                for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+                    let pyobj = pyarrow::get_pyobject(py, field, column, i)?;
+                    row.push(pyobj);
+                }
+                let args = PyTuple::new_bound(py, row.drain(..));
+                aggregate.accumulate.call1(py, args)?;
+            }
+            let output = pyarrow::build_array(&aggregate.state_field, py, &[state])?;
+            Ok(output)
+        })?;
+        Ok(new_state)
+    }
 }
 
 /// An iterator over the result of a table function.
@@ -324,18 +413,18 @@ impl RecordBatchIter<'_> {
                     g
                 } else {
                     // call the table function to get a generator
+                    if self.function.mode == CallMode::ReturnNullOnNullInput
+                        && (self.input.columns().iter()).any(|column| column.is_null(self.row))
+                    {
+                        self.row += 1;
+                        continue;
+                    }
                     row.clear();
                     for (column, field) in
                         (self.input.columns().iter()).zip(self.input.schema().fields())
                     {
                         let val = pyarrow::get_pyobject(py, field, column, self.row)?;
                         row.push(val);
-                    }
-                    if self.function.mode == CallMode::ReturnNullOnNullInput
-                        && row.iter().any(|v| v.is_none(py))
-                    {
-                        self.row += 1;
-                        continue;
                     }
                     let args = PyTuple::new_bound(py, row.drain(..));
                     match self.function.function.bind(py).call1(args) {

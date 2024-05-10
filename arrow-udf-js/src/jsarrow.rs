@@ -129,7 +129,6 @@ pub struct Converter {
     decimal_extension_name: String,
 }
 
-// TODO: should this be a trait so more is shared between various runtimes?
 impl Converter {
     pub fn new() -> Self {
         Self {
@@ -139,16 +138,17 @@ impl Converter {
         }
     }
 
-    // TODO: learn how to implement with_ pattern
-    // also add this to all modules
+    #[allow(dead_code)]
     pub fn set_arrow_extension_key(&mut self, key: &str) {
         self.arrow_extension_key = key.to_string();
     }
 
+    #[allow(dead_code)]
     pub fn set_json_extension_name(&mut self, name: &str) {
         self.json_extension_name = name.to_string();
     }
 
+    #[allow(dead_code)]
     pub fn set_decimal_extension_name(&mut self, name: &str) {
         self.decimal_extension_name = name.to_string();
     }
@@ -157,7 +157,6 @@ impl Converter {
     pub fn get_jsvalue<'a>(
         &self,
         ctx: &Ctx<'a>,
-        bigdecimal: &rquickjs::Function<'a>,
         field: &Field,
         array: &dyn Array,
         i: usize,
@@ -191,7 +190,8 @@ impl Converter {
                     }
                     Some(x) if x == self.decimal_extension_name.as_str() => {
                         let array = array.as_any().downcast_ref::<StringArray>().unwrap();
-                        bigdecimal.call((array.value(i),))
+
+                        self.call_bigdecimal(ctx, array.value(i))
                     }
                     _ => get_jsvalue!(StringArray, ctx, array, i),
                 }
@@ -213,12 +213,14 @@ impl Converter {
             DataType::Decimal128(_, _) => {
                 let array = array.as_any().downcast_ref::<Decimal128Array>().unwrap();
                 let decimal_str = array.value_as_string(i);
-                bigdecimal.call((decimal_str,))
+
+                self.call_bigdecimal(ctx, &decimal_str)
             }
             DataType::Decimal256(_, _) => {
                 let array = array.as_any().downcast_ref::<Decimal256Array>().unwrap();
                 let decimal_str = array.value_as_string(i);
-                bigdecimal.call((decimal_str,))
+
+                self.call_bigdecimal(ctx, &decimal_str)
             }
             // TODO: handle tz correctly. requires probably converting tz str into a Chrono Tz
             DataType::Timestamp(unit, _tz) => {
@@ -261,7 +263,6 @@ impl Converter {
                         for j in 0..list.len() {
                             values.push(self.get_jsvalue(
                                 ctx,
-                                bigdecimal,
                                 field,
                                 list.as_ref(),
                                 j,
@@ -277,7 +278,6 @@ impl Converter {
                 for (j, field) in fields.iter().enumerate() {
                     let value = self.get_jsvalue(
                         ctx,
-                        bigdecimal,
                         field,
                         array.column(j).as_ref(),
                         i,
@@ -475,6 +475,11 @@ impl Converter {
             }
             t => todo!("unsupported data type: {:?}", t),
         }
+    }
+
+    fn call_bigdecimal<'a>(&self, ctx: &Ctx<'a>, value: &str) -> rquickjs::Result<rquickjs::Value<'a>> {
+        let bigdecimal: Function = ctx.globals().get("BigDecimal")?;
+        bigdecimal.call((value,))
     }
 
     fn get_bigdecimal_to_precision_function<'a>(&self, ctx: &Ctx<'a>) -> Result<Function<'a>> {

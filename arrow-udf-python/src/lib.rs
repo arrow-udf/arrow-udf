@@ -47,6 +47,7 @@ mod pyarrow;
 pub struct Runtime {
     interpreter: SubInterpreter,
     functions: HashMap<String, Function>,
+    converter: pyarrow::Converter,
 }
 
 impl Debug for Runtime {
@@ -160,6 +161,7 @@ del limited_import
         Ok(Runtime {
             interpreter,
             functions: HashMap::new(),
+            converter: pyarrow::Converter::new(),
         })
     }
 }
@@ -230,7 +232,7 @@ impl Runtime {
             for i in 0..input.num_rows() {
                 row.clear();
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                    let pyobj = pyarrow::get_pyobject(py, field, column, i)?;
+                    let pyobj = self.converter.get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
                 }
                 if function.mode == CallMode::ReturnNullOnNullInput
@@ -248,7 +250,7 @@ impl Runtime {
                     }
                 }
             }
-            let output = pyarrow::build_array(&function.return_field, py, &results)?;
+            let output = self.converter.build_array(&function.return_field, py, &results)?;
             let error = build_error_array(input.num_rows(), errors);
             Ok((output, error))
         })?;
@@ -286,6 +288,7 @@ impl Runtime {
             chunk_size,
             row: 0,
             generator: None,
+            converter: &self.converter,
         })
     }
 }
@@ -302,6 +305,7 @@ pub struct RecordBatchIter<'a> {
     row: usize,
     /// Generator of the current row.
     generator: Option<Py<PyIterator>>,
+    converter: &'a pyarrow::Converter,
 }
 
 impl RecordBatchIter<'_> {
@@ -328,7 +332,7 @@ impl RecordBatchIter<'_> {
                     for (column, field) in
                         (self.input.columns().iter()).zip(self.input.schema().fields())
                     {
-                        let val = pyarrow::get_pyobject(py, field, column, self.row)?;
+                        let val = self.converter.get_pyobject(py, field, column, self.row)?;
                         row.push(val);
                     }
                     if self.function.mode == CallMode::ReturnNullOnNullInput
@@ -376,7 +380,7 @@ impl RecordBatchIter<'_> {
                 return Ok(None);
             }
             let indexes = Arc::new(indexes.finish());
-            let output = pyarrow::build_array(&self.function.return_field, py, &results)
+            let output = self.converter.build_array(&self.function.return_field, py, &results)
                 .context("failed to build arrow array from return values")?;
             let error = build_error_array(indexes.len(), errors);
             if let Some(error) = error {

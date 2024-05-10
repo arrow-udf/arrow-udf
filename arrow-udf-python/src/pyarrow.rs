@@ -27,75 +27,6 @@ macro_rules! get_pyobject {
     }};
 }
 
-/// Get array element as a python object.
-pub fn get_pyobject(
-    py: Python<'_>,
-    field: &Field,
-    array: &dyn Array,
-    i: usize,
-) -> PyResult<PyObject> {
-    if array.is_null(i) {
-        return Ok(py.None());
-    }
-    Ok(match array.data_type() {
-        DataType::Null => py.None(),
-        DataType::Boolean => get_pyobject!(BooleanArray, py, array, i),
-        DataType::Int8 => get_pyobject!(Int8Array, py, array, i),
-        DataType::Int16 => get_pyobject!(Int16Array, py, array, i),
-        DataType::Int32 => get_pyobject!(Int32Array, py, array, i),
-        DataType::Int64 => get_pyobject!(Int64Array, py, array, i),
-        DataType::UInt8 => get_pyobject!(UInt8Array, py, array, i),
-        DataType::UInt16 => get_pyobject!(UInt16Array, py, array, i),
-        DataType::UInt32 => get_pyobject!(UInt32Array, py, array, i),
-        DataType::UInt64 => get_pyobject!(UInt64Array, py, array, i),
-        DataType::Float32 => get_pyobject!(Float32Array, py, array, i),
-        DataType::Float64 => get_pyobject!(Float64Array, py, array, i),
-        DataType::Utf8 => match field
-            .metadata()
-            .get("ARROW:extension:name")
-            .map(|s| s.as_str())
-        {
-            Some("arrowudf.json") => {
-                let array = array.as_any().downcast_ref::<StringArray>().unwrap();
-                let string = array.value(i);
-                // XXX: it is slow to call eval every time
-                let json_loads = py.eval_bound("json.loads", None, None)?;
-                json_loads.call1((string,))?.into()
-            }
-            Some("arrowudf.decimal") => {
-                let array = array.as_any().downcast_ref::<StringArray>().unwrap();
-                let string = array.value(i);
-                // XXX: it is slow to call eval every time
-                let decimal_constructor = py.import_bound("decimal")?.getattr("Decimal")?;
-                decimal_constructor.call1((string,))?.into()
-            }
-            _ => get_pyobject!(StringArray, py, array, i),
-        },
-        DataType::LargeUtf8 => get_pyobject!(LargeStringArray, py, array, i),
-        DataType::Binary => get_pyobject!(BinaryArray, py, array, i),
-        DataType::LargeBinary => get_pyobject!(LargeBinaryArray, py, array, i),
-        DataType::List(field) => {
-            let array = array.as_any().downcast_ref::<ListArray>().unwrap();
-            let list = array.value(i);
-            let mut values = Vec::with_capacity(list.len());
-            for j in 0..list.len() {
-                values.push(get_pyobject(py, field, list.as_ref(), j)?);
-            }
-            values.into_py(py)
-        }
-        DataType::Struct(fields) => {
-            let array = array.as_any().downcast_ref::<StructArray>().unwrap();
-            let object = py.eval_bound("Struct()", None, None)?;
-            for (j, field) in fields.iter().enumerate() {
-                let value = get_pyobject(py, field, array.column(j).as_ref(), i)?;
-                object.setattr(field.name().as_str(), value)?;
-            }
-            object.into()
-        }
-        _ => todo!(),
-    })
-}
-
 macro_rules! build_array {
     (NullBuilder, $py:expr, $pyobjects:expr) => {{
         let mut builder = NullBuilder::with_capacity($pyobjects.len());
@@ -134,103 +65,223 @@ macro_rules! build_array {
     }};
 }
 
-/// Build arrow array from python objects.
-pub fn build_array(field: &Field, py: Python<'_>, values: &[PyObject]) -> PyResult<ArrayRef> {
-    match field.data_type() {
-        DataType::Null => build_array!(NullBuilder, py, values),
-        DataType::Boolean => build_array!(BooleanBuilder, py, values),
-        DataType::Int8 => build_array!(Int8Builder, py, values),
-        DataType::Int16 => build_array!(Int16Builder, py, values),
-        DataType::Int32 => build_array!(Int32Builder, py, values),
-        DataType::Int64 => build_array!(Int64Builder, py, values),
-        DataType::UInt8 => build_array!(UInt8Builder, py, values),
-        DataType::UInt16 => build_array!(UInt16Builder, py, values),
-        DataType::UInt32 => build_array!(UInt32Builder, py, values),
-        DataType::UInt64 => build_array!(UInt64Builder, py, values),
-        DataType::Float32 => build_array!(Float32Builder, py, values),
-        DataType::Float64 => build_array!(Float64Builder, py, values),
-        DataType::Utf8 => match field
-            .metadata()
-            .get("ARROW:extension:name")
-            .map(|s| s.as_str())
-        {
-            Some("arrowudf.json") => {
-                let json_dumps = py.eval_bound("json.dumps", None, None)?;
-                let mut builder = StringBuilder::with_capacity(values.len(), 1024);
-                for val in values {
-                    if val.is_none(py) {
-                        builder.append_null();
-                        continue;
-                    };
-                    let json_str = json_dumps.call1((val,))?;
-                    builder.append_value(json_str.extract::<&str>()?);
-                }
-                Ok(Arc::new(builder.finish()))
-            }
-            Some("arrowudf.decimal") => {
-                let mut builder = StringBuilder::with_capacity(values.len(), 1024);
-                for val in values {
-                    if val.is_none(py) {
-                        builder.append_null();
-                    } else {
-                        builder.append_value(val.to_string());
-                    }
-                }
-                Ok(Arc::new(builder.finish()))
-            }
-            _ => build_array!(StringBuilder, &str, py, values),
-        },
-        DataType::LargeUtf8 => build_array!(LargeStringBuilder, &str, py, values),
-        DataType::Binary => build_array!(BinaryBuilder, &[u8], py, values),
-        DataType::LargeBinary => build_array!(LargeBinaryBuilder, &[u8], py, values),
-        // list
-        DataType::List(inner) => {
-            // flatten lists
-            let mut flatten_values = vec![];
-            let mut offsets = Vec::<i32>::with_capacity(values.len() + 1);
-            offsets.push(0);
-            for val in values {
-                if !val.is_none(py) {
-                    let array = val.bind(py);
-                    flatten_values.reserve(array.len()?);
-                    for elem in array.iter()? {
-                        flatten_values.push(elem?.into());
-                    }
-                }
-                offsets.push(flatten_values.len() as i32);
-            }
-            let values_array = build_array(inner, py, &flatten_values)?;
-            let nulls = values.iter().map(|v| !v.is_none(py)).collect();
-            Ok(Arc::new(ListArray::new(
-                inner.clone(),
-                OffsetBuffer::new(offsets.into()),
-                values_array,
-                Some(nulls),
-            )))
+macro_rules! build_json_array {
+    ($py:expr, $pyobjects:expr) => {{
+        let json_dumps = $py.eval_bound("json.dumps", None, None)?;
+        let mut builder = StringBuilder::with_capacity($pyobjects.len(), 1024);
+        for pyobj in $pyobjects {
+            if pyobj.is_none($py) {
+                builder.append_null();
+                continue;
+            };
+            let json_str = json_dumps.call1((pyobj,))?;
+            builder.append_value(json_str.extract::<&str>()?);
         }
-        DataType::Struct(fields) => {
-            let mut arrays = Vec::with_capacity(fields.len());
-            for field in fields {
-                let mut field_values = Vec::with_capacity(values.len());
-                for val in values {
-                    let v = if val.is_none(py) {
-                        py.None()
-                    } else if let Ok(value) = val.getattr(py, field.name().as_str()) {
-                        value
-                    } else {
-                        val.bind(py).get_item(field.name().as_str())?.into()
-                    };
-                    field_values.push(v);
-                }
-                arrays.push(build_array(field, py, &field_values)?);
-            }
-            let nulls = values.iter().map(|v| !v.is_none(py)).collect();
-            Ok(Arc::new(StructArray::new(
-                fields.clone(),
-                arrays,
-                Some(nulls),
-            )))
+        Ok(Arc::new(builder.finish()))
+    }};
+}
+
+#[derive(Debug, Clone)]
+pub struct Converter {
+    arrow_extension_key: String,
+    json_extension_name: String,
+    decimal_extension_name: String,
+}
+
+impl Converter {
+    pub fn new() -> Self {
+        Self {
+            arrow_extension_key: "ARROW:extension:name".to_string(),
+            json_extension_name: "arrowudf.json".to_string(),
+            decimal_extension_name: "arrowudf.decimal".to_string(),
         }
-        _ => todo!(),
+    }
+
+    // TODO: learn how to implement with_ pattern
+    // also add this to all modules
+    #[allow(dead_code)]
+    pub fn set_arrow_extension_key(&mut self, key: &str) {
+        self.arrow_extension_key = key.to_string();
+    }
+
+    #[allow(dead_code)]
+    pub fn set_json_extension_name(&mut self, name: &str) {
+        self.json_extension_name = name.to_string();
+    }
+
+    #[allow(dead_code)]
+    pub fn set_decimal_extension_name(&mut self, name: &str) {
+        self.decimal_extension_name = name.to_string();
+    }
+
+    /// Get array element as a python object.
+    pub fn get_pyobject(
+        &self,
+        py: Python<'_>,
+        field: &Field,
+        array: &dyn Array,
+        i: usize,
+    ) -> PyResult<PyObject> {
+        if array.is_null(i) {
+            return Ok(py.None());
+        }
+        Ok(match array.data_type() {
+            DataType::Null => py.None(),
+            DataType::Boolean => get_pyobject!(BooleanArray, py, array, i),
+            DataType::Int8 => get_pyobject!(Int8Array, py, array, i),
+            DataType::Int16 => get_pyobject!(Int16Array, py, array, i),
+            DataType::Int32 => get_pyobject!(Int32Array, py, array, i),
+            DataType::Int64 => get_pyobject!(Int64Array, py, array, i),
+            DataType::UInt8 => get_pyobject!(UInt8Array, py, array, i),
+            DataType::UInt16 => get_pyobject!(UInt16Array, py, array, i),
+            DataType::UInt32 => get_pyobject!(UInt32Array, py, array, i),
+            DataType::UInt64 => get_pyobject!(UInt64Array, py, array, i),
+            DataType::Float32 => get_pyobject!(Float32Array, py, array, i),
+            DataType::Float64 => get_pyobject!(Float64Array, py, array, i),
+            // TODO: make this a macro
+            DataType::Utf8 => match field
+                .metadata()
+                .get(self.arrow_extension_key.as_str())
+                .map(|s| s.as_str())
+            {
+                Some(x) if x == self.json_extension_name.as_str() => {
+                    let array = array.as_any().downcast_ref::<StringArray>().unwrap();
+                    let string = array.value(i);
+                    // XXX: it is slow to call eval every time
+                    let json_loads = py.eval_bound("json.loads", None, None)?;
+                    json_loads.call1((string,))?.into()
+                }
+                Some(x) if x == self.decimal_extension_name.as_str() => {
+                    let array = array.as_any().downcast_ref::<StringArray>().unwrap();
+                    let string = array.value(i);
+                    // XXX: it is slow to call eval every time
+                    let decimal_constructor = py.import_bound("decimal")?.getattr("Decimal")?;
+                    decimal_constructor.call1((string,))?.into()
+                }
+                _ => get_pyobject!(StringArray, py, array, i),
+            },
+            DataType::LargeUtf8 => get_pyobject!(LargeStringArray, py, array, i),
+            DataType::Binary => get_pyobject!(BinaryArray, py, array, i),
+            DataType::LargeBinary => get_pyobject!(LargeBinaryArray, py, array, i),
+            DataType::List(field) => {
+                let array = array.as_any().downcast_ref::<ListArray>().unwrap();
+                let list = array.value(i);
+                let mut values = Vec::with_capacity(list.len());
+                for j in 0..list.len() {
+                    values.push(self.get_pyobject(py, field, list.as_ref(), j)?);
+                }
+                values.into_py(py)
+            }
+            DataType::Struct(fields) => {
+                let array = array.as_any().downcast_ref::<StructArray>().unwrap();
+                let object = py.eval_bound("Struct()", None, None)?;
+                for (j, field) in fields.iter().enumerate() {
+                    let value = self.get_pyobject(py, field, array.column(j).as_ref(), i)?;
+                    object.setattr(field.name().as_str(), value)?;
+                }
+                object.into()
+            }
+            _ => todo!(),
+        })
+    }
+
+    /// Build arrow array from python objects.
+    pub fn build_array(&self, field: &Field, py: Python<'_>, values: &[PyObject]) -> PyResult<ArrayRef> {
+        match field.data_type() {
+            DataType::Null => build_array!(NullBuilder, py, values),
+            DataType::Boolean => build_array!(BooleanBuilder, py, values),
+            DataType::Int8 => build_array!(Int8Builder, py, values),
+            DataType::Int16 => build_array!(Int16Builder, py, values),
+            DataType::Int32 => build_array!(Int32Builder, py, values),
+            DataType::Int64 => build_array!(Int64Builder, py, values),
+            DataType::UInt8 => build_array!(UInt8Builder, py, values),
+            DataType::UInt16 => build_array!(UInt16Builder, py, values),
+            DataType::UInt32 => build_array!(UInt32Builder, py, values),
+            DataType::UInt64 => build_array!(UInt64Builder, py, values),
+            DataType::Float32 => build_array!(Float32Builder, py, values),
+            DataType::Float64 => build_array!(Float64Builder, py, values),
+            DataType::Utf8 => match field
+                .metadata()
+                .get(self.arrow_extension_key.as_str())
+                .map(|s| s.as_str())
+            {
+                Some(x) if x == self.json_extension_name.as_str() => {
+                    build_json_array!(py, values)
+                }
+                Some(x) if x == self.decimal_extension_name.as_str() => {
+                    let mut builder = StringBuilder::with_capacity(values.len(), 1024);
+                    for val in values {
+                        if val.is_none(py) {
+                            builder.append_null();
+                        } else {
+                            builder.append_value(val.to_string());
+                        }
+                    }
+                    Ok(Arc::new(builder.finish()))
+                }
+                _ => build_array!(StringBuilder, &str, py, values),
+            },
+            DataType::LargeUtf8 => build_array!(LargeStringBuilder, &str, py, values),
+            DataType::Binary => build_array!(BinaryBuilder, &[u8], py, values),
+            DataType::LargeBinary => match field
+                .metadata()
+                .get(self.arrow_extension_key.as_str())
+                .map(|s| s.as_str())
+            {
+                Some(x) if x == self.json_extension_name.as_str() => {
+                    build_json_array!(py, values)
+                }
+                _ => build_array!(LargeBinaryBuilder, &[u8], py, values),
+            },
+            // list
+            DataType::List(inner) => {
+                // flatten lists
+                let mut flatten_values = vec![];
+                let mut offsets = Vec::<i32>::with_capacity(values.len() + 1);
+                offsets.push(0);
+                for val in values {
+                    if !val.is_none(py) {
+                        let array = val.bind(py);
+                        flatten_values.reserve(array.len()?);
+                        for elem in array.iter()? {
+                            flatten_values.push(elem?.into());
+                        }
+                    }
+                    offsets.push(flatten_values.len() as i32);
+                }
+                let values_array = self.build_array(inner, py, &flatten_values)?;
+                let nulls = values.iter().map(|v| !v.is_none(py)).collect();
+                Ok(Arc::new(ListArray::new(
+                    inner.clone(),
+                    OffsetBuffer::new(offsets.into()),
+                    values_array,
+                    Some(nulls),
+                )))
+            }
+            DataType::Struct(fields) => {
+                let mut arrays = Vec::with_capacity(fields.len());
+                for field in fields {
+                    let mut field_values = Vec::with_capacity(values.len());
+                    for val in values {
+                        let v = if val.is_none(py) {
+                            py.None()
+                        } else if let Ok(value) = val.getattr(py, field.name().as_str()) {
+                            value
+                        } else {
+                            val.bind(py).get_item(field.name().as_str())?.into()
+                        };
+                        field_values.push(v);
+                    }
+                    arrays.push(self.build_array(field, py, &field_values)?);
+                }
+                let nulls = values.iter().map(|v| !v.is_none(py)).collect();
+                Ok(Arc::new(StructArray::new(
+                    fields.clone(),
+                    arrays,
+                    Some(nulls),
+                )))
+            }
+            _ => todo!(),
+        }
     }
 }

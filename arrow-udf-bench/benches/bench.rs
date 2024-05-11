@@ -299,11 +299,46 @@ def decimal(a):
     });
 }
 
+fn bench_eval_sum(c: &mut Criterion) {
+    let input = RecordBatch::try_new(
+        Arc::new(Schema::new(vec![Field::new("v", DataType::Int32, true)])),
+        vec![Arc::new(Int32Array::from_iter(0..1024))],
+    )
+    .unwrap();
+
+    c.bench_function("sum/python", |bencher| {
+        let mut rt = PythonRuntime::new().unwrap();
+        rt.add_aggregate(
+            "sum",
+            DataType::Int32,
+            DataType::Int32,
+            arrow_udf_python::CallMode::ReturnNullOnNullInput,
+            r#"
+def create_state():
+    return 0
+
+def accumulate(state, value):
+    return state + value
+
+def retract(state, value):
+    return state - value
+
+def finish(state):
+    return state
+"#,
+        )
+        .unwrap();
+        let state = rt.create_state("sum").unwrap();
+        bencher.iter(|| rt.accumulate("sum", &state, &input).unwrap())
+    });
+}
+
 criterion_group!(
     benches,
     bench_eval_gcd,
     bench_eval_range,
-    bench_eval_decimal
+    bench_eval_decimal,
+    bench_eval_sum
 );
 criterion_main!(benches);
 

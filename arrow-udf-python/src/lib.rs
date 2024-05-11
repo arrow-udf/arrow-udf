@@ -73,6 +73,7 @@ struct Aggregate {
     create_state: PyObject,
     accumulate: PyObject,
     finish: PyObject,
+    merge: Option<PyObject>,
 }
 
 /// A builder for `Runtime`.
@@ -240,6 +241,7 @@ impl Runtime {
     /// optionally, the code can define:
     ///
     /// - `retract(state, *args) -> state`: Retract a value from the state, returning the updated state.
+    /// - `merge(state, state) -> state`: Merge two states, returning the merged state.
     ///
     /// # Example
     ///
@@ -264,6 +266,9 @@ impl Runtime {
     /// def retract(state, value):
     ///     return state - value
     ///
+    /// def merge(state1, state2):
+    ///    return state1 + state2
+    ///
     /// def finish(state):
     ///     return state
     ///         "#,
@@ -278,12 +283,13 @@ impl Runtime {
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
-        let (create_state, accumulate, finish) = self.interpreter.with_gil(|py| {
+        let (create_state, accumulate, finish, merge) = self.interpreter.with_gil(|py| {
             let module = PyModule::from_code_bound(py, code, name, name)?;
-            let create_state = module.getattr("create_state")?;
-            let accumulate = module.getattr("accumulate")?;
-            let finish = module.getattr("finish")?;
-            Ok((create_state.into(), accumulate.into(), finish.into()))
+            let create_state = module.getattr("create_state")?.into();
+            let accumulate = module.getattr("accumulate")?.into();
+            let finish = module.getattr("finish")?.into();
+            let merge = module.getattr("merge").ok().map(|f| f.into());
+            Ok((create_state, accumulate, finish, merge))
         })?;
         let aggregate = Aggregate {
             state_field: state_type.into_field(name).into(),
@@ -292,6 +298,7 @@ impl Runtime {
             create_state,
             accumulate,
             finish,
+            merge,
         };
         self.aggregates.insert(name.to_string(), aggregate);
         Ok(())
@@ -430,6 +437,23 @@ impl Runtime {
             Ok(output)
         })?;
         Ok(new_state)
+    }
+
+    /// Merge states of an aggregate function.
+    pub fn merge(&self, name: &str, states: &dyn Array) -> Result<ArrayRef> {
+        let aggregate = self.aggregates.get(name).context("function not found")?;
+        let merge = aggregate.merge.as_ref().context("merge not found")?;
+        let output = self.interpreter.with_gil(|py| {
+            let mut state = pyarrow::get_pyobject(py, &aggregate.state_field, states, 0)?;
+            for i in 1..states.len() {
+                let state2 = pyarrow::get_pyobject(py, &aggregate.state_field, states, i)?;
+                let args = PyTuple::new_bound(py, [state, state2]);
+                state = merge.call1(py, args)?;
+            }
+            let output = pyarrow::build_array(&aggregate.state_field, py, &[state])?;
+            Ok(output)
+        })?;
+        Ok(output)
     }
 
     /// Get the result of an aggregate function.

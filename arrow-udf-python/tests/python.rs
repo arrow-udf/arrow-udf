@@ -438,6 +438,9 @@ def accumulate(state, value):
 def retract(state, value):
     return state - value
 
+def merge(state1, state2):
+    return state1 + state2
+
 def finish(state):
     return state
 "#,
@@ -516,6 +519,11 @@ def retract(state, value, weight):
     state.weight -= weight
     return state
 
+def merge(state1, state2):
+    state1.sum += state2.sum
+    state1.weight += state2.weight
+    return state1
+
 def finish(state):
     if state.weight == 0:
         return None
@@ -553,6 +561,18 @@ def finish(state):
             | array                 |
             +-----------------------+
             | {sum: 44, weight: 12} |
+            +-----------------------+"#]],
+    );
+
+    let states = arrow_select::concat::concat(&[&state, &state]).unwrap();
+    let state = runtime.merge("weighted_avg", &states).unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +-----------------------+
+            | array                 |
+            +-----------------------+
+            | {sum: 88, weight: 24} |
             +-----------------------+"#]],
     );
 

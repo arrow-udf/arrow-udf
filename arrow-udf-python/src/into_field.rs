@@ -17,6 +17,10 @@ use arrow_schema::{DataType, Field};
 /// Converts a type into a [`Field`].
 /// Implementors are [`DataType`] and [`Field`].
 pub trait IntoField: private::Sealed {
+    /// Converts into a [`Field`].
+    ///
+    /// - For [`Field`], it is returned as is.
+    /// - For [`DataType`], a new [`Field`] is created with the given `default_name`.
     fn into_field(self, default_name: &str) -> Field;
 }
 

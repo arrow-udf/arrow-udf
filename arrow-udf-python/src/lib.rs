@@ -25,11 +25,11 @@
 // Remember to convert `PyErr` using the `pyerr_to_anyhow` function before passing it out of the sub-interpreter.
 
 use self::interpreter::SubInterpreter;
+pub use self::into_field::IntoField;
 use anyhow::{Context, Result};
 use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
 use arrow_array::{Array, ArrayRef, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
-use into_field::IntoField;
 use pyo3::types::{PyAnyMethods, PyIterator, PyModule, PyTuple};
 use pyo3::{Py, PyObject};
 use std::collections::HashMap;

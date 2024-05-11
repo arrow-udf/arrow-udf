@@ -420,6 +420,69 @@ def range1(n: int):
 }
 
 #[test]
+fn test_sum() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_aggregate(
+            "sum",
+            DataType::Int32,
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def create_state():
+    return 0
+
+def accumulate(state, value):
+    return state + value
+
+def retract(state, value):
+    return state - value
+
+def finish(state):
+    return state
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let state = runtime.create_state("sum").unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +-------+
+            | array |
+            +-------+
+            | 0     |
+            +-------+"#]],
+    );
+
+    let state = runtime.accumulate("sum", &state, &input).unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +-------+
+            | array |
+            +-------+
+            | 9     |
+            +-------+"#]],
+    );
+
+    let output = runtime.finish("sum", &state).unwrap();
+    check_array(
+        &[output],
+        expect![[r#"
+            +-------+
+            | array |
+            +-------+
+            | 9     |
+            +-------+"#]],
+    );
+}
+
+#[test]
 fn test_weighted_avg() {
     let mut runtime = Runtime::new().unwrap();
     runtime
@@ -443,19 +506,21 @@ class State:
 def create_state():
     return State()
 
+def accumulate(state, value, weight):
+    state.sum += value * weight
+    state.weight += weight
+    return state
+
+def retract(state, value, weight):
+    state.sum -= value * weight
+    state.weight -= weight
+    return state
+
 def finish(state):
     if state.weight == 0:
         return None
     else:
         return state.sum / state.weight
-
-def accumulate(state, value, weight):
-    state.sum += value * weight
-    state.weight += weight
-
-def retract(state, value, weight):
-    state.sum -= value * weight
-    state.weight -= weight
 "#,
         )
         .unwrap();
@@ -626,7 +691,7 @@ def gcd(a: int, b: int) -> int:
 
 #[test]
 fn test_forbid() {
-    assert_err("", "AttributeError: module '' has no attribute 'gcd'");
+    assert_err("", "AttributeError: module 'gcd' has no attribute 'gcd'");
     assert_err("import os", "ImportError: import os is not allowed");
     assert_err(
         "breakpoint()",

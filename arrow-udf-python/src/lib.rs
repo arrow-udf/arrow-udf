@@ -208,7 +208,7 @@ impl Runtime {
         handler: &str,
     ) -> Result<()> {
         let function = self.interpreter.with_gil(|py| {
-            Ok(PyModule::from_code_bound(py, code, "", "")?
+            Ok(PyModule::from_code_bound(py, code, name, name)?
                 .getattr(handler)?
                 .into())
         })?;
@@ -222,6 +222,54 @@ impl Runtime {
     }
 
     /// Add a new aggregate function from Python code.
+    ///
+    /// # Arguments
+    ///
+    /// - `name`: The name of the function.
+    /// - `state_type`: The data type of the internal state.
+    /// - `output_type`: The data type of the aggregate value.
+    /// - `mode`: Whether the function will be called when some of its arguments are null.
+    /// - `code`: The Python code of the aggregate function.
+    ///
+    /// The code should define at least three functions:
+    ///
+    /// - `create_state() -> state`: Create a new state object.
+    /// - `accumulate(state, *args) -> state`: Accumulate a new value into the state, returning the updated state.
+    /// - `finish(state) -> value`: Get the result of the aggregate function.
+    ///
+    /// optionally, the code can define:
+    ///
+    /// - `retract(state, *args) -> state`: Retract a value from the state, returning the updated state.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use arrow_udf_python::{Runtime, CallMode};
+    /// # use arrow_schema::DataType;
+    ///
+    /// let mut runtime = Runtime::new().unwrap();
+    /// runtime
+    ///     .add_aggregate(
+    ///         "sum",
+    ///         DataType::Int32, // state_type
+    ///         DataType::Int32, // output_type
+    ///         CallMode::ReturnNullOnNullInput,
+    ///         r#"
+    /// def create_state():
+    ///     return 0
+    ///
+    /// def accumulate(state, value):
+    ///     return state + value
+    ///
+    /// def retract(state, value):
+    ///     return state - value
+    ///
+    /// def finish(state):
+    ///     return state
+    ///         "#,
+    ///     )
+    ///     .unwrap();
+    /// ```
     pub fn add_aggregate(
         &mut self,
         name: &str,
@@ -231,7 +279,7 @@ impl Runtime {
         code: &str,
     ) -> Result<()> {
         let (create_state, accumulate, finish) = self.interpreter.with_gil(|py| {
-            let module = PyModule::from_code_bound(py, code, "", "")?;
+            let module = PyModule::from_code_bound(py, code, name, name)?;
             let create_state = module.getattr("create_state")?;
             let accumulate = module.getattr("accumulate")?;
             let finish = module.getattr("finish")?;
@@ -360,7 +408,7 @@ impl Runtime {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         // convert each row to python objects and call the accumulate function
         let new_state = self.interpreter.with_gil(|py| {
-            let state = pyarrow::get_pyobject(py, &aggregate.state_field, state, 0)?;
+            let mut state = pyarrow::get_pyobject(py, &aggregate.state_field, state, 0)?;
 
             let mut row = Vec::with_capacity(1 + input.num_columns());
             for i in 0..input.num_rows() {
@@ -376,7 +424,7 @@ impl Runtime {
                     row.push(pyobj);
                 }
                 let args = PyTuple::new_bound(py, row.drain(..));
-                aggregate.accumulate.call1(py, args)?;
+                state = aggregate.accumulate.call1(py, args)?;
             }
             let output = pyarrow::build_array(&aggregate.state_field, py, &[state])?;
             Ok(output)
@@ -385,14 +433,21 @@ impl Runtime {
     }
 
     /// Get the result of an aggregate function.
-    pub fn finish(&self, name: &str, state: &dyn Array) -> Result<ArrayRef> {
+    pub fn finish(&self, name: &str, states: &dyn Array) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         let output = self.interpreter.with_gil(|py| {
-            let state = pyarrow::get_pyobject(py, &aggregate.state_field, state, 0)?;
-            let result = aggregate
-                .finish
-                .call1(py, PyTuple::new_bound(py, [state]))?;
-            let output = pyarrow::build_array(&aggregate.output_field, py, &[result])?;
+            let mut results = Vec::with_capacity(states.len());
+            for i in 0..states.len() {
+                if aggregate.mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
+                    results.push(py.None());
+                    continue;
+                }
+                let state = pyarrow::get_pyobject(py, &aggregate.state_field, states, i)?;
+                let args = PyTuple::new_bound(py, [state]);
+                let result = aggregate.finish.call1(py, args)?;
+                results.push(result);
+            }
+            let output = pyarrow::build_array(&aggregate.output_field, py, &results)?;
             Ok(output)
         })?;
         Ok(output)

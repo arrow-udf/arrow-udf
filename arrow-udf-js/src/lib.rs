@@ -24,11 +24,7 @@ use std::time::Instant;
 use anyhow::{anyhow, Context as _, Result};
 use arrow_array::{builder::Int32Builder, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
-use rquickjs::{
-    context::intrinsic::All,
-    function::Args,
-    Context, Ctx, Object, Persistent, Value,
-};
+use rquickjs::{context::intrinsic::All, function::Args, Context, Ctx, Object, Persistent, Value};
 
 use self::into_field::IntoField;
 
@@ -85,8 +81,7 @@ impl Runtime {
     /// Create a new JS UDF runtime from a JS code.
     pub fn new() -> Result<Self> {
         let runtime = rquickjs::Runtime::new().context("failed to create quickjs runtime")?;
-        let context =
-            rquickjs::Context::custom::<All>(&runtime)
+        let context = rquickjs::Context::custom::<All>(&runtime)
             .context("failed to create quickjs context")?;
 
         Ok(Self {

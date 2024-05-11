@@ -18,7 +18,10 @@ use anyhow::{Context, Result};
 use arrow_array::{array::*, builder::*, ArrowNativeTypeOp};
 use arrow_buffer::{i256, OffsetBuffer};
 use arrow_schema::{DataType, Field};
-use rquickjs::{function::Args, function::Constructor, Ctx, Error, FromJs, Function, IntoJs, Object, TypedArray, Value};
+use rquickjs::{
+    function::Args, function::Constructor, Ctx, Error, FromJs, Function, IntoJs, Object,
+    TypedArray, Value,
+};
 use std::sync::Arc;
 
 macro_rules! get_jsvalue {
@@ -32,12 +35,13 @@ macro_rules! get_date_ms_js_value {
     ($array_type: ty, $ctx:expr, $array:expr, $i:expr) => {{
         let array = $array.as_any().downcast_ref::<$array_type>().unwrap();
         let date_constructor: Constructor = $ctx.globals().get("Date")?;
-        let date_ms = array.value_as_datetime($i)
+        let date_ms = array
+            .value_as_datetime($i)
             .expect("failed to get date as datetime")
             .and_utc()
             .timestamp_millis();
         date_constructor.construct((date_ms,))?
-    }}
+    }};
 }
 
 macro_rules! build_timestamp_array {
@@ -261,12 +265,7 @@ impl Converter {
                     _ => {
                         let mut values = Vec::with_capacity(list.len());
                         for j in 0..list.len() {
-                            values.push(self.get_jsvalue(
-                                ctx,
-                                field,
-                                list.as_ref(),
-                                j,
-                            )?);
+                            values.push(self.get_jsvalue(ctx, field, list.as_ref(), j)?);
                         }
                         values.into_js(ctx)
                     }
@@ -276,12 +275,7 @@ impl Converter {
                 let array = array.as_any().downcast_ref::<StructArray>().unwrap();
                 let object = Object::new(ctx.clone())?;
                 for (j, field) in fields.iter().enumerate() {
-                    let value = self.get_jsvalue(
-                        ctx,
-                        field,
-                        array.column(j).as_ref(),
-                        i,
-                    )?;
+                    let value = self.get_jsvalue(ctx, field, array.column(j).as_ref(), i)?;
                     object.set(field.name(), value)?;
                 }
                 Ok(object.into_value())
@@ -357,7 +351,8 @@ impl Converter {
                 let mut builder = Decimal128Builder::with_capacity(values.len())
                     .with_precision_and_scale(*precision, *scale)?;
 
-                let bigdecimal_to_precision: Function = self.get_bigdecimal_to_precision_function(ctx)?;
+                let bigdecimal_to_precision: Function =
+                    self.get_bigdecimal_to_precision_function(ctx)?;
 
                 for val in values {
                     if val.is_null() || val.is_undefined() {
@@ -476,7 +471,11 @@ impl Converter {
         }
     }
 
-    fn call_bigdecimal<'a>(&self, ctx: &Ctx<'a>, value: &str) -> rquickjs::Result<rquickjs::Value<'a>> {
+    fn call_bigdecimal<'a>(
+        &self,
+        ctx: &Ctx<'a>,
+        value: &str,
+    ) -> rquickjs::Result<rquickjs::Value<'a>> {
         let bigdecimal: Function = ctx.globals().get("BigDecimal")?;
         bigdecimal.call((value,))
     }
@@ -494,13 +493,15 @@ impl Converter {
         }
 
         let parts = s.split('.').collect::<Vec<&str>>();
-        let integer = parts[0].parse::<i128>()
+        let integer = parts[0]
+            .parse::<i128>()
             .context("failed to parse integer part")?;
         let fractional = if parts.len() == 1 {
             0
         } else {
             let fractional = parts[1][..scale as usize].to_string();
-            fractional.parse::<i128>()
+            fractional
+                .parse::<i128>()
                 .context("failed to parse fractional part")?
         };
 

@@ -72,7 +72,7 @@ struct Aggregate {
     mode: CallMode,
     create_state: PyObject,
     accumulate: PyObject,
-    finish: PyObject,
+    finish: Option<PyObject>,
     merge: Option<PyObject>,
 }
 
@@ -232,14 +232,15 @@ impl Runtime {
     /// - `mode`: Whether the function will be called when some of its arguments are null.
     /// - `code`: The Python code of the aggregate function.
     ///
-    /// The code should define at least three functions:
+    /// The code should define at least two functions:
     ///
     /// - `create_state() -> state`: Create a new state object.
     /// - `accumulate(state, *args) -> state`: Accumulate a new value into the state, returning the updated state.
-    /// - `finish(state) -> value`: Get the result of the aggregate function.
     ///
     /// optionally, the code can define:
     ///
+    /// - `finish(state) -> value`: Get the result of the aggregate function.
+    ///     If not defined, the state is returned as the result. `output_type` must equal to `state_type`.
     /// - `retract(state, *args) -> state`: Retract a value from the state, returning the updated state.
     /// - `merge(state, state) -> state`: Merge two states, returning the merged state.
     ///
@@ -267,10 +268,7 @@ impl Runtime {
     ///     return state - value
     ///
     /// def merge(state1, state2):
-    ///    return state1 + state2
-    ///
-    /// def finish(state):
-    ///     return state
+    ///     return state1 + state2
     ///         "#,
     ///     )
     ///     .unwrap();
@@ -287,7 +285,7 @@ impl Runtime {
             let module = PyModule::from_code_bound(py, code, name, name)?;
             let create_state = module.getattr("create_state")?.into();
             let accumulate = module.getattr("accumulate")?.into();
-            let finish = module.getattr("finish")?.into();
+            let finish = module.getattr("finish").ok().map(|f| f.into());
             let merge = module.getattr("merge").ok().map(|f| f.into());
             Ok((create_state, accumulate, finish, merge))
         })?;
@@ -457,8 +455,13 @@ impl Runtime {
     }
 
     /// Get the result of an aggregate function.
-    pub fn finish(&self, name: &str, states: &dyn Array) -> Result<ArrayRef> {
+    ///
+    /// If the `finish` function is not defined, the state is returned as the result.
+    pub fn finish(&self, name: &str, states: &ArrayRef) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
+        let Some(finish) = &aggregate.finish else {
+            return Ok(states.clone());
+        };
         let output = self.interpreter.with_gil(|py| {
             let mut results = Vec::with_capacity(states.len());
             for i in 0..states.len() {
@@ -468,7 +471,7 @@ impl Runtime {
                 }
                 let state = pyarrow::get_pyobject(py, &aggregate.state_field, states, i)?;
                 let args = PyTuple::new_bound(py, [state]);
-                let result = aggregate.finish.call1(py, args)?;
+                let result = finish.call1(py, args)?;
                 results.push(result);
             }
             let output = pyarrow::build_array(&aggregate.output_field, py, &results)?;

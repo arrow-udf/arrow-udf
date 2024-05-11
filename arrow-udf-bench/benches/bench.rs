@@ -322,9 +322,6 @@ def accumulate(state, value):
 
 def retract(state, value):
     return state - value
-
-def finish(state):
-    return state
 "#,
         )
         .unwrap();

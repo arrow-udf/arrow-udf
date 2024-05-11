@@ -440,9 +440,6 @@ def retract(state, value):
 
 def merge(state1, state2):
     return state1 + state2
-
-def finish(state):
-    return state
 "#,
         )
         .unwrap();

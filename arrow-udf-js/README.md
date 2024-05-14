@@ -128,6 +128,10 @@ The following table shows the type mapping between Arrow and JavaScript:
 | Float64               | number         |
 | String                | string         |
 | LargeString           | string         |
+| Date32                | Date           |
+| Timestamp             | Date           |
+| Decimal128            | BigDecimal     |
+| Decimal256            | BigDecimal     |
 | Binary                | Uint8Array     |
 | LargeBinary           | Uint8Array     |
 | List(Int8)            | Int8Array      |
@@ -146,4 +150,5 @@ The following table shows the type mapping between Arrow and JavaScript:
 | Extension Type | Physical Type | Metadata                                    | JS Type       |
 | -------------- | ------------- | ------------------------------------------- | ------------- |
 | JSON           | String        | `ARROW:extension:name` = `arrowudf.json`    | any (parsed by `JSON.parse(string)`) |
+| JSON           | LargeBinary   | `ARROW:extension:name` = `arrowudf.json`    | any (parsed by `JSON.parse(string)`) |
 | Decimal        | String        | `ARROW:extension:name` = `arrowudf.decimal` | BigDecimal    |

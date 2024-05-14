@@ -29,6 +29,15 @@ In addition to the standard types defined by Arrow, these crates also support th
 | JSON           | Utf8          | `ARROW:extension:name` = `arrowudf.json`    |
 | Decimal        | Utf8          | `ARROW:extension:name` = `arrowudf.decimal` |
 
+Alternatively, you can configure the extension metadata key and values to look for when converting between Arrow and extension types:
+```rust
+    let mut js_runtime = arrow_udf_js::Runtime::new().unwrap();
+
+    js_runtime.converter.set_arrow_extension_key(&"Extension".to_string());
+    js_runtime.converter.set_json_extension_name(&"Variant".to_string());
+    js_runtime.converter.set_decimal_extension_name(&"Decimal".to_string());
+```
+
 ### JSON Type
 
 JSON type is stored in string array in text form.

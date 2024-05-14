@@ -22,8 +22,6 @@ use arrow_udf_js_deno_runtime::deno_runtime;
 use futures::{Future, Stream, StreamExt, TryStreamExt};
 use into_field::IntoField;
 
-use crate::deno_arrow::get_jsvalue;
-
 mod deno_arrow;
 mod into_field;
 pub mod tokio_spawn_pinned;
@@ -66,6 +64,7 @@ pub struct InternalRuntime {
     functions: HashMap<String, Function>,
     deno_runtime: Rc<RefCell<deno_runtime::DenoRuntime>>,
     big_decimal: ::v8::Global<::v8::Function>,
+    converter: deno_arrow::Converter,
 }
 
 #[derive(Clone)]
@@ -145,6 +144,7 @@ pub(crate) struct RecordBatchIterInternal {
     input: RecordBatch,
     function: Function,
     big_decimal: ::v8::Global<::v8::Function>,
+    converter: deno_arrow::Converter,
     schema: SchemaRef,
     chunk_size: usize,
     promise: Rc<RefCell<Option<::v8::Global<::v8::Promise>>>>,
@@ -298,6 +298,7 @@ impl InternalRuntime {
             functions: HashMap::new(),
             deno_runtime,
             big_decimal,
+            converter: deno_arrow::Converter::new(),
         }
     }
 
@@ -399,9 +400,10 @@ impl InternalRuntime {
             for i in 0..input.num_rows() {
                 args.clear();
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                    let val =
-                        deno_arrow::get_jsvalue(try_catch, field, column, &self.big_decimal, i)
-                            .context("failed to get jsvalue from arrow array")?;
+                    let val = self
+                        .converter
+                        .get_jsvalue(try_catch, field, column, &self.big_decimal, i)
+                        .context("failed to get jsvalue from arrow array")?;
                     args.push(val);
                 }
 
@@ -467,7 +469,9 @@ impl InternalRuntime {
         let scope = &mut js_runtime.handle_scope();
         let try_catch = &mut ::v8::TryCatch::new(scope);
 
-        let array = deno_arrow::build_array(&function.return_field, try_catch, results)
+        let array = self
+            .converter
+            .build_array(&function.return_field, try_catch, results)
             .context("failed to build arrow array from return values")?;
         let schema = Schema::new(vec![function.return_field.clone()]);
         Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
@@ -497,6 +501,7 @@ impl InternalRuntime {
             generator: Rc::new(RefCell::new(None)),
             promise: Rc::new(RefCell::new(None)),
             state: RecordBatchIterState::Processing,
+            converter: self.converter.clone(),
         })
     }
 }
@@ -677,7 +682,9 @@ impl Stream for RecordBatchIterInternal {
                         (inner.input.columns().iter()).zip(inner.input.schema().fields())
                     {
                         let r = inner.row.borrow();
-                        let val = get_jsvalue(scope, field, &column, &inner.big_decimal, *r)
+                        let val = inner
+                            .converter
+                            .get_jsvalue(scope, field, &column, &inner.big_decimal, *r)
                             .context("failed to get jsvalue from arrow array")?;
 
                         row.push(val);
@@ -807,7 +814,9 @@ impl Stream for RecordBatchIterInternal {
         }
 
         let indexes = Arc::new(indexes.finish());
-        let array = deno_arrow::build_array(&inner.function.return_field, scope, results)
+        let array = inner
+            .converter
+            .build_array(&inner.function.return_field, scope, results)
             .context("failed to build arrow array from return values")?;
 
         match RecordBatch::try_new(inner.schema.clone(), vec![indexes, array]) {

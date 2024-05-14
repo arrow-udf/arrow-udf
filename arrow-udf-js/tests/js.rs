@@ -15,8 +15,12 @@
 use std::{sync::Arc, time::Duration};
 
 use arrow_array::{
-    types::*, ArrayRef, BinaryArray, Int32Array, ListArray, RecordBatch, StringArray, StructArray,
+    types::*, ArrayRef, BinaryArray, Date32Array, Decimal128Array, Decimal256Array, Int32Array,
+    LargeBinaryArray, LargeStringArray, ListArray, RecordBatch, StringArray, StructArray,
+    TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
+    TimestampSecondArray,
 };
+use arrow_buffer::i256;
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js::{CallMode, Runtime};
@@ -215,6 +219,157 @@ fn test_json_stringify() {
 }
 
 #[test]
+fn test_large_binary_json_stringify() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "add_element",
+            large_binary_json_field("object"),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function add_element(object) {
+                object.push(10);
+                return object;
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![large_binary_json_field("json")]);
+    let arg0 = LargeBinaryArray::from(vec![(r#"[1, null, ""]"#).as_bytes()]);
+    let input = RecordBatch::try_new(Arc::new(schema.clone()), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("add_element", &input).unwrap();
+    let row = output
+        .column(0)
+        .as_any()
+        .downcast_ref::<LargeBinaryArray>()
+        .unwrap()
+        .value(0);
+    assert_eq!(std::str::from_utf8(row).unwrap(), r#"[1,null,"",10]"#);
+}
+
+#[test]
+fn test_large_string_as_string() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "string_length",
+            DataType::LargeUtf8,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function string_length(s) {
+                return "string length is " + s.length;
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("s", DataType::LargeUtf8, true)]);
+    let arg0 = LargeStringArray::from(vec![r#"hello"#]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("string_length", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +--------------------+
+        | string_length      |
+        +--------------------+
+        | string length is 5 |
+        +--------------------+"#]],
+    );
+}
+
+#[test]
+fn test_decimal128() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "decimal128_add",
+            DataType::Decimal128(19, 2),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function decimal128_add(a, b) {
+                return a + b + BigDecimal('0.000001');
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("a", DataType::Decimal128(19, 2), true),
+        Field::new("b", DataType::Decimal128(19, 2), true),
+    ]);
+    let arg0 = Decimal128Array::from(vec![Some(100), None])
+        .with_precision_and_scale(19, 2)
+        .unwrap();
+    let arg1 = Decimal128Array::from(vec![Some(201), None])
+        .with_precision_and_scale(19, 2)
+        .unwrap();
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let output = runtime.call("decimal128_add", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +----------------+
+        | decimal128_add |
+        +----------------+
+        | 3.01           |
+        |                |
+        +----------------+"#]],
+    );
+}
+
+#[test]
+fn test_decimal256() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "decimal256_add",
+            DataType::Decimal256(19, 2),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function decimal256_add(a, b) {
+                return a + b + BigDecimal('0.000001');
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("a", DataType::Decimal256(19, 2), true),
+        Field::new("b", DataType::Decimal256(19, 2), true),
+    ]);
+    let arg0 = Decimal256Array::from(vec![Some(i256::from(100)), None])
+        .with_precision_and_scale(19, 2)
+        .unwrap();
+    let arg1 = Decimal256Array::from(vec![Some(i256::from(201)), None])
+        .with_precision_and_scale(19, 2)
+        .unwrap();
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let output = runtime.call("decimal256_add", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +----------------+
+        | decimal256_add |
+        +----------------+
+        | 3.01           |
+        |                |
+        +----------------+"#]],
+    );
+}
+
+#[test]
 fn test_decimal_add() {
     let mut runtime = Runtime::new().unwrap();
 
@@ -247,6 +402,197 @@ fn test_decimal_add() {
             +--------+
             | 0.0003 |
             +--------+"#]],
+    );
+}
+
+#[test]
+fn test_timestamp_second_array() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "timestamp_array",
+            DataType::Timestamp(arrow_schema::TimeUnit::Second, None),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function timestamp_array(a) {
+                return a;
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new(
+        "x",
+        DataType::Timestamp(arrow_schema::TimeUnit::Second, None),
+        true,
+    )]);
+    let arg0 = TimestampSecondArray::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("timestamp_array", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +---------------------+
+        | timestamp_array     |
+        +---------------------+
+        | 1970-01-01T00:00:01 |
+        |                     |
+        | 1970-01-01T00:00:03 |
+        +---------------------+"#]],
+    );
+}
+
+#[test]
+fn test_timestamp_millisecond_array() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "timestamp_array",
+            DataType::Timestamp(arrow_schema::TimeUnit::Millisecond, None),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function timestamp_array(a) {
+                return a;
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new(
+        "x",
+        DataType::Timestamp(arrow_schema::TimeUnit::Millisecond, None),
+        true,
+    )]);
+    let arg0 = TimestampMillisecondArray::from(vec![Some(1000), None, Some(3000)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("timestamp_array", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +---------------------+
+        | timestamp_array     |
+        +---------------------+
+        | 1970-01-01T00:00:01 |
+        |                     |
+        | 1970-01-01T00:00:03 |
+        +---------------------+"#]],
+    );
+}
+
+#[test]
+fn test_timestamp_microsecond_array() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "timestamp_array",
+            DataType::Timestamp(arrow_schema::TimeUnit::Nanosecond, None),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function timestamp_array(a) {
+                return a;
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new(
+        "x",
+        DataType::Timestamp(arrow_schema::TimeUnit::Microsecond, None),
+        true,
+    )]);
+    let arg0 = TimestampMicrosecondArray::from(vec![Some(1000000), None, Some(3000000)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("timestamp_array", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +---------------------+
+        | timestamp_array     |
+        +---------------------+
+        | 1970-01-01T00:00:01 |
+        |                     |
+        | 1970-01-01T00:00:03 |
+        +---------------------+"#]],
+    );
+}
+
+#[test]
+fn test_timestamp_nanosecond_array() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "timestamp_array",
+            DataType::Timestamp(arrow_schema::TimeUnit::Nanosecond, None),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function timestamp_array(a) {
+                return a;
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new(
+        "x",
+        DataType::Timestamp(arrow_schema::TimeUnit::Nanosecond, None),
+        true,
+    )]);
+    let arg0 = TimestampNanosecondArray::from(vec![Some(1000000), None, Some(3000000)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("timestamp_array", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +-------------------------+
+        | timestamp_array         |
+        +-------------------------+
+        | 1970-01-01T00:00:00.001 |
+        |                         |
+        | 1970-01-01T00:00:00.003 |
+        +-------------------------+"#]],
+    );
+}
+
+#[test]
+fn test_date32_array() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "date_array",
+            DataType::Date32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function date_array(a) {
+                return a;
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Date32, true)]);
+    let arg0 = Date32Array::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("date_array", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +------------+
+        | date_array |
+        +------------+
+        | 1970-01-02 |
+        |            |
+        | 1970-01-04 |
+        +------------+"#]],
     );
 }
 
@@ -590,6 +936,11 @@ fn check(actual: &[RecordBatch], expect: Expect) {
 /// Returns a field with JSON type.
 fn json_field(name: &str) -> Field {
     Field::new(name, DataType::Utf8, true)
+        .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into())
+}
+
+fn large_binary_json_field(name: &str) -> Field {
+    Field::new(name, DataType::LargeBinary, true)
         .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into())
 }
 

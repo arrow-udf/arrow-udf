@@ -48,6 +48,7 @@ pub struct Runtime {
     interpreter: SubInterpreter,
     functions: HashMap<String, Function>,
     aggregates: HashMap<String, Aggregate>,
+    converter: pyarrow::Converter,
 }
 
 impl Debug for Runtime {
@@ -173,6 +174,7 @@ del limited_import
             interpreter,
             functions: HashMap::new(),
             aggregates: HashMap::new(),
+            converter: pyarrow::Converter::new(),
         })
     }
 }
@@ -339,7 +341,7 @@ impl Runtime {
                 }
                 row.clear();
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                    let pyobj = pyarrow::get_pyobject(py, field, column, i)?;
+                    let pyobj = self.converter.get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
                 }
                 let args = PyTuple::new_bound(py, row.drain(..));
@@ -351,7 +353,9 @@ impl Runtime {
                     }
                 }
             }
-            let output = pyarrow::build_array(&function.return_field, py, &results)?;
+            let output = self
+                .converter
+                .build_array(&function.return_field, py, &results)?;
             let error = build_error_array(input.num_rows(), errors);
             Ok((output, error))
         })?;
@@ -389,6 +393,7 @@ impl Runtime {
             chunk_size,
             row: 0,
             generator: None,
+            converter: &self.converter,
         })
     }
 
@@ -397,7 +402,9 @@ impl Runtime {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         let state = self.interpreter.with_gil(|py| {
             let state = aggregate.create_state.call0(py)?;
-            let state = pyarrow::build_array(&aggregate.state_field, py, &[state])?;
+            let state = self
+                .converter
+                .build_array(&aggregate.state_field, py, &[state])?;
             Ok(state)
         })?;
         Ok(state)
@@ -413,7 +420,9 @@ impl Runtime {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         // convert each row to python objects and call the accumulate function
         let new_state = self.interpreter.with_gil(|py| {
-            let mut state = pyarrow::get_pyobject(py, &aggregate.state_field, state, 0)?;
+            let mut state = self
+                .converter
+                .get_pyobject(py, &aggregate.state_field, state, 0)?;
 
             let mut row = Vec::with_capacity(1 + input.num_columns());
             for i in 0..input.num_rows() {
@@ -425,13 +434,15 @@ impl Runtime {
                 row.clear();
                 row.push(state.clone());
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                    let pyobj = pyarrow::get_pyobject(py, field, column, i)?;
+                    let pyobj = self.converter.get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
                 }
                 let args = PyTuple::new_bound(py, row.drain(..));
                 state = aggregate.accumulate.call1(py, args)?;
             }
-            let output = pyarrow::build_array(&aggregate.state_field, py, &[state])?;
+            let output = self
+                .converter
+                .build_array(&aggregate.state_field, py, &[state])?;
             Ok(output)
         })?;
         Ok(new_state)
@@ -442,13 +453,19 @@ impl Runtime {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         let merge = aggregate.merge.as_ref().context("merge not found")?;
         let output = self.interpreter.with_gil(|py| {
-            let mut state = pyarrow::get_pyobject(py, &aggregate.state_field, states, 0)?;
+            let mut state = self
+                .converter
+                .get_pyobject(py, &aggregate.state_field, states, 0)?;
             for i in 1..states.len() {
-                let state2 = pyarrow::get_pyobject(py, &aggregate.state_field, states, i)?;
+                let state2 = self
+                    .converter
+                    .get_pyobject(py, &aggregate.state_field, states, i)?;
                 let args = PyTuple::new_bound(py, [state, state2]);
                 state = merge.call1(py, args)?;
             }
-            let output = pyarrow::build_array(&aggregate.state_field, py, &[state])?;
+            let output = self
+                .converter
+                .build_array(&aggregate.state_field, py, &[state])?;
             Ok(output)
         })?;
         Ok(output)
@@ -469,12 +486,16 @@ impl Runtime {
                     results.push(py.None());
                     continue;
                 }
-                let state = pyarrow::get_pyobject(py, &aggregate.state_field, states, i)?;
+                let state = self
+                    .converter
+                    .get_pyobject(py, &aggregate.state_field, states, i)?;
                 let args = PyTuple::new_bound(py, [state]);
                 let result = finish.call1(py, args)?;
                 results.push(result);
             }
-            let output = pyarrow::build_array(&aggregate.output_field, py, &results)?;
+            let output = self
+                .converter
+                .build_array(&aggregate.output_field, py, &results)?;
             Ok(output)
         })?;
         Ok(output)
@@ -493,6 +514,7 @@ pub struct RecordBatchIter<'a> {
     row: usize,
     /// Generator of the current row.
     generator: Option<Py<PyIterator>>,
+    converter: &'a pyarrow::Converter,
 }
 
 impl RecordBatchIter<'_> {
@@ -525,7 +547,7 @@ impl RecordBatchIter<'_> {
                     for (column, field) in
                         (self.input.columns().iter()).zip(self.input.schema().fields())
                     {
-                        let val = pyarrow::get_pyobject(py, field, column, self.row)?;
+                        let val = self.converter.get_pyobject(py, field, column, self.row)?;
                         row.push(val);
                     }
                     let args = PyTuple::new_bound(py, row.drain(..));
@@ -567,7 +589,9 @@ impl RecordBatchIter<'_> {
                 return Ok(None);
             }
             let indexes = Arc::new(indexes.finish());
-            let output = pyarrow::build_array(&self.function.return_field, py, &results)
+            let output = self
+                .converter
+                .build_array(&self.function.return_field, py, &results)
                 .context("failed to build arrow array from return values")?;
             let error = build_error_array(indexes.len(), errors);
             if let Some(error) = error {

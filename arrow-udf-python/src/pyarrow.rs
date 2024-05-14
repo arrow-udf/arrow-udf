@@ -97,8 +97,6 @@ impl Converter {
         }
     }
 
-    // TODO: learn how to implement with_ pattern
-    // also add this to all modules
     #[allow(dead_code)]
     pub fn set_arrow_extension_key(&mut self, key: &str) {
         self.arrow_extension_key = key.to_string();

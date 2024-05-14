@@ -1,3 +1,4 @@
+//
 // Copyright 2024 RisingWave Labs
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -492,17 +493,15 @@ impl Converter {
             ));
         }
 
-        let parts = s.split('.').collect::<Vec<&str>>();
-        let integer = parts[0]
-            .parse::<i128>()
-            .context("failed to parse integer part")?;
-        let fractional = if parts.len() == 1 {
-            0
-        } else {
-            let fractional = parts[1][..scale as usize].to_string();
-            fractional
-                .parse::<i128>()
-                .context("failed to parse fractional part")?
+        let (integer, fractional): (i128, i128) = match s.split_once('.') {
+            Some((i, f)) => (
+                i.parse().context("failed to parse integer part")?,
+                (f[..scale as usize])
+                    .to_string()
+                    .parse()
+                    .context("failed to parse fractional part")?,
+            ),
+            None => (s.parse().context("failed to parse integer part")?, 0),
         };
 
         Ok((integer * 10_i128.pow(scale as u32)) + fractional)
@@ -515,15 +514,19 @@ impl Converter {
             ));
         }
 
-        let parts = s.split('.').collect::<Vec<&str>>();
-        let integer = i256::from_string(parts[0])
-            .ok_or_else(|| anyhow::anyhow!("failed to parse integer part"))?;
-        let fractional = if parts.len() == 1 {
-            i256::ZERO
-        } else {
-            let fractional = parts[1][..scale as usize].to_string();
-            i256::from_string(&fractional)
-                .ok_or_else(|| anyhow::anyhow!("failed to parse fractional part"))?
+        // TODO: apply pattern from i128 here
+        let (integer, fractional) = match s.split_once('.') {
+            Some((i, f)) => (
+                i256::from_string(i)
+                    .ok_or_else(|| anyhow::anyhow!("failed to parse integer part"))?,
+                i256::from_string(&f[..scale as usize])
+                    .ok_or_else(|| anyhow::anyhow!("failed to parse fractional part"))?,
+            ),
+            None => (
+                i256::from_string(s)
+                    .ok_or_else(|| anyhow::anyhow!("failed to parse integer part"))?,
+                i256::ZERO,
+            ),
         };
 
         Ok((integer * i256::from_i128(10).pow_checked(scale as u32)?) + fractional)

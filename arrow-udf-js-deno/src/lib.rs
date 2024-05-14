@@ -400,9 +400,10 @@ impl InternalRuntime {
             for i in 0..input.num_rows() {
                 args.clear();
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                    let val =
-                        self.converter.get_jsvalue(try_catch, field, column, &self.big_decimal, i)
-                            .context("failed to get jsvalue from arrow array")?;
+                    let val = self
+                        .converter
+                        .get_jsvalue(try_catch, field, column, &self.big_decimal, i)
+                        .context("failed to get jsvalue from arrow array")?;
                     args.push(val);
                 }
 
@@ -468,7 +469,9 @@ impl InternalRuntime {
         let scope = &mut js_runtime.handle_scope();
         let try_catch = &mut ::v8::TryCatch::new(scope);
 
-        let array = self.converter.build_array(&function.return_field, try_catch, results)
+        let array = self
+            .converter
+            .build_array(&function.return_field, try_catch, results)
             .context("failed to build arrow array from return values")?;
         let schema = Schema::new(vec![function.return_field.clone()]);
         Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
@@ -679,7 +682,9 @@ impl Stream for RecordBatchIterInternal {
                         (inner.input.columns().iter()).zip(inner.input.schema().fields())
                     {
                         let r = inner.row.borrow();
-                        let val = inner.converter.get_jsvalue(scope, field, &column, &inner.big_decimal, *r)
+                        let val = inner
+                            .converter
+                            .get_jsvalue(scope, field, &column, &inner.big_decimal, *r)
                             .context("failed to get jsvalue from arrow array")?;
 
                         row.push(val);
@@ -809,7 +814,9 @@ impl Stream for RecordBatchIterInternal {
         }
 
         let indexes = Arc::new(indexes.finish());
-        let array = inner.converter.build_array(&inner.function.return_field, scope, results)
+        let array = inner
+            .converter
+            .build_array(&inner.function.return_field, scope, results)
             .context("failed to build arrow array from return values")?;
 
         match RecordBatch::try_new(inner.schema.clone(), vec![indexes, array]) {

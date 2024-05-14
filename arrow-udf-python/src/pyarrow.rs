@@ -184,7 +184,12 @@ impl Converter {
     }
 
     /// Build arrow array from python objects.
-    pub fn build_array(&self, field: &Field, py: Python<'_>, values: &[PyObject]) -> PyResult<ArrayRef> {
+    pub fn build_array(
+        &self,
+        field: &Field,
+        py: Python<'_>,
+        values: &[PyObject],
+    ) -> PyResult<ArrayRef> {
         match field.data_type() {
             DataType::Null => build_array!(NullBuilder, py, values),
             DataType::Boolean => build_array!(BooleanBuilder, py, values),

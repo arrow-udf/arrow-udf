@@ -1194,8 +1194,8 @@ impl Converter {
                 {
                     Some(x) if x == self.json_extension_name.as_str() => {
                         let array = array.as_any().downcast_ref::<LargeBinaryArray>().unwrap();
-                        let string =
-                            v8::String::new(scope, std::str::from_utf8(array.value(i))?).context("Couldn't create a string")?;
+                        let string = v8::String::new(scope, std::str::from_utf8(array.value(i))?)
+                            .context("Couldn't create a string")?;
                         Ok(v8::json::parse(scope, string)
                             .context("Couldn't parse the json string")?)
                     }
@@ -1288,7 +1288,8 @@ impl Converter {
                     _ => {
                         let array = v8::Array::new(scope, list.len() as i32);
                         for j in 0..list.len() {
-                            let val = self.get_jsvalue(scope, inner, list.as_ref(), big_decimal, j)?;
+                            let val =
+                                self.get_jsvalue(scope, inner, list.as_ref(), big_decimal, j)?;
                             array.set_index(scope, j as u32, val);
                         }
                         Ok(array.into())

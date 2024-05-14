@@ -250,7 +250,9 @@ impl Runtime {
                     }
                 }
             }
-            let output = self.converter.build_array(&function.return_field, py, &results)?;
+            let output = self
+                .converter
+                .build_array(&function.return_field, py, &results)?;
             let error = build_error_array(input.num_rows(), errors);
             Ok((output, error))
         })?;
@@ -380,7 +382,9 @@ impl RecordBatchIter<'_> {
                 return Ok(None);
             }
             let indexes = Arc::new(indexes.finish());
-            let output = self.converter.build_array(&self.function.return_field, py, &results)
+            let output = self
+                .converter
+                .build_array(&self.function.return_field, py, &results)
                 .context("failed to build arrow array from return values")?;
             let error = build_error_array(indexes.len(), errors);
             if let Some(error) = error {

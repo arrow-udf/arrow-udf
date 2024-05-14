@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1715323247158,
+  "lastUpdate": 1715708344700,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -6791,6 +6791,114 @@ window.BENCHMARK_DATA = {
             "name": "decimal/deno",
             "value": 845705,
             "range": "± 6220",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "maxjustus@gmail.com",
+            "name": "Max Justus Spransy",
+            "username": "maxjustus"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d0a21f0fde330a0e5f658a55b58e0405d8372844",
+          "message": "Improve databend compatability (#22)\n\n* feat(arrow-udf-js): enable all intrinsics, enhance supported types and allow for alternate\r\nextension key/values\r\n\r\n- enables all rquickjs intrinsics\r\n- allows for configurable arrow extension keys and values.\r\n  It is not always practical to rebuild an already created record\r\n  batch to add the field metadata values required by arrow-udf, so\r\n  this makes them optionally configurable\r\n- adds support for JSON in LargeBinary arrays for Databend compatibility\r\n- adds support for Timestamp and Date32 arrow types as Date() type in JS\r\n  for Databend compatibility\r\n- adds support Decimal128 and Decimal256 arrow types as BigDecimal in JS\r\n  for Databend compatibility\r\n- simplifies  bigdecimal conversion by using `ctx.globals().get(\"BigDecimal\")?` to access BigDecimal initializer function rather than holding a BigDecimal persistent function handle on the runtime\r\n\r\n* feat(arrow-udf-python): add alternate extension name and json in LargeBinary support\r\n\r\n* feat(arrow-udf-js-deno): add alternate extension name and json in LargeBinary support\r\n\r\n* chore: update readme\r\n\r\n* chore(arrow-udf-js): cargo fmt\r\n\r\n* chore(arrow-udf-js): refactor decimal128/256 parsing\r\n\r\n- Prefer split_once over split for splitting decimal string into integer\r\n  and fractional parts.\r\n- Prefer pattern matching style over more imperative approach.\r\n\r\n* chore: cargo fmt",
+          "timestamp": "2024-05-14T17:24:24Z",
+          "tree_id": "e0c143b5864454f088c6a68dc9c18addf2375a6c",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/d0a21f0fde330a0e5f658a55b58e0405d8372844"
+        },
+        "date": 1715708344071,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3882,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4017,
+            "range": "± 17",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 25641,
+            "range": "± 1441",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 176404,
+            "range": "± 3707",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 215326,
+            "range": "± 757",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 255353,
+            "range": "± 1587",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 96033,
+            "range": "± 589",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 423099,
+            "range": "± 29107",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5614756,
+            "range": "± 80034",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9125335,
+            "range": "± 122928",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 946030,
+            "range": "± 24962",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 55782,
+            "range": "± 391",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 677245,
+            "range": "± 12929",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 807735,
+            "range": "± 14151",
             "unit": "ns/iter"
           }
         ]

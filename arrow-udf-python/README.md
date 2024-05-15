@@ -60,10 +60,10 @@ class KeyValue:
 def key_value(s: str):
     key, value = s.split('=')
 
-    // return a class instance
+    ## return a class instance
     return KeyValue(key, value)
 
-    // or return a dict
+    ## or return a dict
     return {"key": key, "value": value}
 "#;
 let return_type = DataType::Struct(

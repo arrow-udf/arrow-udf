@@ -41,3 +41,38 @@ let output: RecordBatch = runtime.call("gcd", &input).unwrap();
 The python code will be run in an embedded CPython 3.12 interpreter, powered by [PyO3](pyo3.rs).
 
 See the [example](examples/python.rs) for more details.
+
+## Struct Type
+
+If the function returns a struct type, you can return a class instance or a dictionary.
+
+```rust
+use arrow_schema::{DataType, Field};
+use arrow_udf_python::{CallMode, Runtime};
+
+let mut runtime = Runtime::new().unwrap();
+let python_code = r#"
+class KeyValue:
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+
+def key_value(s: str):
+    key, value = s.split('=')
+
+    // return a class instance
+    return KeyValue(key, value)
+
+    // or return a dict
+    return {"key": key, "value": value}
+"#;
+let return_type = DataType::Struct(
+    vec![
+        Field::new("key", DataType::Utf8, true),
+        Field::new("value", DataType::Utf8, true),
+    ]
+    .into(),
+);
+let mode = CallMode::ReturnNullOnNullInput;
+runtime.add_function("key_value", return_type, mode, python_code).unwrap();
+```

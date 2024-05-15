@@ -134,6 +134,12 @@ pub struct Converter {
     decimal_extension_name: String,
 }
 
+impl Default for Converter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Converter {
     pub fn new() -> Self {
         Self {
@@ -408,7 +414,7 @@ impl Converter {
                         build_timestamp_array!(TimestampMicrosecondBuilder, i64, ctx, values, *, 1000)
                     }
                     arrow_schema::TimeUnit::Nanosecond => {
-                        build_timestamp_array!(TimestampNanosecondBuilder, i64, ctx, values, *, 1000_000)
+                        build_timestamp_array!(TimestampNanosecondBuilder, i64, ctx, values, *, 1_000_000)
                     }
                 }
             }

@@ -446,6 +446,7 @@ def merge(state1, state2):
 
     let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
     let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    let ops = BooleanArray::from(vec![false, false, true, false]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let state = runtime.create_state("sum").unwrap();
@@ -470,6 +471,19 @@ def merge(state1, state2):
             +-------+"#]],
     );
 
+    let state = runtime
+        .accumulate_or_retract("sum", &state, &ops, &input)
+        .unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +-------+
+            | array |
+            +-------+
+            | 12    |
+            +-------+"#]],
+    );
+
     let output = runtime.finish("sum", &state).unwrap();
     check_array(
         &[output],
@@ -477,7 +491,7 @@ def merge(state1, state2):
             +-------+
             | array |
             +-------+
-            | 9     |
+            | 12    |
             +-------+"#]],
     );
 }

@@ -28,7 +28,7 @@ use self::interpreter::SubInterpreter;
 pub use self::into_field::IntoField;
 use anyhow::{Context, Result};
 use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
-use arrow_array::{Array, ArrayRef, RecordBatch};
+use arrow_array::{Array, ArrayRef, BooleanArray, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
 use pyo3::types::{PyAnyMethods, PyIterator, PyModule, PyTuple};
 use pyo3::{Py, PyObject};
@@ -73,6 +73,7 @@ struct Aggregate {
     mode: CallMode,
     create_state: PyObject,
     accumulate: PyObject,
+    retract: Option<PyObject>,
     finish: Option<PyObject>,
     merge: Option<PyObject>,
 }
@@ -251,7 +252,6 @@ impl Runtime {
     /// ```
     /// # use arrow_udf_python::{Runtime, CallMode};
     /// # use arrow_schema::DataType;
-    ///
     /// let mut runtime = Runtime::new().unwrap();
     /// runtime
     ///     .add_aggregate(
@@ -283,23 +283,24 @@ impl Runtime {
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
-        let (create_state, accumulate, finish, merge) = self.interpreter.with_gil(|py| {
+        let aggregate = self.interpreter.with_gil(|py| {
             let module = PyModule::from_code_bound(py, code, name, name)?;
             let create_state = module.getattr("create_state")?.into();
             let accumulate = module.getattr("accumulate")?.into();
+            let retract = module.getattr("retract").ok().map(|f| f.into());
             let finish = module.getattr("finish").ok().map(|f| f.into());
             let merge = module.getattr("merge").ok().map(|f| f.into());
-            Ok((create_state, accumulate, finish, merge))
+            Ok(Aggregate {
+                state_field: state_type.into_field(name).into(),
+                output_field: output_type.into_field(name).into(),
+                mode,
+                create_state,
+                accumulate,
+                retract,
+                finish,
+                merge,
+            })
         })?;
-        let aggregate = Aggregate {
-            state_field: state_type.into_field(name).into(),
-            output_field: output_type.into_field(name).into(),
-            mode,
-            create_state,
-            accumulate,
-            finish,
-            merge,
-        };
         self.aggregates.insert(name.to_string(), aggregate);
         Ok(())
     }
@@ -398,6 +399,13 @@ impl Runtime {
     }
 
     /// Create a new state for an aggregate function.
+    ///
+    /// # Example
+    /// ```
+    #[doc = include_str!("doc_create_aggregate.txt")]
+    /// let state = runtime.create_state("sum").unwrap();
+    /// assert_eq!(&*state, &Int32Array::from(vec![0]));
+    /// ```
     pub fn create_state(&self, name: &str) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         let state = self.interpreter.with_gil(|py| {
@@ -411,6 +419,19 @@ impl Runtime {
     }
 
     /// Call accumulate of an aggregate function.
+    ///
+    /// # Example
+    /// ```
+    #[doc = include_str!("doc_create_aggregate.txt")]
+    /// let state = runtime.create_state("sum").unwrap();
+    ///
+    /// let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
+    /// let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+    ///
+    /// let state = runtime.accumulate("sum", &state, &input).unwrap();
+    /// assert_eq!(&*state, &Int32Array::from(vec![9]));
+    /// ```
     pub fn accumulate(
         &self,
         name: &str,
@@ -448,7 +469,81 @@ impl Runtime {
         Ok(new_state)
     }
 
+    /// Call accumulate or retract of an aggregate function.
+    ///
+    /// The `ops` is a boolean array that indicates whether to accumulate or retract each row.
+    /// `false` for accumulate and `true` for retract.
+    ///
+    /// # Example
+    /// ```
+    #[doc = include_str!("doc_create_aggregate.txt")]
+    /// let state = runtime.create_state("sum").unwrap();
+    ///
+    /// let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
+    /// let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    /// let ops = BooleanArray::from(vec![false, false, true, false]);
+    /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+    ///
+    /// let state = runtime.accumulate_or_retract("sum", &state, &ops, &input).unwrap();
+    /// assert_eq!(&*state, &Int32Array::from(vec![3]));
+    /// ```
+    pub fn accumulate_or_retract(
+        &self,
+        name: &str,
+        state: &dyn Array,
+        ops: &BooleanArray,
+        input: &RecordBatch,
+    ) -> Result<ArrayRef> {
+        let aggregate = self.aggregates.get(name).context("function not found")?;
+        let retract = aggregate
+            .retract
+            .as_ref()
+            .context("function does not support retraction")?;
+        // convert each row to python objects and call the accumulate function
+        let new_state = self.interpreter.with_gil(|py| {
+            let mut state = self
+                .converter
+                .get_pyobject(py, &aggregate.state_field, state, 0)?;
+
+            let mut row = Vec::with_capacity(1 + input.num_columns());
+            for i in 0..input.num_rows() {
+                if aggregate.mode == CallMode::ReturnNullOnNullInput
+                    && input.columns().iter().any(|column| column.is_null(i))
+                {
+                    continue;
+                }
+                row.clear();
+                row.push(state.clone());
+                for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+                    let pyobj = self.converter.get_pyobject(py, field, column, i)?;
+                    row.push(pyobj);
+                }
+                let args = PyTuple::new_bound(py, row.drain(..));
+                let func = if ops.is_valid(i) && ops.value(i) {
+                    retract
+                } else {
+                    &aggregate.accumulate
+                };
+                state = func.call1(py, args)?;
+            }
+            let output = self
+                .converter
+                .build_array(&aggregate.state_field, py, &[state])?;
+            Ok(output)
+        })?;
+        Ok(new_state)
+    }
+
     /// Merge states of an aggregate function.
+    ///
+    /// # Example
+    /// ```
+    #[doc = include_str!("doc_create_aggregate.txt")]
+    /// let states = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    ///
+    /// let state = runtime.merge("sum", &states).unwrap();
+    /// assert_eq!(&*state, &Int32Array::from(vec![9]));
+    /// ```
     pub fn merge(&self, name: &str, states: &dyn Array) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         let merge = aggregate.merge.as_ref().context("merge not found")?;
@@ -457,6 +552,9 @@ impl Runtime {
                 .converter
                 .get_pyobject(py, &aggregate.state_field, states, 0)?;
             for i in 1..states.len() {
+                if aggregate.mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
+                    continue;
+                }
                 let state2 = self
                     .converter
                     .get_pyobject(py, &aggregate.state_field, states, i)?;
@@ -474,6 +572,15 @@ impl Runtime {
     /// Get the result of an aggregate function.
     ///
     /// If the `finish` function is not defined, the state is returned as the result.
+    ///
+    /// # Example
+    /// ```
+    #[doc = include_str!("doc_create_aggregate.txt")]
+    /// let states: ArrayRef = Arc::new(Int32Array::from(vec![Some(1), None, Some(3), Some(5)]));
+    ///
+    /// let outputs = runtime.finish("sum", &states).unwrap();
+    /// assert_eq!(&outputs, &states);
+    /// ```
     pub fn finish(&self, name: &str, states: &ArrayRef) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         let Some(finish) = &aggregate.finish else {

@@ -21,4 +21,5 @@ pyo3-build-config = "0.21"
 
 [dev-dependencies]
 arrow-cast = { version = ">=50", features = ["prettyprint"] }
+arrow-select = ">=50"
 expect-test = "1"

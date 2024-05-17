@@ -15,7 +15,7 @@
 use std::sync::Arc;
 
 use arrow_array::*;
-use arrow_cast::pretty::pretty_format_batches;
+use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_python::{CallMode, Runtime};
 use expect_test::{expect, Expect};
@@ -420,6 +420,210 @@ def range1(n: int):
 }
 
 #[test]
+fn test_sum() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_aggregate(
+            "sum",
+            DataType::Int32,
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def create_state():
+    return 0
+
+def accumulate(state, value):
+    return state + value
+
+def retract(state, value):
+    return state - value
+
+def merge(state1, state2):
+    return state1 + state2
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    let ops = BooleanArray::from(vec![false, false, true, false]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let state = runtime.create_state("sum").unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +-------+
+            | array |
+            +-------+
+            | 0     |
+            +-------+"#]],
+    );
+
+    let state = runtime.accumulate("sum", &state, &input).unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +-------+
+            | array |
+            +-------+
+            | 9     |
+            +-------+"#]],
+    );
+
+    let state = runtime
+        .accumulate_or_retract("sum", &state, &ops, &input)
+        .unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +-------+
+            | array |
+            +-------+
+            | 12    |
+            +-------+"#]],
+    );
+
+    let output = runtime.finish("sum", &state).unwrap();
+    check_array(
+        &[output],
+        expect![[r#"
+            +-------+
+            | array |
+            +-------+
+            | 12    |
+            +-------+"#]],
+    );
+}
+
+#[test]
+fn test_weighted_avg() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_aggregate(
+            "weighted_avg",
+            DataType::Struct(
+                vec![
+                    Field::new("sum", DataType::Int32, false),
+                    Field::new("weight", DataType::Int32, false),
+                ]
+                .into(),
+            ),
+            DataType::Float32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+class State:
+    def __init__(self):
+        self.sum = 0
+        self.weight = 0
+
+def create_state():
+    return State()
+
+def accumulate(state, value, weight):
+    state.sum += value * weight
+    state.weight += weight
+    return state
+
+def retract(state, value, weight):
+    state.sum -= value * weight
+    state.weight -= weight
+    return state
+
+def merge(state1, state2):
+    state1.sum += state2.sum
+    state1.weight += state2.weight
+    return state1
+
+def finish(state):
+    if state.weight == 0:
+        return None
+    else:
+        return state.sum / state.weight
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("value", DataType::Int32, true),
+        Field::new("weight", DataType::Int32, true),
+    ]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    let arg1 = Int32Array::from(vec![Some(2), None, Some(4), Some(6)]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let state = runtime.create_state("weighted_avg").unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +---------------------+
+            | array               |
+            +---------------------+
+            | {sum: 0, weight: 0} |
+            +---------------------+"#]],
+    );
+
+    let state = runtime.accumulate("weighted_avg", &state, &input).unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +-----------------------+
+            | array                 |
+            +-----------------------+
+            | {sum: 44, weight: 12} |
+            +-----------------------+"#]],
+    );
+
+    let states = arrow_select::concat::concat(&[&state, &state]).unwrap();
+    let state = runtime.merge("weighted_avg", &states).unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +-----------------------+
+            | array                 |
+            +-----------------------+
+            | {sum: 88, weight: 24} |
+            +-----------------------+"#]],
+    );
+
+    let output = runtime.finish("weighted_avg", &state).unwrap();
+    check_array(
+        &[output],
+        expect![[r#"
+            +-----------+
+            | array     |
+            +-----------+
+            | 3.6666667 |
+            +-----------+"#]],
+    );
+}
+
+#[test]
+fn test_output_type_mismatch() {
+    let mut runtime = Runtime::new().unwrap();
+    let err = runtime
+        .add_aggregate(
+            "sum",
+            DataType::Int32,
+            DataType::Int64,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def create_state():
+    return 0
+
+def accumulate(state, value):
+    return state + value
+"#,
+        )
+        .unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "`output_type` must be the same as `state_type` when `finish` is not defined"
+    );
+}
+
+#[test]
 fn test_error() {
     let mut runtime = Runtime::new().unwrap();
     runtime
@@ -542,7 +746,7 @@ def gcd(a: int, b: int) -> int:
 
 #[test]
 fn test_forbid() {
-    assert_err("", "AttributeError: module '' has no attribute 'gcd'");
+    assert_err("", "AttributeError: module 'gcd' has no attribute 'gcd'");
     assert_err("import os", "ImportError: import os is not allowed");
     assert_err(
         "breakpoint()",
@@ -679,6 +883,12 @@ def neg(x):
 #[track_caller]
 fn check(actual: &[RecordBatch], expect: Expect) {
     expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
+}
+
+/// Compare the actual output with the expected output.
+#[track_caller]
+fn check_array(actual: &[ArrayRef], expect: Expect) {
+    expect.assert_eq(&pretty_format_columns("array", actual).unwrap().to_string());
 }
 
 /// Returns a field with JSON type.

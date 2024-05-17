@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1715763567233,
+  "lastUpdate": 1715923846796,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -7007,6 +7007,114 @@ window.BENCHMARK_DATA = {
             "name": "decimal/deno",
             "value": 835088,
             "range": "± 17820",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "970455e49bcd04ae3f1f36f6915fbb4c5a4ae437",
+          "message": "feat(python): support user-defined aggregate function in python (#23)\n\n* basic python udaf\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* support finish\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* export `IntoField`\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* support sum\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* add bench\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* support merge\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* make `finish` optional\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* add doc test\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* check types\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n* simplify code\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\n---------\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-05-17T13:16:02+08:00",
+          "tree_id": "c596da208cd7f3d726c745981d4b12a4b8c3ebee",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/970455e49bcd04ae3f1f36f6915fbb4c5a4ae437"
+        },
+        "date": 1715923846366,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3884,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3981,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 25072,
+            "range": "± 1450",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 166040,
+            "range": "± 6309",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 214739,
+            "range": "± 1338",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 259583,
+            "range": "± 3411",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 89743,
+            "range": "± 1156",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 427090,
+            "range": "± 21558",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5788112,
+            "range": "± 76597",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9640842,
+            "range": "± 220066",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 937477,
+            "range": "± 19137",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 54802,
+            "range": "± 1285",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 682627,
+            "range": "± 35766",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 824792,
+            "range": "± 13153",
             "unit": "ns/iter"
           }
         ]

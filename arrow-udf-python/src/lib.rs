@@ -286,20 +286,15 @@ impl Runtime {
     ) -> Result<()> {
         let aggregate = self.interpreter.with_gil(|py| {
             let module = PyModule::from_code_bound(py, code, name, name)?;
-            let create_state = module.getattr("create_state")?.into();
-            let accumulate = module.getattr("accumulate")?.into();
-            let retract = module.getattr("retract").ok().map(|f| f.into());
-            let finish = module.getattr("finish").ok().map(|f| f.into());
-            let merge = module.getattr("merge").ok().map(|f| f.into());
             Ok(Aggregate {
                 state_field: state_type.into_field(name).into(),
                 output_field: output_type.into_field(name).into(),
                 mode,
-                create_state,
-                accumulate,
-                retract,
-                finish,
-                merge,
+                create_state: module.getattr("create_state")?.into(),
+                accumulate: module.getattr("accumulate")?.into(),
+                retract: module.getattr("retract").ok().map(|f| f.into()),
+                finish: module.getattr("finish").ok().map(|f| f.into()),
+                merge: module.getattr("merge").ok().map(|f| f.into()),
             })
         })?;
         if aggregate.finish.is_none() && aggregate.state_field != aggregate.output_field {

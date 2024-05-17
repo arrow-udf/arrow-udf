@@ -26,7 +26,7 @@
 
 use self::interpreter::SubInterpreter;
 pub use self::into_field::IntoField;
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
 use arrow_array::{Array, ArrayRef, BooleanArray, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
@@ -243,7 +243,8 @@ impl Runtime {
     /// optionally, the code can define:
     ///
     /// - `finish(state) -> value`: Get the result of the aggregate function.
-    ///     If not defined, the state is returned as the result. `output_type` must equal to `state_type`.
+    ///     If not defined, the state is returned as the result.
+    ///     In this case, `output_type` must be the same as `state_type`.
     /// - `retract(state, *args) -> state`: Retract a value from the state, returning the updated state.
     /// - `merge(state, state) -> state`: Merge two states, returning the merged state.
     ///
@@ -301,6 +302,9 @@ impl Runtime {
                 merge,
             })
         })?;
+        if aggregate.finish.is_none() && aggregate.state_field != aggregate.output_field {
+            bail!("`output_type` must be the same as `state_type` when `finish` is not defined");
+        }
         self.aggregates.insert(name.to_string(), aggregate);
         Ok(())
     }

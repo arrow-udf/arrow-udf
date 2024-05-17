@@ -600,6 +600,30 @@ def finish(state):
 }
 
 #[test]
+fn test_output_type_mismatch() {
+    let mut runtime = Runtime::new().unwrap();
+    let err = runtime
+        .add_aggregate(
+            "sum",
+            DataType::Int32,
+            DataType::Int64,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def create_state():
+    return 0
+
+def accumulate(state, value):
+    return state + value
+"#,
+        )
+        .unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "`output_type` must be the same as `state_type` when `finish` is not defined"
+    );
+}
+
+#[test]
 fn test_error() {
     let mut runtime = Runtime::new().unwrap();
     runtime

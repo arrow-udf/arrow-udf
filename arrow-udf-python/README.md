@@ -76,3 +76,20 @@ let return_type = DataType::Struct(
 let mode = CallMode::ReturnNullOnNullInput;
 runtime.add_function("key_value", return_type, mode, python_code).unwrap();
 ```
+
+## Pickle Type
+
+This crate supports one more extension type, the pickle type.
+When a field is pickle type, the data is stored in a binary array in serialized form.
+
+| Extension Type | Physical Type | Metadata                                    |
+| -------------- | ------------- | ------------------------------------------- |
+| Pickle         | Binary        | `ARROW:extension:name` = `arrowudf.pickle`  |
+
+```rust,ignore
+let pickle_field = Field::new(name, DataType::Binary, true)
+    .with_metadata([("ARROW:extension:name".into(), "arrowudf.pickle".into())].into());
+let pickle_array = BinaryArray::from(vec![b"xxxxx"]);
+```
+
+Pickle type is useful for the state of aggregation functions when the state is complex.

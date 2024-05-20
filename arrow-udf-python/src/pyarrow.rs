@@ -86,6 +86,7 @@ pub struct Converter {
     arrow_extension_key: String,
     json_extension_name: String,
     decimal_extension_name: String,
+    pickle_extension_name: String,
 }
 
 impl Converter {
@@ -94,6 +95,7 @@ impl Converter {
             arrow_extension_key: "ARROW:extension:name".to_string(),
             json_extension_name: "arrowudf.json".to_string(),
             decimal_extension_name: "arrowudf.decimal".to_string(),
+            pickle_extension_name: "arrowudf.pickle".to_string(),
         }
     }
 
@@ -159,7 +161,19 @@ impl Converter {
                 _ => get_pyobject!(StringArray, py, array, i),
             },
             DataType::LargeUtf8 => get_pyobject!(LargeStringArray, py, array, i),
-            DataType::Binary => get_pyobject!(BinaryArray, py, array, i),
+            DataType::Binary => match field
+                .metadata()
+                .get(self.arrow_extension_key.as_str())
+                .map(|s| s.as_str())
+            {
+                Some(x) if x == self.pickle_extension_name.as_str() => {
+                    let array = array.as_any().downcast_ref::<BinaryArray>().unwrap();
+                    let bytes = array.value(i);
+                    let pickle_loads = py.eval_bound("pickle.loads", None, None)?;
+                    pickle_loads.call1((bytes,))?.into()
+                }
+                _ => get_pyobject!(BinaryArray, py, array, i),
+            },
             DataType::LargeBinary => get_pyobject!(LargeBinaryArray, py, array, i),
             DataType::List(field) => {
                 let array = array.as_any().downcast_ref::<ListArray>().unwrap();
@@ -225,7 +239,28 @@ impl Converter {
                 _ => build_array!(StringBuilder, &str, py, values),
             },
             DataType::LargeUtf8 => build_array!(LargeStringBuilder, &str, py, values),
-            DataType::Binary => build_array!(BinaryBuilder, &[u8], py, values),
+            DataType::Binary => match field
+                .metadata()
+                .get(self.arrow_extension_key.as_str())
+                .map(|s| s.as_str())
+            {
+                Some(x) if x == self.pickle_extension_name.as_str() => {
+                    let pickle_dumps = py.eval_bound("pickle.dumps", None, None)?;
+
+                    let mut builder = BinaryBuilder::with_capacity(1, 0);
+                    for value in values {
+                        let pickled_value = pickle_dumps.call1((value,))?;
+                        if pickled_value.is_none() {
+                            builder.append_null();
+                        } else {
+                            let bytes = pickled_value.extract::<&[u8]>()?;
+                            builder.append_value(bytes);
+                        }
+                    }
+                    Ok(Arc::new(builder.finish()))
+                }
+                _ => build_array!(BinaryBuilder, &[u8], py, values),
+            },
             DataType::LargeBinary => match field
                 .metadata()
                 .get(self.arrow_extension_key.as_str())

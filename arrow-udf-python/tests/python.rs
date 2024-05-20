@@ -600,6 +600,72 @@ def finish(state):
 }
 
 #[test]
+fn test_weighted_avg_pickle_state() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_aggregate(
+            "weighted_avg",
+            pickle_field("state"),
+            DataType::Float32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+class State:
+    def __init__(self):
+        self.sum = 0
+        self.weight = 0
+
+def create_state():
+    return State()
+
+def accumulate(state, value, weight):
+    state.sum += value * weight
+    state.weight += weight
+    return state
+
+def retract(state, value, weight):
+    state.sum -= value * weight
+    state.weight -= weight
+    return state
+
+def merge(state1, state2):
+    state1.sum += state2.sum
+    state1.weight += state2.weight
+    return state1
+
+def finish(state):
+    if state.weight == 0:
+        return None
+    else:
+        return state.sum / state.weight
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("value", DataType::Int32, true),
+        Field::new("weight", DataType::Int32, true),
+    ]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    let arg1 = Int32Array::from(vec![Some(2), None, Some(4), Some(6)]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let state = runtime.create_state("weighted_avg").unwrap();
+    let state = runtime.accumulate("weighted_avg", &state, &input).unwrap();
+    // we don't check the state because it is pickled
+    let output = runtime.finish("weighted_avg", &state).unwrap();
+    check_array(
+        &[output],
+        expect![[r#"
+            +-----------+
+            | array     |
+            +-----------+
+            | 3.6666667 |
+            +-----------+"#]],
+    );
+}
+
+#[test]
 fn test_output_type_mismatch() {
     let mut runtime = Runtime::new().unwrap();
     let err = runtime
@@ -901,4 +967,10 @@ fn json_field(name: &str) -> Field {
 fn decimal_field(name: &str) -> Field {
     Field::new(name, DataType::Utf8, true)
         .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into())
+}
+
+/// Returns a field with pickle type.
+fn pickle_field(name: &str) -> Field {
+    Field::new(name, DataType::Binary, true)
+        .with_metadata([("ARROW:extension:name".into(), "arrowudf.pickle".into())].into())
 }

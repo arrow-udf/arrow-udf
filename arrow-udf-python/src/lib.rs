@@ -127,6 +127,7 @@ impl Builder {
             r#"
 # internal use for json types
 import json
+import pickle
 
 # an internal class used for struct input arguments
 class Struct:

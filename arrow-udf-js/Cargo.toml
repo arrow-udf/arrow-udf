@@ -18,4 +18,5 @@ rquickjs = { version = "0.6", features = ["array-buffer", "parallel"] }
 
 [dev-dependencies]
 arrow-cast = { version = ">=50", features = ["prettyprint"] }
+arrow-select = ">=50"
 expect-test = "1"

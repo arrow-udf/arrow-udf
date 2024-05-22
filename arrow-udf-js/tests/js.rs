@@ -21,7 +21,7 @@ use arrow_array::{
     TimestampSecondArray,
 };
 use arrow_buffer::i256;
-use arrow_cast::pretty::pretty_format_batches;
+use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js::{CallMode, Runtime};
 use expect_test::{expect, Expect};
@@ -832,6 +832,102 @@ fn test_range() {
 }
 
 #[test]
+fn test_weighted_avg() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_aggregate(
+            "weighted_avg",
+            DataType::Struct(
+                vec![
+                    Field::new("sum", DataType::Int32, false),
+                    Field::new("weight", DataType::Int32, false),
+                ]
+                .into(),
+            ),
+            DataType::Float32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function create_state() {
+                return {sum: 0, weight: 0};
+            }
+            export function accumulate(state, value, weight) {
+                state.sum += value * weight;
+                state.weight += weight;
+                return state;
+            }
+            export function retract(state, value, weight) {
+                state.sum -= value * weight;
+                state.weight -= weight;
+                return state;
+            }
+            export function merge(state1, state2) {
+                state1.sum += state2.sum;
+                state1.weight += state2.weight;
+                return state1;
+            }
+            export function finish(state) {
+                return state.sum / state.weight;
+            }
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("value", DataType::Int32, true),
+        Field::new("weight", DataType::Int32, true),
+    ]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    let arg1 = Int32Array::from(vec![Some(2), None, Some(4), Some(6)]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let state = runtime.create_state("weighted_avg").unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +---------------------+
+            | array               |
+            +---------------------+
+            | {sum: 0, weight: 0} |
+            +---------------------+"#]],
+    );
+
+    let state = runtime.accumulate("weighted_avg", &state, &input).unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +-----------------------+
+            | array                 |
+            +-----------------------+
+            | {sum: 44, weight: 12} |
+            +-----------------------+"#]],
+    );
+
+    let states = arrow_select::concat::concat(&[&state, &state]).unwrap();
+    let state = runtime.merge("weighted_avg", &states).unwrap();
+    check_array(
+        std::slice::from_ref(&state),
+        expect![[r#"
+            +-----------------------+
+            | array                 |
+            +-----------------------+
+            | {sum: 88, weight: 24} |
+            +-----------------------+"#]],
+    );
+
+    let output = runtime.finish("weighted_avg", &state).unwrap();
+    check_array(
+        &[output],
+        expect![[r#"
+            +-----------+
+            | array     |
+            +-----------+
+            | 3.6666667 |
+            +-----------+"#]],
+    );
+}
+
+#[test]
 fn test_timeout() {
     let mut runtime = Runtime::new().unwrap();
     runtime.set_timeout(Some(Duration::from_millis(1)));
@@ -931,6 +1027,12 @@ fn test_send_sync() {
 #[track_caller]
 fn check(actual: &[RecordBatch], expect: Expect) {
     expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
+}
+
+/// Compare the actual output with the expected output.
+#[track_caller]
+fn check_array(actual: &[ArrayRef], expect: Expect) {
+    expect.assert_eq(&pretty_format_columns("array", actual).unwrap().to_string());
 }
 
 /// Returns a field with JSON type.

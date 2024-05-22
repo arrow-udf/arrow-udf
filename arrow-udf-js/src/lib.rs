@@ -21,9 +21,15 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
 
+use anyhow::bail;
 use anyhow::{anyhow, Context as _, Result};
+use arrow_array::Array;
+use arrow_array::ArrayRef;
+use arrow_array::BooleanArray;
 use arrow_array::{builder::Int32Builder, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
+use rquickjs::module::Evaluated;
+use rquickjs::FromJs;
 use rquickjs::{
     context::intrinsic::All, function::Args, Context, Ctx, Module, Object, Persistent, Value,
 };
@@ -36,6 +42,7 @@ mod jsarrow;
 /// The JS UDF runtime.
 pub struct Runtime {
     functions: HashMap<String, Function>,
+    aggregates: HashMap<String, Aggregate>,
     // NOTE: `functions` must be put before the runtime and context to be dropped first.
     pub converter: jsarrow::Converter,
     runtime: rquickjs::Runtime,
@@ -56,10 +63,25 @@ impl Debug for Runtime {
 
 /// A registered function.
 struct Function {
-    function: Persistent<rquickjs::Function<'static>>,
+    function: JsFunction,
     return_field: FieldRef,
     mode: CallMode,
 }
+
+/// A user defined aggregate function.
+struct Aggregate {
+    state_field: FieldRef,
+    output_field: FieldRef,
+    mode: CallMode,
+    create_state: JsFunction,
+    accumulate: JsFunction,
+    retract: Option<JsFunction>,
+    finish: Option<JsFunction>,
+    merge: Option<JsFunction>,
+}
+
+/// A persistent function.
+type JsFunction = Persistent<rquickjs::Function<'static>>;
 
 // SAFETY: `rquickjs::Runtime` is `Send` and `Sync`
 unsafe impl Send for Runtime {}
@@ -88,6 +110,7 @@ impl Runtime {
 
         Ok(Self {
             functions: HashMap::new(),
+            aggregates: HashMap::new(),
             runtime,
             context,
             timeout: None,
@@ -144,10 +167,7 @@ impl Runtime {
                 .eval()
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to evaluate module")?;
-            let function: rquickjs::Function = module
-                .get(handler)
-                .context("failed to get function. HINT: make sure the function is exported")?;
-            Ok(Persistent::save(&ctx, function)) as Result<_>
+            Self::get_function(&ctx, &module, handler)
         })?;
         let function = Function {
             function,
@@ -155,6 +175,103 @@ impl Runtime {
             mode,
         };
         self.functions.insert(name.to_string(), function);
+        Ok(())
+    }
+
+    /// Get a function from a module.
+    fn get_function<'a>(
+        ctx: &Ctx<'a>,
+        module: &Module<'a, Evaluated>,
+        name: &str,
+    ) -> Result<JsFunction> {
+        let function: rquickjs::Function = module
+            .get(name)
+            .context("failed to get function. HINT: make sure the function is exported")?;
+        Ok(Persistent::save(ctx, function))
+    }
+
+    /// Add a new aggregate function from JS code.
+    ///
+    /// # Arguments
+    ///
+    /// - `name`: The name of the function.
+    /// - `state_type`: The data type of the internal state.
+    /// - `output_type`: The data type of the aggregate value.
+    /// - `mode`: Whether the function will be called when some of its arguments are null.
+    /// - `code`: The JS code of the aggregate function.
+    ///
+    /// The code should define at least two functions:
+    ///
+    /// - `create_state() -> state`: Create a new state object.
+    /// - `accumulate(state, *args) -> state`: Accumulate a new value into the state, returning the updated state.
+    ///
+    /// optionally, the code can define:
+    ///
+    /// - `finish(state) -> value`: Get the result of the aggregate function.
+    ///     If not defined, the state is returned as the result.
+    ///     In this case, `output_type` must be the same as `state_type`.
+    /// - `retract(state, *args) -> state`: Retract a value from the state, returning the updated state.
+    /// - `merge(state, state) -> state`: Merge two states, returning the merged state.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use arrow_udf_js::{Runtime, CallMode};
+    /// # use arrow_schema::DataType;
+    /// let mut runtime = Runtime::new().unwrap();
+    /// runtime
+    ///     .add_aggregate(
+    ///         "sum",
+    ///         DataType::Int32, // state_type
+    ///         DataType::Int32, // output_type
+    ///         CallMode::ReturnNullOnNullInput,
+    ///         r#"
+    ///         export function create_state() {
+    ///             return 0;
+    ///         }
+    ///         export function accumulate(state, value) {
+    ///             return state + value;
+    ///         }
+    ///         export function retract(state, value) {
+    ///             return state - value;
+    ///         }
+    ///         export function merge(state1, state2) {
+    ///             return state1 + state2;
+    ///         }
+    ///         "#,
+    ///     )
+    ///     .unwrap();
+    /// ```
+    pub fn add_aggregate(
+        &mut self,
+        name: &str,
+        state_type: impl IntoField,
+        output_type: impl IntoField,
+        mode: CallMode,
+        code: &str,
+    ) -> Result<()> {
+        let aggregate = self.context.with(|ctx| {
+            let (module, _) = Module::declare(ctx.clone(), name, code)
+                .map_err(|e| check_exception(e, &ctx))
+                .context("failed to declare module")?
+                .eval()
+                .map_err(|e| check_exception(e, &ctx))
+                .context("failed to evaluate module")?;
+            Ok(Aggregate {
+                state_field: state_type.into_field(name).into(),
+                output_field: output_type.into_field(name).into(),
+                mode,
+                create_state: Self::get_function(&ctx, &module, "create_state")?,
+                accumulate: Self::get_function(&ctx, &module, "accumulate")?,
+                retract: Self::get_function(&ctx, &module, "retract").ok(),
+                finish: Self::get_function(&ctx, &module, "finish").ok(),
+                merge: Self::get_function(&ctx, &module, "merge").ok(),
+            }) as Result<Aggregate>
+        })?;
+        if aggregate.finish.is_none() && aggregate.state_field != aggregate.output_field {
+            bail!("`output_type` must be the same as `state_type` when `finish` is not defined");
+        }
+        self.aggregates.insert(name.to_string(), aggregate);
         Ok(())
     }
 
@@ -185,8 +302,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), row.len());
                 args.push_args(row.drain(..))?;
                 let result = self
-                    .with_timeout(|| js_function.call_arg(args))
-                    .map_err(|e| check_exception(e, &ctx))
+                    .call_user_fn(&ctx, &js_function, args)
                     .context("failed to call function")?;
                 results.push(result);
             }
@@ -226,17 +342,259 @@ impl Runtime {
         })
     }
 
-    /// Call a function `f` with timeout if set.
-    fn with_timeout<T>(&self, f: impl FnOnce() -> T) -> T {
-        if let Some(timeout) = self.timeout {
+    /// Create a new state for an aggregate function.
+    ///
+    /// # Example
+    /// ```
+    #[doc = include_str!("doc_create_aggregate.txt")]
+    /// let state = runtime.create_state("sum").unwrap();
+    /// assert_eq!(&*state, &Int32Array::from(vec![0]));
+    /// ```
+    pub fn create_state(&self, name: &str) -> Result<ArrayRef> {
+        let aggregate = self.aggregates.get(name).context("function not found")?;
+        let state = self.context.with(|ctx| {
+            let create_state = aggregate.create_state.clone().restore(&ctx)?;
+            let state = self
+                .call_user_fn(&ctx, &create_state, Args::new(ctx.clone(), 0))
+                .context("failed to call create_state")?;
+            let state = self
+                .converter
+                .build_array(&aggregate.state_field, &ctx, vec![state])?;
+            Ok(state) as Result<_>
+        })?;
+        Ok(state)
+    }
+
+    /// Call accumulate of an aggregate function.
+    ///
+    /// # Example
+    /// ```
+    #[doc = include_str!("doc_create_aggregate.txt")]
+    /// let state = runtime.create_state("sum").unwrap();
+    ///
+    /// let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
+    /// let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+    ///
+    /// let state = runtime.accumulate("sum", &state, &input).unwrap();
+    /// assert_eq!(&*state, &Int32Array::from(vec![9]));
+    /// ```
+    pub fn accumulate(
+        &self,
+        name: &str,
+        state: &dyn Array,
+        input: &RecordBatch,
+    ) -> Result<ArrayRef> {
+        let aggregate = self.aggregates.get(name).context("function not found")?;
+        // convert each row to python objects and call the accumulate function
+        let new_state = self.context.with(|ctx| {
+            let accumulate = aggregate.accumulate.clone().restore(&ctx)?;
+            let mut state = self
+                .converter
+                .get_jsvalue(&ctx, &aggregate.state_field, state, 0)?;
+
+            let mut row = Vec::with_capacity(1 + input.num_columns());
+            for i in 0..input.num_rows() {
+                if aggregate.mode == CallMode::ReturnNullOnNullInput
+                    && input.columns().iter().any(|column| column.is_null(i))
+                {
+                    continue;
+                }
+                row.clear();
+                row.push(state.clone());
+                for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+                    let pyobj = self.converter.get_jsvalue(&ctx, field, column, i)?;
+                    row.push(pyobj);
+                }
+                let mut args = Args::new(ctx.clone(), row.len());
+                args.push_args(row.drain(..))?;
+                state = self
+                    .call_user_fn(&ctx, &accumulate, args)
+                    .context("failed to call accumulate")?;
+            }
+            let output = self
+                .converter
+                .build_array(&aggregate.state_field, &ctx, vec![state])?;
+            Ok(output) as Result<_>
+        })?;
+        Ok(new_state)
+    }
+
+    /// Call accumulate or retract of an aggregate function.
+    ///
+    /// The `ops` is a boolean array that indicates whether to accumulate or retract each row.
+    /// `false` for accumulate and `true` for retract.
+    ///
+    /// # Example
+    /// ```
+    #[doc = include_str!("doc_create_aggregate.txt")]
+    /// let state = runtime.create_state("sum").unwrap();
+    ///
+    /// let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
+    /// let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    /// let ops = BooleanArray::from(vec![false, false, true, false]);
+    /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+    ///
+    /// let state = runtime.accumulate_or_retract("sum", &state, &ops, &input).unwrap();
+    /// assert_eq!(&*state, &Int32Array::from(vec![3]));
+    /// ```
+    pub fn accumulate_or_retract(
+        &self,
+        name: &str,
+        state: &dyn Array,
+        ops: &BooleanArray,
+        input: &RecordBatch,
+    ) -> Result<ArrayRef> {
+        let aggregate = self.aggregates.get(name).context("function not found")?;
+        // convert each row to python objects and call the accumulate function
+        let new_state = self.context.with(|ctx| {
+            let accumulate = aggregate.accumulate.clone().restore(&ctx)?;
+            let retract = aggregate
+                .retract
+                .clone()
+                .context("function does not support retraction")?
+                .restore(&ctx)?;
+
+            let mut state = self
+                .converter
+                .get_jsvalue(&ctx, &aggregate.state_field, state, 0)?;
+
+            let mut row = Vec::with_capacity(1 + input.num_columns());
+            for i in 0..input.num_rows() {
+                if aggregate.mode == CallMode::ReturnNullOnNullInput
+                    && input.columns().iter().any(|column| column.is_null(i))
+                {
+                    continue;
+                }
+                row.clear();
+                row.push(state.clone());
+                for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+                    let pyobj = self.converter.get_jsvalue(&ctx, field, column, i)?;
+                    row.push(pyobj);
+                }
+                let func = if ops.is_valid(i) && ops.value(i) {
+                    &retract
+                } else {
+                    &accumulate
+                };
+                let mut args = Args::new(ctx.clone(), row.len());
+                args.push_args(row.drain(..))?;
+                state = self
+                    .call_user_fn(&ctx, func, args)
+                    .context("failed to call accumulate or retract")?;
+            }
+            let output = self
+                .converter
+                .build_array(&aggregate.state_field, &ctx, vec![state])?;
+            Ok(output) as Result<_>
+        })?;
+        Ok(new_state)
+    }
+
+    /// Merge states of an aggregate function.
+    ///
+    /// # Example
+    /// ```
+    #[doc = include_str!("doc_create_aggregate.txt")]
+    /// let states = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
+    ///
+    /// let state = runtime.merge("sum", &states).unwrap();
+    /// assert_eq!(&*state, &Int32Array::from(vec![9]));
+    /// ```
+    pub fn merge(&self, name: &str, states: &dyn Array) -> Result<ArrayRef> {
+        let aggregate = self.aggregates.get(name).context("function not found")?;
+        let output = self.context.with(|ctx| {
+            let merge = aggregate
+                .merge
+                .clone()
+                .context("merge not found")?
+                .restore(&ctx)?;
+            let mut state = self
+                .converter
+                .get_jsvalue(&ctx, &aggregate.state_field, states, 0)?;
+            for i in 1..states.len() {
+                if aggregate.mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
+                    continue;
+                }
+                let state2 = self
+                    .converter
+                    .get_jsvalue(&ctx, &aggregate.state_field, states, i)?;
+                let mut args = Args::new(ctx.clone(), 2);
+                args.push_args([state, state2])?;
+                state = self
+                    .call_user_fn(&ctx, &merge, args)
+                    .context("failed to call accumulate or retract")?;
+            }
+            let output = self
+                .converter
+                .build_array(&aggregate.state_field, &ctx, vec![state])?;
+            Ok(output) as Result<_>
+        })?;
+        Ok(output)
+    }
+
+    /// Get the result of an aggregate function.
+    ///
+    /// If the `finish` function is not defined, the state is returned as the result.
+    ///
+    /// # Example
+    /// ```
+    #[doc = include_str!("doc_create_aggregate.txt")]
+    /// let states: ArrayRef = Arc::new(Int32Array::from(vec![Some(1), None, Some(3), Some(5)]));
+    ///
+    /// let outputs = runtime.finish("sum", &states).unwrap();
+    /// assert_eq!(&outputs, &states);
+    /// ```
+    pub fn finish(&self, name: &str, states: &ArrayRef) -> Result<ArrayRef> {
+        let aggregate = self.aggregates.get(name).context("function not found")?;
+        let Some(finish) = &aggregate.finish else {
+            return Ok(states.clone());
+        };
+        let output = self.context.with(|ctx| {
+            let finish = finish.clone().restore(&ctx)?;
+            let mut results = Vec::with_capacity(states.len());
+            for i in 0..states.len() {
+                if aggregate.mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
+                    results.push(Value::new_null(ctx.clone()));
+                    continue;
+                }
+                let state = self
+                    .converter
+                    .get_jsvalue(&ctx, &aggregate.state_field, states, i)?;
+                let mut args = Args::new(ctx.clone(), 1);
+                args.push_args([state])?;
+                let result = self
+                    .call_user_fn(&ctx, &finish, args)
+                    .context("failed to call finish")?;
+                results.push(result);
+            }
+            let output = self
+                .converter
+                .build_array(&aggregate.output_field, &ctx, results)?;
+            Ok(output) as Result<_>
+        })?;
+        Ok(output)
+    }
+
+    /// Call a user function.
+    ///
+    /// If `timeout` is set, the function will be interrupted after the timeout.
+    fn call_user_fn<'js, T: FromJs<'js>>(
+        &self,
+        ctx: &Ctx<'js>,
+        f: &rquickjs::Function<'js>,
+        args: Args<'js>,
+    ) -> Result<T> {
+        let result = if let Some(timeout) = self.timeout {
             self.deadline
                 .store(Some(Instant::now() + timeout), Ordering::Relaxed);
-            let result = f();
+            let result = f.call_arg(args);
             self.deadline.store(None, Ordering::Relaxed);
             result
         } else {
-            f()
-        }
+            f.call_arg(args)
+        };
+        result.map_err(|e| check_exception(e, ctx))
     }
 }
 
@@ -306,10 +664,9 @@ impl RecordBatchIter<'_> {
                     }
                     let mut args = Args::new(ctx.clone(), row.len());
                     args.push_args(row.drain(..))?;
-                    let gen = self
+                    let gen: Object = self
                         .rt
-                        .with_timeout(|| js_function.call_arg::<Object>(args))
-                        .map_err(|e| check_exception(e, &ctx))
+                        .call_user_fn(&ctx, &js_function, args)
                         .context("failed to call function")?;
                     let next: rquickjs::Function =
                         gen.get("next").context("failed to get 'next' method")?;
@@ -321,8 +678,7 @@ impl RecordBatchIter<'_> {
                 args.this(gen.clone())?;
                 let object: Object = self
                     .rt
-                    .with_timeout(|| next.call_arg(args))
-                    .map_err(|e| check_exception(e, &ctx))
+                    .call_user_fn(&ctx, next, args)
                     .context("failed to call next")?;
                 let value: Value = object.get("value")?;
                 let done: bool = object.get("done")?;

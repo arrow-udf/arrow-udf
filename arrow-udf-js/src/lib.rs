@@ -16,22 +16,15 @@
 
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
-use std::time::Duration;
-use std::time::Instant;
+use std::sync::{atomic::Ordering, Arc};
+use std::time::{Duration, Instant};
 
-use anyhow::bail;
-use anyhow::{anyhow, Context as _, Result};
-use arrow_array::Array;
-use arrow_array::ArrayRef;
-use arrow_array::BooleanArray;
-use arrow_array::{builder::Int32Builder, RecordBatch};
+use anyhow::{anyhow, bail, Context as _, Result};
+use arrow_array::{builder::Int32Builder, Array, ArrayRef, BooleanArray, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
-use rquickjs::module::Evaluated;
-use rquickjs::FromJs;
 use rquickjs::{
-    context::intrinsic::All, function::Args, Context, Ctx, Module, Object, Persistent, Value,
+    context::intrinsic::All, function::Args, module::Evaluated, Context, Ctx, FromJs, Module,
+    Object, Persistent, Value,
 };
 
 use self::into_field::IntoField;
@@ -43,7 +36,7 @@ mod jsarrow;
 pub struct Runtime {
     functions: HashMap<String, Function>,
     aggregates: HashMap<String, Aggregate>,
-    // NOTE: `functions` must be put before the runtime and context to be dropped first.
+    // NOTE: `functions` and `aggregates` must be put before the `runtime` and `context` to be dropped first.
     converter: jsarrow::Converter,
     runtime: rquickjs::Runtime,
     context: Context,

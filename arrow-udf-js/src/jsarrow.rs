@@ -134,14 +134,8 @@ pub struct Converter {
     decimal_extension_name: Cow<'static, str>,
 }
 
-impl Default for Converter {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Converter {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             arrow_extension_key: "ARROW:extension:name".into(),
             json_extension_name: "arrowudf.json".into(),
@@ -149,20 +143,29 @@ impl Converter {
         }
     }
 
+    /// Set the key for the arrow extension.
+    ///
+    /// The default value is `ARROW:extension:name`.
     pub fn set_arrow_extension_key(&mut self, key: &str) {
         self.arrow_extension_key = key.to_string().into();
     }
 
+    /// Set the name for the json extension.
+    ///
+    /// The default value is `arrowudf.json`.
     pub fn set_json_extension_name(&mut self, name: &str) {
         self.json_extension_name = name.to_string().into();
     }
 
+    /// Set the name for the decimal extension.
+    ///
+    /// The default value is `arrowudf.decimal`.
     pub fn set_decimal_extension_name(&mut self, name: &str) {
         self.decimal_extension_name = name.to_string().into();
     }
 
     /// Get array element as a JS Value.
-    pub fn get_jsvalue<'a>(
+    pub(super) fn get_jsvalue<'a>(
         &self,
         ctx: &Ctx<'a>,
         field: &Field,
@@ -280,7 +283,7 @@ impl Converter {
         }
     }
 
-    pub fn build_array<'a>(
+    pub(super) fn build_array<'a>(
         &self,
         field: &Field,
         ctx: &Ctx<'a>,

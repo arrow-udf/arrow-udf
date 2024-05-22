@@ -44,7 +44,7 @@ pub struct Runtime {
     functions: HashMap<String, Function>,
     aggregates: HashMap<String, Aggregate>,
     // NOTE: `functions` must be put before the runtime and context to be dropped first.
-    pub converter: jsarrow::Converter,
+    converter: jsarrow::Converter,
     runtime: rquickjs::Runtime,
     context: Context,
     /// Timeout of each function call.
@@ -138,6 +138,11 @@ impl Runtime {
         } else {
             self.runtime.set_interrupt_handler(None);
         }
+    }
+
+    /// Return the converter where you can configure the extension metadata key and values.
+    pub fn converter_mut(&mut self) -> &mut jsarrow::Converter {
+        &mut self.converter
     }
 
     /// Add a JS function.

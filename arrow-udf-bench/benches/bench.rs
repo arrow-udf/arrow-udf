@@ -240,7 +240,7 @@ fn bench_eval_decimal(c: &mut Criterion) {
     "#;
 
     let python_code = r#"
-def decimal(a):
+def decimal_(a):
     return a
     "#;
 
@@ -289,13 +289,13 @@ def decimal(a):
     c.bench_function("decimal/python", |bencher| {
         let mut rt = PythonRuntime::new().unwrap();
         rt.add_function(
-            "decimal",
+            "decimal_",
             decimal_field("decimal"),
             arrow_udf_python::CallMode::ReturnNullOnNullInput,
             python_code,
         )
         .unwrap();
-        bencher.iter(|| rt.call("decimal", &input).unwrap())
+        bencher.iter(|| rt.call("decimal_", &input).unwrap())
     });
 }
 

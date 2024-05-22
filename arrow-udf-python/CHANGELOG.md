@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add extension type `arrowudf.pickle`.
 
+### Fixed
+
+- Fix the abort issue when using decimal for the second time.
+
 ## [0.1.0] - 2024-04-25
 
 ### Added

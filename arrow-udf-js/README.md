@@ -147,8 +147,9 @@ The following table shows the type mapping between Arrow and JavaScript:
 | List(others)          | Array          |
 | Struct                | object         |
 
-| Extension Type | Physical Type | Metadata                                    | JS Type       |
-| -------------- | ------------- | ------------------------------------------- | ------------- |
-| JSON           | String        | `ARROW:extension:name` = `arrowudf.json`    | any (parsed by `JSON.parse(string)`) |
-| JSON           | LargeBinary   | `ARROW:extension:name` = `arrowudf.json`    | any (parsed by `JSON.parse(string)`) |
-| Decimal        | String        | `ARROW:extension:name` = `arrowudf.decimal` | BigDecimal    |
+This crate also supports the following [Arrow extension types](https://arrow.apache.org/docs/format/Columnar.html#extension-types):
+
+| Extension Type | Physical Type               | `ARROW:extension:name` | JS Type       |
+| -------------- | --------------------------- | ---------------------- | ------------- |
+| JSON           | String, Binary, LargeBinary | `arrowudf.json`        | any (parsed by `JSON.parse(string)`) |
+| Decimal        | String                      | `arrowudf.decimal`     | BigDecimal    |

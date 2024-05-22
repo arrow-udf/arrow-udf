@@ -1,6 +1,6 @@
 [package]
 name = "arrow-udf-js"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "JavaScript runtime for Arrow UDFs."
 repository = "https://github.com/risingwavelabs/arrow-udf"
@@ -14,8 +14,9 @@ arrow-array = ">=50"
 arrow-buffer = ">=50"
 arrow-schema = ">=50"
 atomic-time = "0.1"
-rquickjs = { version = "0.5", features = ["array-buffer", "parallel"] }
+rquickjs = { version = "0.6", features = ["array-buffer", "parallel"] }
 
 [dev-dependencies]
 arrow-cast = { version = ">=50", features = ["prettyprint"] }
+arrow-select = ">=50"
 expect-test = "1"

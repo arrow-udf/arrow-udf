@@ -18,7 +18,7 @@ use arrow_array::{array::*, builder::*};
 use arrow_buffer::OffsetBuffer;
 use arrow_schema::{DataType, Field};
 use pyo3::{types::PyAnyMethods, IntoPy, PyObject, PyResult, Python};
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 macro_rules! get_pyobject {
     ($array_type: ty, $py:expr, $array:expr, $i:expr) => {{
@@ -83,35 +83,35 @@ macro_rules! build_json_array {
 
 #[derive(Debug, Clone)]
 pub struct Converter {
-    arrow_extension_key: String,
-    json_extension_name: String,
-    decimal_extension_name: String,
-    pickle_extension_name: String,
+    arrow_extension_key: Cow<'static, str>,
+    json_extension_name: Cow<'static, str>,
+    decimal_extension_name: Cow<'static, str>,
+    pickle_extension_name: Cow<'static, str>,
 }
 
 impl Converter {
     pub fn new() -> Self {
         Self {
-            arrow_extension_key: "ARROW:extension:name".to_string(),
-            json_extension_name: "arrowudf.json".to_string(),
-            decimal_extension_name: "arrowudf.decimal".to_string(),
-            pickle_extension_name: "arrowudf.pickle".to_string(),
+            arrow_extension_key: "ARROW:extension:name".into(),
+            json_extension_name: "arrowudf.json".into(),
+            decimal_extension_name: "arrowudf.decimal".into(),
+            pickle_extension_name: "arrowudf.pickle".into(),
         }
     }
 
     #[allow(dead_code)]
     pub fn set_arrow_extension_key(&mut self, key: &str) {
-        self.arrow_extension_key = key.to_string();
+        self.arrow_extension_key = key.to_string().into();
     }
 
     #[allow(dead_code)]
     pub fn set_json_extension_name(&mut self, name: &str) {
-        self.json_extension_name = name.to_string();
+        self.json_extension_name = name.to_string().into();
     }
 
     #[allow(dead_code)]
     pub fn set_decimal_extension_name(&mut self, name: &str) {
-        self.decimal_extension_name = name.to_string();
+        self.decimal_extension_name = name.to_string().into();
     }
 
     /// Get array element as a python object.
@@ -139,19 +139,15 @@ impl Converter {
             DataType::Float32 => get_pyobject!(Float32Array, py, array, i),
             DataType::Float64 => get_pyobject!(Float64Array, py, array, i),
             // TODO: make this a macro
-            DataType::Utf8 => match field
-                .metadata()
-                .get(self.arrow_extension_key.as_str())
-                .map(|s| s.as_str())
-            {
-                Some(x) if x == self.json_extension_name.as_str() => {
+            DataType::Utf8 => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == &self.json_extension_name => {
                     let array = array.as_any().downcast_ref::<StringArray>().unwrap();
                     let string = array.value(i);
                     // XXX: it is slow to call eval every time
                     let json_loads = py.eval_bound("json.loads", None, None)?;
                     json_loads.call1((string,))?.into()
                 }
-                Some(x) if x == self.decimal_extension_name.as_str() => {
+                Some(x) if x == &self.decimal_extension_name => {
                     let array = array.as_any().downcast_ref::<StringArray>().unwrap();
                     let string = array.value(i);
                     // XXX: it is slow to call eval every time
@@ -161,12 +157,8 @@ impl Converter {
                 _ => get_pyobject!(StringArray, py, array, i),
             },
             DataType::LargeUtf8 => get_pyobject!(LargeStringArray, py, array, i),
-            DataType::Binary => match field
-                .metadata()
-                .get(self.arrow_extension_key.as_str())
-                .map(|s| s.as_str())
-            {
-                Some(x) if x == self.pickle_extension_name.as_str() => {
+            DataType::Binary => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == &self.pickle_extension_name => {
                     let array = array.as_any().downcast_ref::<BinaryArray>().unwrap();
                     let bytes = array.value(i);
                     let pickle_loads = py.eval_bound("pickle.loads", None, None)?;
@@ -217,15 +209,11 @@ impl Converter {
             DataType::UInt64 => build_array!(UInt64Builder, py, values),
             DataType::Float32 => build_array!(Float32Builder, py, values),
             DataType::Float64 => build_array!(Float64Builder, py, values),
-            DataType::Utf8 => match field
-                .metadata()
-                .get(self.arrow_extension_key.as_str())
-                .map(|s| s.as_str())
-            {
-                Some(x) if x == self.json_extension_name.as_str() => {
+            DataType::Utf8 => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == &self.json_extension_name => {
                     build_json_array!(py, values)
                 }
-                Some(x) if x == self.decimal_extension_name.as_str() => {
+                Some(x) if x == &self.decimal_extension_name => {
                     let mut builder = StringBuilder::with_capacity(values.len(), 1024);
                     for val in values {
                         if val.is_none(py) {
@@ -239,12 +227,8 @@ impl Converter {
                 _ => build_array!(StringBuilder, &str, py, values),
             },
             DataType::LargeUtf8 => build_array!(LargeStringBuilder, &str, py, values),
-            DataType::Binary => match field
-                .metadata()
-                .get(self.arrow_extension_key.as_str())
-                .map(|s| s.as_str())
-            {
-                Some(x) if x == self.pickle_extension_name.as_str() => {
+            DataType::Binary => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == &self.pickle_extension_name => {
                     let pickle_dumps = py.eval_bound("pickle.dumps", None, None)?;
 
                     let mut builder = BinaryBuilder::with_capacity(1, 0);
@@ -261,16 +245,14 @@ impl Converter {
                 }
                 _ => build_array!(BinaryBuilder, &[u8], py, values),
             },
-            DataType::LargeBinary => match field
-                .metadata()
-                .get(self.arrow_extension_key.as_str())
-                .map(|s| s.as_str())
-            {
-                Some(x) if x == self.json_extension_name.as_str() => {
-                    build_json_array!(py, values)
+            DataType::LargeBinary => {
+                match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                    Some(x) if x == &self.json_extension_name => {
+                        build_json_array!(py, values)
+                    }
+                    _ => build_array!(LargeBinaryBuilder, &[u8], py, values),
                 }
-                _ => build_array!(LargeBinaryBuilder, &[u8], py, values),
-            },
+            }
             // list
             DataType::List(inner) => {
                 // flatten lists

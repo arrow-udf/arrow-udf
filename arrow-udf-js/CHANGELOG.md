@@ -7,9 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2024-05-22
+
 ### Added
 
 - Add `Runtime::{set_memory_limit, set_timeout}` to limit memory usage and execution time.
+- Add methods to support aggregate functions.
+    - `add_aggregate`
+    - `create_state`
+    - `accumulate`
+    - `accumulate_or_retract`
+    - `merge`
+    - `finish`
+
+### Changed
+
+- Update rquickjs to v0.6.2.
 
 ## [0.2.0] - 2024-04-25
 

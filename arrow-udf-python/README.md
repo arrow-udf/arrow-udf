@@ -77,19 +77,26 @@ let mode = CallMode::ReturnNullOnNullInput;
 runtime.add_function("key_value", return_type, mode, python_code).unwrap();
 ```
 
-## Pickle Type
+## Extension Type
 
-This crate supports one more extension type, the pickle type.
+This crate also supports the following [Arrow extension types](https://arrow.apache.org/docs/format/Columnar.html#extension-types):
+
+| Extension Type | Physical Type  | `ARROW:extension:name` | Python Type                    |
+| -------------- | -------------- | ---------------------- | ------------------------------ |
+| JSON           | String         | `arrowudf.json`        | any (parsed by `json.loads`)   |
+| Decimal        | String         | `arrowudf.decimal`     | decimal.Decimal                |
+| Pickle         | Binary         | `arrowudf.pickle`      | any (parsed by `pickle.loads`) |
+
+### Pickle Type
+
 When a field is pickle type, the data is stored in a binary array in serialized form.
 
-| Extension Type | Physical Type | Metadata                                    |
-| -------------- | ------------- | ------------------------------------------- |
-| Pickle         | Binary        | `ARROW:extension:name` = `arrowudf.pickle`  |
-
-```rust,ignore
-let pickle_field = Field::new(name, DataType::Binary, true)
+```rust
+# use arrow_schema::{Field, DataType};
+# use arrow_array::BinaryArray;
+let pickle_field = Field::new("pickle", DataType::Binary, true)
     .with_metadata([("ARROW:extension:name".into(), "arrowudf.pickle".into())].into());
-let pickle_array = BinaryArray::from(vec![b"xxxxx"]);
+let pickle_array = BinaryArray::from(vec![&b"xxxxx"[..]]);
 ```
 
 Pickle type is useful for the state of aggregation functions when the state is complex.

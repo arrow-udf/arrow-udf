@@ -23,7 +23,7 @@ use rquickjs::{
     function::Args, function::Constructor, Ctx, Error, FromJs, Function, IntoJs, Object,
     TypedArray, Value,
 };
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 macro_rules! get_jsvalue {
     ($array_type: ty, $ctx:expr, $array:expr, $i:expr) => {{
@@ -129,43 +129,43 @@ macro_rules! build_json_array {
 
 #[derive(Debug, Clone)]
 pub struct Converter {
-    arrow_extension_key: String,
-    json_extension_name: String,
-    decimal_extension_name: String,
-}
-
-impl Default for Converter {
-    fn default() -> Self {
-        Self::new()
-    }
+    arrow_extension_key: Cow<'static, str>,
+    json_extension_name: Cow<'static, str>,
+    decimal_extension_name: Cow<'static, str>,
 }
 
 impl Converter {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
-            arrow_extension_key: "ARROW:extension:name".to_string(),
-            json_extension_name: "arrowudf.json".to_string(),
-            decimal_extension_name: "arrowudf.decimal".to_string(),
+            arrow_extension_key: "ARROW:extension:name".into(),
+            json_extension_name: "arrowudf.json".into(),
+            decimal_extension_name: "arrowudf.decimal".into(),
         }
     }
 
-    #[allow(dead_code)]
+    /// Set the key for the arrow extension.
+    ///
+    /// The default value is `ARROW:extension:name`.
     pub fn set_arrow_extension_key(&mut self, key: &str) {
-        self.arrow_extension_key = key.to_string();
+        self.arrow_extension_key = key.to_string().into();
     }
 
-    #[allow(dead_code)]
+    /// Set the name for the json extension.
+    ///
+    /// The default value is `arrowudf.json`.
     pub fn set_json_extension_name(&mut self, name: &str) {
-        self.json_extension_name = name.to_string();
+        self.json_extension_name = name.to_string().into();
     }
 
-    #[allow(dead_code)]
+    /// Set the name for the decimal extension.
+    ///
+    /// The default value is `arrowudf.decimal`.
     pub fn set_decimal_extension_name(&mut self, name: &str) {
-        self.decimal_extension_name = name.to_string();
+        self.decimal_extension_name = name.to_string().into();
     }
 
     /// Get array element as a JS Value.
-    pub fn get_jsvalue<'a>(
+    pub(super) fn get_jsvalue<'a>(
         &self,
         ctx: &Ctx<'a>,
         field: &Field,
@@ -189,38 +189,35 @@ impl Converter {
             DataType::UInt64 => get_jsvalue!(UInt64Array, ctx, array, i),
             DataType::Float32 => get_jsvalue!(Float32Array, ctx, array, i),
             DataType::Float64 => get_jsvalue!(Float64Array, ctx, array, i),
-            DataType::Utf8 => {
-                match field
-                    .metadata()
-                    .get(self.arrow_extension_key.as_str())
-                    .map(|s| s.as_str())
-                {
-                    Some(x) if x == self.json_extension_name.as_str() => {
-                        let array = array.as_any().downcast_ref::<StringArray>().unwrap();
+            DataType::Utf8 => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == self.json_extension_name.as_ref() => {
+                    let array = array.as_any().downcast_ref::<StringArray>().unwrap();
+                    ctx.json_parse(array.value(i))
+                }
+                Some(x) if x == self.decimal_extension_name.as_ref() => {
+                    let array = array.as_any().downcast_ref::<StringArray>().unwrap();
+
+                    self.call_bigdecimal(ctx, array.value(i))
+                }
+                _ => get_jsvalue!(StringArray, ctx, array, i),
+            },
+            DataType::Binary => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == self.json_extension_name.as_ref() => {
+                    let array = array.as_any().downcast_ref::<BinaryArray>().unwrap();
+                    ctx.json_parse(array.value(i))
+                }
+                _ => get_jsvalue!(BinaryArray, ctx, array, i),
+            },
+            DataType::LargeUtf8 => get_jsvalue!(LargeStringArray, ctx, array, i),
+            DataType::LargeBinary => {
+                match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                    Some(x) if x == self.json_extension_name.as_ref() => {
+                        let array = array.as_any().downcast_ref::<LargeBinaryArray>().unwrap();
                         ctx.json_parse(array.value(i))
                     }
-                    Some(x) if x == self.decimal_extension_name.as_str() => {
-                        let array = array.as_any().downcast_ref::<StringArray>().unwrap();
-
-                        self.call_bigdecimal(ctx, array.value(i))
-                    }
-                    _ => get_jsvalue!(StringArray, ctx, array, i),
+                    _ => get_jsvalue!(LargeBinaryArray, ctx, array, i),
                 }
             }
-            DataType::Binary => get_jsvalue!(BinaryArray, ctx, array, i),
-            DataType::LargeUtf8 => get_jsvalue!(LargeStringArray, ctx, array, i),
-            DataType::LargeBinary => match field
-                .metadata()
-                .get(self.arrow_extension_key.as_str())
-                .map(|s| s.as_str())
-            {
-                Some(x) if x == self.json_extension_name.as_str() => {
-                    let array = array.as_any().downcast_ref::<LargeBinaryArray>().unwrap();
-                    let string = std::str::from_utf8(array.value(i))?;
-                    ctx.json_parse(string)
-                }
-                _ => get_jsvalue!(LargeBinaryArray, ctx, array, i),
-            },
             DataType::Decimal128(_, _) => {
                 let array = array.as_any().downcast_ref::<Decimal128Array>().unwrap();
                 let decimal_str = array.value_as_string(i);
@@ -291,7 +288,7 @@ impl Converter {
         }
     }
 
-    pub fn build_array<'a>(
+    pub(super) fn build_array<'a>(
         &self,
         field: &Field,
         ctx: &Ctx<'a>,
@@ -310,15 +307,11 @@ impl Converter {
             DataType::UInt64 => build_array!(UInt64Builder, ctx, values),
             DataType::Float32 => build_array!(Float32Builder, ctx, values),
             DataType::Float64 => build_array!(Float64Builder, ctx, values),
-            DataType::Utf8 => match field
-                .metadata()
-                .get(self.arrow_extension_key.as_str())
-                .map(|s| s.as_str())
-            {
-                Some(x) if x == self.json_extension_name.as_str() => {
+            DataType::Utf8 => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == self.json_extension_name.as_ref() => {
                     build_json_array!(StringBuilder, ctx, values)
                 }
-                Some(x) if x == self.decimal_extension_name.as_str() => {
+                Some(x) if x == self.decimal_extension_name.as_ref() => {
                     let mut builder = StringBuilder::with_capacity(values.len(), 1024);
                     let bigdecimal_to_string: Function = ctx
                         .eval("BigDecimal.prototype.toString")
@@ -343,17 +336,20 @@ impl Converter {
                 _ => build_array!(StringBuilder, String, ctx, values),
             },
             DataType::LargeUtf8 => build_array!(LargeStringBuilder, String, ctx, values),
-            DataType::Binary => build_array!(BinaryBuilder, Vec::<u8>, ctx, values),
-            DataType::LargeBinary => match field
-                .metadata()
-                .get(self.arrow_extension_key.as_str())
-                .map(|s| s.as_str())
-            {
-                Some(x) if x == self.json_extension_name.as_str() => {
-                    build_json_array!(LargeBinaryBuilder, ctx, values)
+            DataType::Binary => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == self.json_extension_name.as_ref() => {
+                    build_json_array!(BinaryBuilder, ctx, values)
                 }
-                _ => build_array!(LargeBinaryBuilder, Vec::<u8>, ctx, values),
+                _ => build_array!(BinaryBuilder, Vec::<u8>, ctx, values),
             },
+            DataType::LargeBinary => {
+                match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                    Some(x) if x == self.json_extension_name.as_ref() => {
+                        build_json_array!(LargeBinaryBuilder, ctx, values)
+                    }
+                    _ => build_array!(LargeBinaryBuilder, Vec::<u8>, ctx, values),
+                }
+            }
             DataType::Decimal128(precision, scale) => {
                 let mut builder = Decimal128Builder::with_capacity(values.len())
                     .with_precision_and_scale(*precision, *scale)?;

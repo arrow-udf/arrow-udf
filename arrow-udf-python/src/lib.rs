@@ -128,6 +128,7 @@ impl Builder {
 # internal use for json types
 import json
 import pickle
+import decimal
 
 # an internal class used for struct input arguments
 class Struct:
@@ -756,6 +757,7 @@ impl Drop for Runtime {
         // `PyObject` must be dropped inside the interpreter
         _ = self.interpreter.with_gil(|_| {
             self.functions.clear();
+            self.aggregates.clear();
             Ok(())
         });
     }

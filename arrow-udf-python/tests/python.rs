@@ -321,6 +321,14 @@ def key_value2(s: str):
 }
 
 #[test]
+fn test_runtime() {
+    let runtime = Runtime::new().unwrap();
+    drop(runtime);
+    let runtime = Runtime::new().unwrap();
+    drop(runtime);
+}
+
+#[test]
 fn test_struct_to_json() {
     let mut runtime = Runtime::new().unwrap();
 

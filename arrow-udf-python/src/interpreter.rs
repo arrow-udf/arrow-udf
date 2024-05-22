@@ -36,6 +36,13 @@ impl SubInterpreter {
     /// Create a new sub-interpreter.
     pub fn new() -> Result<Self, PyError> {
         prepare_freethreaded_python();
+        // XXX: import the `decimal` module in the main interpreter before creating sub-interpreters.
+        //      otherwise it will cause `SIGABRT: pointer being freed was not allocated`
+        //      when importing decimal in the second sub-interpreter.
+        Python::with_gil(|py| {
+            py.import_bound("decimal").unwrap();
+        });
+
         // reference: https://github.com/PyO3/pyo3/blob/9a36b5078989a7c07a5e880aea3c6da205585ee3/examples/sequential/tests/test.rs
         let config = PyInterpreterConfig {
             use_main_obmalloc: 0,

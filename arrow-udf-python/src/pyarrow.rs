@@ -151,7 +151,7 @@ impl Converter {
                     let array = array.as_any().downcast_ref::<StringArray>().unwrap();
                     let string = array.value(i);
                     // XXX: it is slow to call eval every time
-                    let decimal_constructor = py.import_bound("decimal")?.getattr("Decimal")?;
+                    let decimal_constructor = py.eval_bound("decimal.Decimal", None, None)?;
                     decimal_constructor.call1((string,))?.into()
                 }
                 _ => get_pyobject!(StringArray, py, array, i),

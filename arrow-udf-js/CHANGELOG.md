@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `Runtime::{set_memory_limit, set_timeout}` to limit memory usage and execution time.
 
+### Changed
+
+- Update rquickjs to v0.6.2.
+
 ## [0.2.0] - 2024-04-25
 
 ### Breaking Changes

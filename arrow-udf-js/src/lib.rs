@@ -24,7 +24,9 @@ use std::time::Instant;
 use anyhow::{anyhow, Context as _, Result};
 use arrow_array::{builder::Int32Builder, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
-use rquickjs::{context::intrinsic::All, function::Args, Context, Ctx, Object, Persistent, Value};
+use rquickjs::{
+    context::intrinsic::All, function::Args, Context, Ctx, Module, Object, Persistent, Value,
+};
 
 use self::into_field::IntoField;
 
@@ -136,11 +138,12 @@ impl Runtime {
         handler: &str,
     ) -> Result<()> {
         let function = self.context.with(|ctx| {
-            let module = ctx
-                .clone()
-                .compile("main", code)
+            let (module, _) = Module::declare(ctx.clone(), name, code)
                 .map_err(|e| check_exception(e, &ctx))
-                .context("failed to compile module")?;
+                .context("failed to declare module")?
+                .eval()
+                .map_err(|e| check_exception(e, &ctx))
+                .context("failed to evaluate module")?;
             let function: rquickjs::Function = module
                 .get(handler)
                 .context("failed to get function. HINT: make sure the function is exported")?;

@@ -219,6 +219,38 @@ fn test_json_stringify() {
 }
 
 #[test]
+fn test_binary_json_stringify() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "add_element",
+            binary_json_field("object"),
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export function add_element(object) {
+                object.push(10);
+                return object;
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![binary_json_field("json")]);
+    let arg0 = BinaryArray::from(vec![(r#"[1, null, ""]"#).as_bytes()]);
+    let input = RecordBatch::try_new(Arc::new(schema.clone()), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("add_element", &input).unwrap();
+    let row = output
+        .column(0)
+        .as_any()
+        .downcast_ref::<BinaryArray>()
+        .unwrap()
+        .value(0);
+    assert_eq!(std::str::from_utf8(row).unwrap(), r#"[1,null,"",10]"#);
+}
+
+#[test]
 fn test_large_binary_json_stringify() {
     let mut runtime = Runtime::new().unwrap();
 
@@ -1041,6 +1073,13 @@ fn json_field(name: &str) -> Field {
         .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into())
 }
 
+/// Returns a field with JSON type.
+fn binary_json_field(name: &str) -> Field {
+    Field::new(name, DataType::Binary, true)
+        .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into())
+}
+
+/// Returns a field with JSON type.
 fn large_binary_json_field(name: &str) -> Field {
     Field::new(name, DataType::LargeBinary, true)
         .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into())

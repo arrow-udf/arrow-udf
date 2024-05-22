@@ -201,14 +201,19 @@ impl Converter {
                 }
                 _ => get_jsvalue!(StringArray, ctx, array, i),
             },
-            DataType::Binary => get_jsvalue!(BinaryArray, ctx, array, i),
+            DataType::Binary => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == self.json_extension_name.as_ref() => {
+                    let array = array.as_any().downcast_ref::<BinaryArray>().unwrap();
+                    ctx.json_parse(array.value(i))
+                }
+                _ => get_jsvalue!(BinaryArray, ctx, array, i),
+            },
             DataType::LargeUtf8 => get_jsvalue!(LargeStringArray, ctx, array, i),
             DataType::LargeBinary => {
                 match field.metadata().get(self.arrow_extension_key.as_ref()) {
                     Some(x) if x == self.json_extension_name.as_ref() => {
                         let array = array.as_any().downcast_ref::<LargeBinaryArray>().unwrap();
-                        let string = std::str::from_utf8(array.value(i))?;
-                        ctx.json_parse(string)
+                        ctx.json_parse(array.value(i))
                     }
                     _ => get_jsvalue!(LargeBinaryArray, ctx, array, i),
                 }
@@ -331,7 +336,12 @@ impl Converter {
                 _ => build_array!(StringBuilder, String, ctx, values),
             },
             DataType::LargeUtf8 => build_array!(LargeStringBuilder, String, ctx, values),
-            DataType::Binary => build_array!(BinaryBuilder, Vec::<u8>, ctx, values),
+            DataType::Binary => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == self.json_extension_name.as_ref() => {
+                    build_json_array!(BinaryBuilder, ctx, values)
+                }
+                _ => build_array!(BinaryBuilder, Vec::<u8>, ctx, values),
+            },
             DataType::LargeBinary => {
                 match field.metadata().get(self.arrow_extension_key.as_ref()) {
                     Some(x) if x == self.json_extension_name.as_ref() => {

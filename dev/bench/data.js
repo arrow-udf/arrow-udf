@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1716226547038,
+  "lastUpdate": 1716363973573,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -7223,6 +7223,114 @@ window.BENCHMARK_DATA = {
             "name": "decimal/deno",
             "value": 839584,
             "range": "± 23828",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ca61749da24b09b410ab4f7dbb71ab9b520488c6",
+          "message": "feat(js): support user-defined aggregate function in javascript (#26)\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\nrelease arrow-udf-js 0.3.0, arrow-udf-python 0.2.0\r\n\r\n---------\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-05-22T15:31:24+08:00",
+          "tree_id": "4fd9d6e87bf68e0b6335ffdbcecefd6a3deb44a4",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/ca61749da24b09b410ab4f7dbb71ab9b520488c6"
+        },
+        "date": 1716363973195,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3884,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3983,
+            "range": "± 72",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24936,
+            "range": "± 1432",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 174240,
+            "range": "± 3871",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 229611,
+            "range": "± 406",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 263733,
+            "range": "± 7708",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 90827,
+            "range": "± 2639",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 420551,
+            "range": "± 19690",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6262311,
+            "range": "± 112314",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9515680,
+            "range": "± 164400",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 927478,
+            "range": "± 10152",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 55969,
+            "range": "± 728",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 709436,
+            "range": "± 4884",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 863669,
+            "range": "± 23482",
             "unit": "ns/iter"
           }
         ]

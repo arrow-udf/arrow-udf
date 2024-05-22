@@ -306,6 +306,30 @@ fn bench_eval_sum(c: &mut Criterion) {
     )
     .unwrap();
 
+    c.bench_function("sum/js", |bencher| {
+        let mut rt = JsRuntime::new().unwrap();
+        rt.add_aggregate(
+            "sum",
+            DataType::Int32,
+            DataType::Int32,
+            arrow_udf_js::CallMode::ReturnNullOnNullInput,
+            r#"
+            export function create_state() {
+                return 0;
+            }
+            export function accumulate(state, value) {
+                return state + value;
+            }
+            export function retract(state, value) {
+                return state - value;
+            }
+"#,
+        )
+        .unwrap();
+        let state = rt.create_state("sum").unwrap();
+        bencher.iter(|| rt.accumulate("sum", &state, &input).unwrap())
+    });
+
     c.bench_function("sum/python", |bencher| {
         let mut rt = PythonRuntime::new().unwrap();
         rt.add_aggregate(

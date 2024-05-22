@@ -77,6 +77,11 @@ jobs:
           command: test
           # Skip test_no_gil because there is only 1 core in the CI
           args: --all-features --no-fail-fast --workspace --exclude arrow-udf-flight -- --skip test_no_gil
+      - name: Test Bench
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --bench bench
 
   test-flight:
     strategy:

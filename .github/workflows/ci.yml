@@ -127,3 +127,25 @@ jobs:
           cargo test -p arrow-udf-flight
           kill $pid
           cd ../..
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          # all crates are built using the nightly toolchain on docs.rs
+          toolchain: nightly
+          override: true
+      - uses: actions/setup-python@v5
+        with:
+          # docs.rs uses Python 3.10
+          python-version: '3.10'
+      - name: Build docs
+        uses: actions-rs/cargo@v1
+        env: 
+          RUSTDOCFLAGS: "--cfg docsrs"
+          DOCS_RS: 1
+        with:
+          command: doc
+          args: --no-deps --workspace --exclude arrow-udf-js-deno

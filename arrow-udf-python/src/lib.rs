@@ -81,6 +81,7 @@ impl Debug for Runtime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Runtime")
             .field("functions", &self.functions.keys())
+            .field("aggregates", &self.aggregates.keys())
             .finish()
     }
 }

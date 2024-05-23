@@ -148,4 +148,4 @@ jobs:
           DOCS_RS: 1
         with:
           command: doc
-          args: --no-deps
+          args: --no-deps --workspace --exclude arrow-udf-js-deno

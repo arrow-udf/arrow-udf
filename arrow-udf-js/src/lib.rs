@@ -27,12 +27,35 @@ use rquickjs::{
     Object, Persistent, Value,
 };
 
-use self::into_field::IntoField;
+pub use self::into_field::IntoField;
 
 mod into_field;
 mod jsarrow;
 
-/// The JS UDF runtime.
+/// A runtime to execute user defined functions in JavaScript.
+///
+/// # Usages
+///
+/// - Create a new runtime with [`Runtime::new`].
+/// - For scalar functions, use [`add_function`] and [`call`].
+/// - For table functions, use [`add_function`] and [`call_table_function`].
+/// - For aggregate functions, create the function with [`add_aggregate`], and then
+///     - create a new state with [`create_state`],
+///     - update the state with [`accumulate`] or [`accumulate_or_retract`],
+///     - merge states with [`merge`],
+///     - finally get the result with [`finish`].
+///
+/// Click on each function to see the example.
+///
+/// [`add_function`]: Runtime::add_function
+/// [`add_aggregate`]: Runtime::add_aggregate
+/// [`call`]: Runtime::call
+/// [`call_table_function`]: Runtime::call_table_function
+/// [`create_state`]: Runtime::create_state
+/// [`accumulate`]: Runtime::accumulate
+/// [`accumulate_or_retract`]: Runtime::accumulate_or_retract
+/// [`merge`]: Runtime::merge
+/// [`finish`]: Runtime::finish
 pub struct Runtime {
     functions: HashMap<String, Function>,
     aggregates: HashMap<String, Aggregate>,
@@ -50,11 +73,13 @@ impl Debug for Runtime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Runtime")
             .field("functions", &self.functions.keys())
+            .field("aggregates", &self.aggregates.keys())
+            .field("timeout", &self.timeout)
             .finish()
     }
 }
 
-/// A registered function.
+/// A user defined scalar function or table function.
 struct Function {
     function: JsFunction,
     return_field: FieldRef,
@@ -95,7 +120,7 @@ pub enum CallMode {
 }
 
 impl Runtime {
-    /// Create a new JS UDF runtime from a JS code.
+    /// Create a new `Runtime`.
     pub fn new() -> Result<Self> {
         let runtime = rquickjs::Runtime::new().context("failed to create quickjs runtime")?;
         let context = rquickjs::Context::custom::<All>(&runtime)
@@ -138,7 +163,58 @@ impl Runtime {
         &mut self.converter
     }
 
-    /// Add a JS function.
+    /// Add a new scalar function or table function.
+    ///
+    /// # Arguments
+    ///
+    /// - `name`: The name of the function.
+    /// - `return_type`: The data type of the return value.
+    /// - `mode`: Whether the function will be called when some of its arguments are null.
+    /// - `code`: The JavaScript code of the function.
+    ///
+    /// The code should define an **exported** function with the same name as the function.
+    /// The function should return a value for scalar functions, or yield values for table functions.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use arrow_udf_js::{Runtime, CallMode};
+    /// # use arrow_schema::DataType;
+    /// let mut runtime = Runtime::new().unwrap();
+    /// // add a scalar function
+    /// runtime
+    ///     .add_function(
+    ///         "gcd",
+    ///         DataType::Int32,
+    ///         CallMode::ReturnNullOnNullInput,
+    ///         r#"
+    ///         export function gcd(a, b) {
+    ///             while (b != 0) {
+    ///                 let t = b;
+    ///                 b = a % b;
+    ///                 a = t;
+    ///             }
+    ///             return a;
+    ///         }
+    /// "#,
+    ///     )
+    ///     .unwrap();
+    /// // add a table function
+    /// runtime
+    ///     .add_function(
+    ///         "series",
+    ///         DataType::Int32,
+    ///         CallMode::ReturnNullOnNullInput,
+    ///         r#"
+    ///         export function* series(n) {
+    ///             for (let i = 0; i < n; i++) {
+    ///                 yield i;
+    ///             }
+    ///         }
+    /// "#,
+    ///     )
+    ///     .unwrap();
+    /// ```
     pub fn add_function(
         &mut self,
         name: &str,
@@ -149,7 +225,14 @@ impl Runtime {
         self.add_function_with_handler(name, return_type, mode, code, name)
     }
 
-    /// Add a JS function with custom handler name
+    /// Add a new scalar function or table function with custom handler name.
+    ///
+    /// # Arguments
+    ///
+    /// - `handler`: The name of function in Python code to be called.
+    /// - others: Same as [`add_function`].
+    ///
+    /// [`add_function`]: Runtime::add_function
     pub fn add_function_with_handler(
         &mut self,
         name: &str,
@@ -182,13 +265,13 @@ impl Runtime {
         module: &Module<'a, Evaluated>,
         name: &str,
     ) -> Result<JsFunction> {
-        let function: rquickjs::Function = module
-            .get(name)
-            .context("failed to get function. HINT: make sure the function is exported")?;
+        let function: rquickjs::Function = module.get(name).with_context(|| {
+            format!("function \"{name}\" not found. HINT: make sure the function is exported")
+        })?;
         Ok(Persistent::save(ctx, function))
     }
 
-    /// Add a new aggregate function from JS code.
+    /// Add a new aggregate function.
     ///
     /// # Arguments
     ///
@@ -196,7 +279,7 @@ impl Runtime {
     /// - `state_type`: The data type of the internal state.
     /// - `output_type`: The data type of the aggregate value.
     /// - `mode`: Whether the function will be called when some of its arguments are null.
-    /// - `code`: The JS code of the aggregate function.
+    /// - `code`: The JavaScript code of the aggregate function.
     ///
     /// The code should define at least two functions:
     ///
@@ -210,6 +293,8 @@ impl Runtime {
     ///     In this case, `output_type` must be the same as `state_type`.
     /// - `retract(state, *args) -> state`: Retract a value from the state, returning the updated state.
     /// - `merge(state, state) -> state`: Merge two states, returning the merged state.
+    ///
+    /// Each function must be **exported**.
     ///
     /// # Example
     ///
@@ -273,7 +358,26 @@ impl Runtime {
         Ok(())
     }
 
-    /// Call the JS UDF.
+    /// Call a scalar function.
+    ///
+    /// # Example
+    ///
+    /// ```
+    #[doc = include_str!("doc_create_function.txt")]
+    /// // suppose we have created a scalar function `gcd`
+    /// // see the example in `add_function`
+    ///
+    /// let schema = Schema::new(vec![
+    ///     Field::new("x", DataType::Int32, true),
+    ///     Field::new("y", DataType::Int32, true),
+    /// ]);
+    /// let arg0 = Int32Array::from(vec![Some(25), None]);
+    /// let arg1 = Int32Array::from(vec![Some(15), None]);
+    /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+    ///
+    /// let output = runtime.call("gcd", &input).unwrap();
+    /// assert_eq!(&**output.column(0), &Int32Array::from(vec![Some(5), None]));
+    /// ```
     pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let function = self.functions.get(name).context("function not found")?;
         // convert each row to python objects and call the function
@@ -315,6 +419,31 @@ impl Runtime {
     }
 
     /// Call a table function.
+    ///
+    /// # Example
+    ///
+    /// ```
+    #[doc = include_str!("doc_create_function.txt")]
+    /// // suppose we have created a table function `series`
+    /// // see the example in `add_function`
+    ///
+    /// let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    /// let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+    ///
+    /// let mut outputs = runtime.call_table_function("series", &input, 10).unwrap();
+    /// let output = outputs.next().unwrap().unwrap();
+    /// let pretty = arrow_cast::pretty::pretty_format_batches(&[output]).unwrap().to_string();
+    /// assert_eq!(pretty, r#"
+    /// +-----+--------+
+    /// | row | series |
+    /// +-----+--------+
+    /// | 0   | 0      |
+    /// | 2   | 0      |
+    /// | 2   | 1      |
+    /// | 2   | 2      |
+    /// +-----+--------+"#.trim());
+    /// ```
     pub fn call_table_function<'a>(
         &'a self,
         name: &'a str,

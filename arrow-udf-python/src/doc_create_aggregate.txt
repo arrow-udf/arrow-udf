@@ -26,5 +26,5 @@
 # "#,
 # )
 # .unwrap();
-// suppose we have created a sum aggregate function
+// suppose we have created an aggregate function `sum`
 // see the example in `add_aggregate`

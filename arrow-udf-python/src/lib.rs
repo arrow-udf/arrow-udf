@@ -41,9 +41,35 @@ mod interpreter;
 mod into_field;
 mod pyarrow;
 
-/// The Python UDF runtime.
+/// A runtime to execute user defined functions in Python.
 ///
-/// Each runtime owns a Python interpreter with its own GIL.
+/// # Usages
+///
+/// - Create a new runtime with [`Runtime::new`] or [`Runtime::builder`].
+/// - For scalar functions, use [`add_function`] and [`call`].
+/// - For table functions, use [`add_function`] and [`call_table_function`].
+/// - For aggregate functions, create the function with [`add_aggregate`], and then
+///     - create a new state with [`create_state`],
+///     - update the state with [`accumulate`] or [`accumulate_or_retract`],
+///     - merge states with [`merge`],
+///     - finally get the result with [`finish`].
+///
+/// Click on each function to see the example.
+///
+/// # Parallelism
+///
+/// As we know, Python has a Global Interpreter Lock (GIL) that prevents multiple threads from executing Python code simultaneously.
+/// To work around this limitation, each runtime creates a sub-interpreter with its own GIL. This feature requires Python 3.12 or later.
+///
+/// [`add_function`]: Runtime::add_function
+/// [`add_aggregate`]: Runtime::add_aggregate
+/// [`call`]: Runtime::call
+/// [`call_table_function`]: Runtime::call_table_function
+/// [`create_state`]: Runtime::create_state
+/// [`accumulate`]: Runtime::accumulate
+/// [`accumulate_or_retract`]: Runtime::accumulate_or_retract
+/// [`merge`]: Runtime::merge
+/// [`finish`]: Runtime::finish
 pub struct Runtime {
     interpreter: SubInterpreter,
     functions: HashMap<String, Function>,
@@ -183,7 +209,7 @@ del limited_import
 }
 
 impl Runtime {
-    /// Create a new Python UDF runtime.
+    /// Create a new `Runtime`.
     pub fn new() -> Result<Self> {
         Builder::default().build()
     }
@@ -193,7 +219,52 @@ impl Runtime {
         Builder::default()
     }
 
-    /// Add a new function from Python code.
+    /// Add a new scalar function or table function.
+    ///
+    /// # Arguments
+    ///
+    /// - `name`: The name of the function.
+    /// - `return_type`: The data type of the return value.
+    /// - `mode`: Whether the function will be called when some of its arguments are null.
+    /// - `code`: The Python code of the function.
+    ///
+    /// The code should define a function with the same name as the function.
+    /// The function should return a value for scalar functions, or yield values for table functions.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use arrow_udf_python::{Runtime, CallMode};
+    /// # use arrow_schema::DataType;
+    /// let mut runtime = Runtime::new().unwrap();
+    /// // add a scalar function
+    /// runtime
+    ///     .add_function(
+    ///         "gcd",
+    ///         DataType::Int32,
+    ///         CallMode::ReturnNullOnNullInput,
+    ///         r#"
+    /// def gcd(a: int, b: int) -> int:
+    ///     while b:
+    ///         a, b = b, a % b
+    ///     return a
+    /// "#,
+    ///     )
+    ///     .unwrap();
+    /// // add a table function
+    /// runtime
+    ///     .add_function(
+    ///         "series",
+    ///         DataType::Int32,
+    ///         CallMode::ReturnNullOnNullInput,
+    ///         r#"
+    /// def series(n: int):
+    ///     for i in range(n):
+    ///         yield i
+    /// "#,
+    ///     )
+    ///     .unwrap();
+    /// ```
     pub fn add_function(
         &mut self,
         name: &str,
@@ -204,7 +275,14 @@ impl Runtime {
         self.add_function_with_handler(name, return_type, mode, code, name)
     }
 
-    /// Add a new function from Python code with custom handler name
+    /// Add a new scalar function or table function with custom handler name.
+    ///
+    /// # Arguments
+    ///
+    /// - `handler`: The name of function in Python code to be called.
+    /// - others: Same as [`add_function`].
+    ///
+    /// [`add_function`]: Runtime::add_function
     pub fn add_function_with_handler(
         &mut self,
         name: &str,
@@ -306,7 +384,7 @@ impl Runtime {
         Ok(())
     }
 
-    /// Remove a function.
+    /// Remove a scalar or table function.
     pub fn del_function(&mut self, name: &str) -> Result<()> {
         let function = self.functions.remove(name).context("function not found")?;
         _ = self.interpreter.with_gil(|_| {
@@ -326,7 +404,26 @@ impl Runtime {
         Ok(())
     }
 
-    /// Call the Python UDF.
+    /// Call a scalar function.
+    ///
+    /// # Example
+    ///
+    /// ```
+    #[doc = include_str!("doc_create_function.txt")]
+    /// // suppose we have created a scalar function `gcd`
+    /// // see the example in `add_function`
+    ///
+    /// let schema = Schema::new(vec![
+    ///     Field::new("x", DataType::Int32, true),
+    ///     Field::new("y", DataType::Int32, true),
+    /// ]);
+    /// let arg0 = Int32Array::from(vec![Some(25), None]);
+    /// let arg1 = Int32Array::from(vec![Some(15), None]);
+    /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+    ///
+    /// let output = runtime.call("gcd", &input).unwrap();
+    /// assert_eq!(&**output.column(0), &Int32Array::from(vec![Some(5), None]));
+    /// ```
     pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let function = self.functions.get(name).context("function not found")?;
         // convert each row to python objects and call the function
@@ -374,6 +471,31 @@ impl Runtime {
     }
 
     /// Call a table function.
+    ///
+    /// # Example
+    ///
+    /// ```
+    #[doc = include_str!("doc_create_function.txt")]
+    /// // suppose we have created a table function `series`
+    /// // see the example in `add_function`
+    ///
+    /// let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    /// let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+    ///
+    /// let mut outputs = runtime.call_table_function("series", &input, 10).unwrap();
+    /// let output = outputs.next().unwrap().unwrap();
+    /// let pretty = arrow_cast::pretty::pretty_format_batches(&[output]).unwrap().to_string();
+    /// assert_eq!(pretty, r#"
+    /// +-----+--------+
+    /// | row | series |
+    /// +-----+--------+
+    /// | 0   | 0      |
+    /// | 2   | 0      |
+    /// | 2   | 1      |
+    /// | 2   | 2      |
+    /// +-----+--------+"#.trim());
+    /// ```
     pub fn call_table_function<'a>(
         &'a self,
         name: &'a str,

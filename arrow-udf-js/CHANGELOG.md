@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2024-05-24
+
+### Added
+
+- Add `Runtime::memory_usage` to get the current memory usage from quickjs.
+
 ## [0.3.0] - 2024-05-23
 
 ### Added

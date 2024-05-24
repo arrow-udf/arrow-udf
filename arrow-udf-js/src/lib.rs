@@ -22,6 +22,7 @@ use std::time::{Duration, Instant};
 use anyhow::{anyhow, bail, Context as _, Result};
 use arrow_array::{builder::Int32Builder, Array, ArrayRef, BooleanArray, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
+pub use rquickjs::runtime::MemoryUsage;
 use rquickjs::{
     context::intrinsic::All, function::Args, module::Evaluated, Context, Ctx, FromJs, Module,
     Object, Persistent, Value,
@@ -138,11 +139,28 @@ impl Runtime {
     }
 
     /// Set the memory limit of the runtime.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use arrow_udf_js::Runtime;
+    /// let runtime = Runtime::new().unwrap();
+    /// runtime.set_memory_limit(Some(1 << 20)); // 1MB
+    /// ```
     pub fn set_memory_limit(&self, limit: Option<usize>) {
         self.runtime.set_memory_limit(limit.unwrap_or(0));
     }
 
     /// Set the timeout of each function call.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use arrow_udf_js::Runtime;
+    /// # use std::time::Duration;
+    /// let mut runtime = Runtime::new().unwrap();
+    /// runtime.set_timeout(Some(Duration::from_secs(1)));
+    /// ```
     pub fn set_timeout(&mut self, timeout: Option<Duration>) {
         self.timeout = timeout;
         if timeout.is_some() {
@@ -156,6 +174,19 @@ impl Runtime {
         } else {
             self.runtime.set_interrupt_handler(None);
         }
+    }
+
+    /// Get memory usage of the internal quickjs runtime.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use arrow_udf_js::Runtime;
+    /// let runtime = Runtime::new().unwrap();
+    /// let usage = runtime.memory_usage();
+    /// ```
+    pub fn memory_usage(&self) -> MemoryUsage {
+        self.runtime.memory_usage()
     }
 
     /// Return the converter where you can configure the extension metadata key and values.

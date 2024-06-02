@@ -81,5 +81,7 @@ gcd/python          175.29 µs   x115
 ## Who is using this library?
 
 - [RisingWave]: A Distributed SQL Database for Stream Processing.
+- [Databend]: An open-source cloud data warehouse that serves as a cost-effective alternative to Snowflake.
 
 [RisingWave]: https://github.com/risingwavelabs/risingwave
+[Databend]: https://github.com/datafuselabs/databend

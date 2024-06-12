@@ -338,7 +338,7 @@ class TypeUtils {
             int totalBytes = 0;
             for (int i = 0; i < values.length; i++) {
                 if (values[i] != null) {
-                    totalBytes += ((String) values[i]).length();
+                    totalBytes += ((String) values[i]).getBytes().length;
                 }
             }
             vector.allocateNew(totalBytes, values.length);
@@ -352,7 +352,7 @@ class TypeUtils {
             int totalBytes = 0;
             for (int i = 0; i < values.length; i++) {
                 if (values[i] != null) {
-                    totalBytes += ((String) values[i]).length();
+                    totalBytes += ((String) values[i]).getBytes().length;
                 }
             }
             vector.allocateNew(totalBytes, values.length);

@@ -29,7 +29,7 @@ macro_rules! get_pyobject {
 
 macro_rules! build_array {
     (NullBuilder, $py:expr, $pyobjects:expr) => {{
-        let mut builder = NullBuilder::with_capacity($pyobjects.len());
+        let mut builder = NullBuilder::new();
         for pyobj in $pyobjects {
             if pyobj.is_none($py) {
                 builder.append_null();

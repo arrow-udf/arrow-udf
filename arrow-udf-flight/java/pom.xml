@@ -6,7 +6,7 @@
   <groupId>com.risingwave</groupId>
   <artifactId>risingwave-udf</artifactId>
   <packaging>jar</packaging>
-  <version>0.2.0</version>
+  <version>0.2.1</version>
 
   <name>RisingWave Java UDF SDK</name>
   <url>https://docs.risingwave.com/docs/current/udf-java</url>

@@ -270,7 +270,7 @@ public class TestUdfServer {
 
         var c16 = new VarCharVector("", allocator);
         c16.allocateNew(2);
-        c16.set(0, "string".getBytes());
+        c16.set(0, "你好".getBytes());
         c16.setValueCount(2);
 
         var c17 = new VarBinaryVector("", allocator);
@@ -280,7 +280,7 @@ public class TestUdfServer {
 
         var c18 = new LargeVarCharVector("", allocator);
         c18.allocateNew(2);
-        c18.set(0, "large_string".getBytes());
+        c18.set(0, "large_string🤡".getBytes());
         c18.setValueCount(2);
 
         var c19 = new LargeVarBinaryVector("", allocator);
@@ -312,7 +312,7 @@ public class TestUdfServer {
             var output = stream.getRoot();
             assertTrue(stream.next());
             assertEquals(
-                    "return_all\n{\"bool\":true,\"i8\":1,\"i16\":1,\"i32\":1,\"i64\":1,\"u8\":1,\"u16\":\"\\u0001\",\"u32\":1,\"u64\":1,\"f32\":1.0,\"f64\":1.0,\"decimal\":1.234,\"date\":19358,\"time\":3723000000,\"timestamp\":[2023,1,1,1,2,3],\"interval\":{\"period\":\"P1000M2000D\",\"duration\":0.000003000,\"units\":[\"YEARS\",\"MONTHS\",\"DAYS\",\"SECONDS\",\"NANOS\"]},\"string\":\"string\",\"binary\":\"YmluYXJ5\",\"large_string\":\"large_string\",\"large_binary\":\"bGFyZ2VfYmluYXJ5\",\"json\":\"{ \\\"key\\\": 1 }\",\"struct\":{\"f1\":1,\"f2\":2}}\n"
+                    "return_all\n{\"bool\":true,\"i8\":1,\"i16\":1,\"i32\":1,\"i64\":1,\"u8\":1,\"u16\":\"\\u0001\",\"u32\":1,\"u64\":1,\"f32\":1.0,\"f64\":1.0,\"decimal\":1.234,\"date\":19358,\"time\":3723000000,\"timestamp\":[2023,1,1,1,2,3],\"interval\":{\"period\":\"P1000M2000D\",\"duration\":0.000003000,\"units\":[\"YEARS\",\"MONTHS\",\"DAYS\",\"SECONDS\",\"NANOS\"]},\"string\":\"你好\",\"binary\":\"YmluYXJ5\",\"large_string\":\"large_string🤡\",\"large_binary\":\"bGFyZ2VfYmluYXJ5\",\"json\":\"{ \\\"key\\\": 1 }\",\"struct\":{\"f1\":1,\"f2\":2}}\n"
                             + "{}",
                     output.contentToTSVString().trim());
         }

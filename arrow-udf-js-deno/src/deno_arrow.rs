@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use anyhow::{Context, Ok};
 use arrow_array::{array::*, builder::*};
-use arrow_buffer::{Buffer, MutableBuffer, OffsetBuffer};
+use arrow_buffer::{Buffer, IntervalDayTime, IntervalMonthDayNano, MutableBuffer, OffsetBuffer};
 use arrow_data::ArrayData;
 use arrow_schema::{DataType, Field};
 use libc::c_void;
@@ -238,7 +238,7 @@ impl Converter {
     ) -> anyhow::Result<ArrayRef> {
         match field.data_type() {
             DataType::Null => {
-                let mut builder = NullBuilder::with_capacity(values.len());
+                let mut builder = NullBuilder::new();
                 for val in values {
                     let val = v8::Local::new(scope, val);
                     if val.is_null() || val.is_undefined() {
@@ -668,9 +668,7 @@ impl Converter {
                             let ms = ms.value() as i64;
                             let days = (ms / 86400000_i64) as i32;
                             let ms = (ms % 86400000_i64) as i32;
-                            let m = ms as u64 & u32::MAX as u64;
-                            let d = (days as u64 & u32::MAX as u64) << 32;
-                            (m | d) as i64
+                            IntervalDayTime::new(days, ms)
                         }
                     )
                 }
@@ -687,11 +685,7 @@ impl Converter {
                             let days =
                                 ((ms - (months as i64 * 2592000000_i64)) / 86400000_i64) as i32;
                             let nanos = (ms % 86400000_i64) * 100000_i64;
-
-                            let m = (months as u128 & u32::MAX as u128) << 96;
-                            let d = (days as u128 & u32::MAX as u128) << 64;
-                            let n = nanos as u128 & u64::MAX as u128;
-                            (m | d | n) as i128
+                            IntervalMonthDayNano::new(months, days, nanos)
                         }
                     )
                 }
@@ -1137,8 +1131,8 @@ impl Converter {
                                 .unwrap();
 
                             let value = array.value(i);
-                            let days = (value >> 32) as i32;
-                            let ms = value as i32;
+                            let days = value.days;
+                            let ms = value.milliseconds;
 
                             let total_millis = days as i64 * 86400000_i64 + ms as i64;
 
@@ -1152,9 +1146,9 @@ impl Converter {
 
                             let val = array.value(i);
 
-                            let months = (val >> 96) as i32;
-                            let days = (val >> 64) as i32;
-                            let nanos = val as i64;
+                            let months = val.months;
+                            let days = val.days;
+                            let nanos = val.nanoseconds;
                             let millis = nanos / 1000000_i64;
 
                             let total_millis = months as i64 * 2592000000_i64

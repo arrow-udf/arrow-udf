@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1717346195463,
+  "lastUpdate": 1718190959512,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -7961,6 +7961,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 161566,
             "range": "± 9270",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d7399a4b83265ad7f929e9f3f7ca51becea25c8e",
+          "message": "fix(java): fix the exception when a string contains unicode characters (#33)\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\r\n\r\nThe length allocated for StringArray should be the number of bytes, but\r\nit was the number of unicode chars.\r\n\r\n---------\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-06-12T11:00:31Z",
+          "tree_id": "3d2a9e29857449998c85052f62b3ff950e7bbb19",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/d7399a4b83265ad7f929e9f3f7ca51becea25c8e"
+        },
+        "date": 1718190958569,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3894,
+            "range": "± 12",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4020,
+            "range": "± 32",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 27013,
+            "range": "± 1505",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 170567,
+            "range": "± 3807",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 230300,
+            "range": "± 2673",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 260692,
+            "range": "± 2331",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76962,
+            "range": "± 665",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 438349,
+            "range": "± 17824",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6084245,
+            "range": "± 118867",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9671804,
+            "range": "± 215434",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 937701,
+            "range": "± 17166",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 54307,
+            "range": "± 1100",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 709022,
+            "range": "± 14213",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 890380,
+            "range": "± 13817",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11333218,
+            "range": "± 112926",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 158010,
+            "range": "± 2139",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 160273,
+            "range": "± 1984",
             "unit": "ns/iter"
           }
         ]

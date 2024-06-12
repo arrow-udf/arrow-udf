@@ -469,6 +469,8 @@ pub fn field(name: &str, ty: &str) -> TokenStream2 {
 /// Generate a builder for the given type.
 fn builder(ty: &str) -> TokenStream2 {
     match ty {
+        // `NullBuilder::with_capacity` is deprecated since v52.0, use `NullBuilder::new` instead.
+        "null" => quote! { NullBuilder::new() },
         "string" => quote! { StringBuilder::with_capacity(input.num_rows(), 1024) },
         "binary" => quote! { BinaryBuilder::with_capacity(input.num_rows(), 1024) },
         "largestring" => quote! { LargeStringBuilder::with_capacity(input.num_rows(), 1024) },

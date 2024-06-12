@@ -75,7 +75,7 @@ macro_rules! get_typed_array {
 
 macro_rules! build_array {
     (NullBuilder, $ctx:expr, $values:expr) => {{
-        let mut builder = NullBuilder::with_capacity($values.len());
+        let mut builder = NullBuilder::new();
         for val in $values {
             if val.is_null() || val.is_undefined() {
                 builder.append_null();

@@ -284,7 +284,7 @@ impl Converter {
                 }
                 Ok(object.into_value())
             }
-            t => todo!("unsupported data type: {:?}", t),
+            other => Err(anyhow::anyhow!("Unimplemented datatype {}", other)),
         }
     }
 
@@ -470,7 +470,7 @@ impl Converter {
                     Some(nulls),
                 )))
             }
-            t => todo!("unsupported data type: {:?}", t),
+            other => Err(anyhow::anyhow!("Unimplemented datatype {}", other)),
         }
     }
 

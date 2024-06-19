@@ -275,6 +275,30 @@ impl Converter {
                     }
                 }
             }
+            // large list
+            DataType::LargeList(inner) => {
+                let array = array.as_any().downcast_ref::<LargeListArray>().unwrap();
+                let list = array.value(i);
+                match inner.data_type() {
+                    DataType::Int8 => get_typed_array!(Int8Array, ctx, list),
+                    DataType::Int16 => get_typed_array!(Int16Array, ctx, list),
+                    DataType::Int32 => get_typed_array!(Int32Array, ctx, list),
+                    DataType::Int64 => get_typed_array!(Int64Array, ctx, list),
+                    DataType::UInt8 => get_typed_array!(UInt8Array, ctx, list),
+                    DataType::UInt16 => get_typed_array!(UInt16Array, ctx, list),
+                    DataType::UInt32 => get_typed_array!(UInt32Array, ctx, list),
+                    DataType::UInt64 => get_typed_array!(UInt64Array, ctx, list),
+                    DataType::Float32 => get_typed_array!(Float32Array, ctx, list),
+                    DataType::Float64 => get_typed_array!(Float64Array, ctx, list),
+                    _ => {
+                        let mut values = Vec::with_capacity(list.len());
+                        for j in 0..list.len() {
+                            values.push(self.get_jsvalue(ctx, field, list.as_ref(), j)?);
+                        }
+                        values.into_js(ctx)
+                    }
+                }
+            }
             DataType::Struct(fields) => {
                 let array = array.as_any().downcast_ref::<StructArray>().unwrap();
                 let object = Object::new(ctx.clone())?;
@@ -284,7 +308,7 @@ impl Converter {
                 }
                 Ok(object.into_value())
             }
-            other => Err(anyhow::anyhow!("Unimplemented datatype {}", other)),
+            _other => Err(Error::Unknown),
         }
     }
 

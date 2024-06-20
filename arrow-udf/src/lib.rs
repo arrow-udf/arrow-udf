@@ -41,7 +41,7 @@ pub mod codegen {
     pub use arrow_schema;
     pub use chrono;
     pub use genawaiter;
-    pub use lazy_static;
+    pub use once_cell;
     #[cfg(feature = "global_registry")]
     pub use linkme;
     pub use rust_decimal;

@@ -116,17 +116,15 @@ impl FunctionSignature {
 #[linkme::distributed_slice]
 pub static SIGNATURES: [fn() -> FunctionSignature];
 
-lazy_static::lazy_static! {
-    /// Global function registry.
-    pub static ref REGISTRY: FunctionRegistry = {
-        let mut signatures = HashMap::<String, Vec<FunctionSignature>>::new();
-        for sig in SIGNATURES {
-            let sig = sig();
-            signatures.entry(sig.name.clone()).or_default().push(sig);
-        }
-        FunctionRegistry { signatures }
-    };
-}
+/// Global function registry.
+pub static REGISTRY: once_cell::sync::Lazy<FunctionRegistry> = once_cell::sync::Lazy::new(|| {
+    let mut signatures = HashMap::<String, Vec<FunctionSignature>>::new();
+    for sig in SIGNATURES {
+        let sig = sig();
+        signatures.entry(sig.name.clone()).or_default().push(sig);
+    }
+    FunctionRegistry { signatures }
+});
 
 /// Function registry.
 #[derive(Default)]

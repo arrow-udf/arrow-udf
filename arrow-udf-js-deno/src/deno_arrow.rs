@@ -744,7 +744,6 @@ impl Converter {
                 }
                 Ok(Arc::new(builder.finish()))
             }
-            DataType::FixedSizeBinary(_) => todo!(),
             DataType::Utf8 => match field
                 .metadata()
                 .get(self.arrow_extension_key.as_str())
@@ -917,8 +916,6 @@ impl Converter {
                     Some(nulls),
                 )))
             }
-            DataType::FixedSizeList(_, _) => todo!(),
-            DataType::LargeList(_) => todo!(),
             DataType::Struct(fields) => {
                 let mut arrays = Vec::with_capacity(fields.len());
                 for field in fields {
@@ -950,13 +947,7 @@ impl Converter {
                     Some(nulls),
                 )))
             }
-            DataType::Union(_, _) => todo!(),
-            DataType::Dictionary(_, _) => todo!(),
-            DataType::Decimal128(_, _) => todo!(),
-            DataType::Decimal256(_, _) => todo!(),
-            DataType::Map(_, _) => todo!(),
-            DataType::RunEndEncoded(_, _) => todo!(),
-            _ => todo!(),
+            other => Err(anyhow::anyhow!("Unimplemented datatype {}", other)),
         }
     }
 
@@ -1207,7 +1198,6 @@ impl Converter {
                     }
                 }
             }
-            DataType::FixedSizeBinary(_) => todo!(),
             DataType::Utf8 => {
                 let array = array.as_any().downcast_ref::<StringArray>().unwrap();
                 let string =
@@ -1290,8 +1280,6 @@ impl Converter {
                     }
                 }
             }
-            DataType::FixedSizeList(_, _) => todo!(),
-            DataType::LargeList(_) => todo!(),
             DataType::Struct(fields) => {
                 let array = array.as_any().downcast_ref::<StructArray>().unwrap();
                 let object = v8::Object::new(scope);
@@ -1306,13 +1294,7 @@ impl Converter {
                 }
                 Ok(object.into())
             }
-            DataType::Union(_, _) => todo!(),
-            DataType::Dictionary(_, _) => todo!(),
-            DataType::Decimal128(_, _) => todo!(),
-            DataType::Decimal256(_, _) => todo!(),
-            DataType::Map(_, _) => todo!(),
-            DataType::RunEndEncoded(_, _) => todo!(),
-            _ => todo!(),
+            other => Err(anyhow::anyhow!("Unimplemented datatype {}", other)),
         }
     }
 }

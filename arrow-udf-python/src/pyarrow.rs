@@ -17,7 +17,7 @@
 use arrow_array::{array::*, builder::*};
 use arrow_buffer::OffsetBuffer;
 use arrow_schema::{DataType, Field};
-use pyo3::{types::PyAnyMethods, IntoPy, PyObject, PyResult, Python};
+use pyo3::{exceptions::PyTypeError, types::PyAnyMethods, IntoPy, PyObject, PyResult, Python};
 use std::{borrow::Cow, sync::Arc};
 
 macro_rules! get_pyobject {
@@ -185,7 +185,12 @@ impl Converter {
                 }
                 object.into()
             }
-            _ => todo!(),
+            other => {
+                return Err(PyTypeError::new_err(format!(
+                    "Unimplemented datatype {}",
+                    other
+                )))
+            }
         })
     }
 
@@ -278,6 +283,31 @@ impl Converter {
                     Some(nulls),
                 )))
             }
+            // large list
+            DataType::LargeList(inner) => {
+                // flatten lists
+                let mut flatten_values = vec![];
+                let mut offsets = Vec::<i64>::with_capacity(values.len() + 1);
+                offsets.push(0);
+                for val in values {
+                    if !val.is_none(py) {
+                        let array = val.bind(py);
+                        flatten_values.reserve(array.len()?);
+                        for elem in array.iter()? {
+                            flatten_values.push(elem?.into());
+                        }
+                    }
+                    offsets.push(flatten_values.len() as i64);
+                }
+                let values_array = self.build_array(inner, py, &flatten_values)?;
+                let nulls = values.iter().map(|v| !v.is_none(py)).collect();
+                Ok(Arc::new(LargeListArray::new(
+                    inner.clone(),
+                    OffsetBuffer::new(offsets.into()),
+                    values_array,
+                    Some(nulls),
+                )))
+            }
             DataType::Struct(fields) => {
                 let mut arrays = Vec::with_capacity(fields.len());
                 for field in fields {
@@ -301,7 +331,10 @@ impl Converter {
                     Some(nulls),
                 )))
             }
-            _ => todo!(),
+            other => Err(PyTypeError::new_err(format!(
+                "Unimplemented datatype {}",
+                other
+            ))),
         }
     }
 }

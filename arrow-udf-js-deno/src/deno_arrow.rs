@@ -744,9 +744,6 @@ impl Converter {
                 }
                 Ok(Arc::new(builder.finish()))
             }
-            other @ DataType::FixedSizeBinary(_) => {
-                Err(anyhow::anyhow!("Unimplemented datatype {}", other))
-            }
             DataType::Utf8 => match field
                 .metadata()
                 .get(self.arrow_extension_key.as_str())
@@ -1200,9 +1197,6 @@ impl Converter {
                         Ok(u8array.into())
                     }
                 }
-            }
-            other @ DataType::FixedSizeBinary(_) => {
-                Err(anyhow::anyhow!("Unimplemented datatype {}", other))
             }
             DataType::Utf8 => {
                 let array = array.as_any().downcast_ref::<StringArray>().unwrap();

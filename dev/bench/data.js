@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1718869148640,
+  "lastUpdate": 1718902537890,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -8213,6 +8213,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 163447,
             "range": "± 4270",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "github@xuanwo.io",
+            "name": "Xuanwo",
+            "username": "Xuanwo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8af94b0646992e9ca08ae45a0e28906e5e67206d",
+          "message": "chore: Replace lazy_static with once_cell (#35)\n\nPart of https://github.com/risingwavelabs/arrow-udf/issues/1\r\n\r\n---------\r\n\r\nSigned-off-by: Xuanwo <github@xuanwo.io>",
+          "timestamp": "2024-06-21T00:38:37+08:00",
+          "tree_id": "27480aed3ac3c10eb67dedc2efdf3dc0cc8e2321",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/8af94b0646992e9ca08ae45a0e28906e5e67206d"
+        },
+        "date": 1718902537443,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3916,
+            "range": "± 17",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4044,
+            "range": "± 30",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24583,
+            "range": "± 1695",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 186268,
+            "range": "± 5101",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 229761,
+            "range": "± 2101",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 254330,
+            "range": "± 8440",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 77430,
+            "range": "± 2040",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 400971,
+            "range": "± 26278",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6126650,
+            "range": "± 128793",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9640729,
+            "range": "± 205198",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 937105,
+            "range": "± 29805",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 55920,
+            "range": "± 1208",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 711154,
+            "range": "± 22535",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 832043,
+            "range": "± 9227",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11964669,
+            "range": "± 426885",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 161839,
+            "range": "± 5265",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 160244,
+            "range": "± 9222",
             "unit": "ns/iter"
           }
         ]

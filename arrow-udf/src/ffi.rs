@@ -181,7 +181,7 @@ fn call_table(function: TableFunction, input_bytes: &[u8]) -> Result<Box<RecordB
 
     let input = Box::new(input_batch);
     // SAFETY: The lifetime of `input` is longer than `iter`.
-    let input_ref = unsafe { std::mem::transmute(input.as_ref()) };
+    let input_ref: &RecordBatch = unsafe { std::mem::transmute(input.as_ref()) };
     let iter = function(input_ref)?;
     Ok(Box::new(RecordBatchIter {
         _input: input,

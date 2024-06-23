@@ -22,8 +22,8 @@ base64 = "0.22"
 genawaiter = "0.99"
 lazy_static = "1"
 tempfile = { version = "3", optional = true }
-wasi-common = "20"
-wasmtime = "20"
+wasi-common = "22"
+wasmtime = "22"
 
 [dev-dependencies]
 arrow-cast = { version = ">=50", features = ["prettyprint"] }

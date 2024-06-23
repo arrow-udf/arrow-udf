@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2024-06-24
+
+### Added
+
+- Support large list type as input.
+
 ### Fixed
 
 - Fix deprecated warnings with `arrow` v52.
+- Don't panic when data type is not supported.
 
 ## [0.3.1] - 2024-05-24
 

@@ -9,16 +9,16 @@ license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-arrow-array = "50"
-arrow-flight = "50"
-arrow-schema = "50"
-arrow-select = "50"
+arrow-array = ">=52"
+arrow-flight = ">=52"
+arrow-schema = ">=52"
+arrow-select = ">=52"
 futures-util = "0.3"
 thiserror = "1"
 tokio = { version = "1", features = ["time"] }
-tonic = "0.10"
+tonic = "0.11"
 tracing = "0.1"
 
 [dev-dependencies]
-arrow-cast = { version = "50", features = ["prettyprint"] }
+arrow-cast = { version = ">=52", features = ["prettyprint"] }
 expect-test = "1"

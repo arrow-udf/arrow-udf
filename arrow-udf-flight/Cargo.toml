@@ -12,7 +12,7 @@ license = "Apache-2.0"
 arrow-array = "50"
 arrow-flight = "50"
 arrow-schema = "50"
-arrow-select = "50"
+arrow-select = "52"
 futures-util = "0.3"
 thiserror = "1"
 tokio = { version = "1", features = ["time"] }

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1719164812262,
+  "lastUpdate": 1719633612670,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -8465,6 +8465,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 159506,
             "range": "± 6778",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "github@xuanwo.io",
+            "name": "Xuanwo",
+            "username": "Xuanwo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9d1a9a6e6608fb695b7d1994fdf989d53b12d77f",
+          "message": "ci: Pin bit-vec and bit-set to fix build (#39)\n\nClose https://github.com/risingwavelabs/arrow-udf/issues/38\r\n\r\nSigned-off-by: Xuanwo <github@xuanwo.io>",
+          "timestamp": "2024-06-29T03:45:13Z",
+          "tree_id": "507cd2b8043832c5c4ad0dcc2d855c0aede7adcd",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/9d1a9a6e6608fb695b7d1994fdf989d53b12d77f"
+        },
+        "date": 1719633612200,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3900,
+            "range": "± 12",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3983,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23287,
+            "range": "± 1443",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 174747,
+            "range": "± 9367",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 230167,
+            "range": "± 4598",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 259755,
+            "range": "± 6523",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76908,
+            "range": "± 303",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 398259,
+            "range": "± 24292",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6066201,
+            "range": "± 115766",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9483477,
+            "range": "± 319230",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 940437,
+            "range": "± 15971",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 55265,
+            "range": "± 1434",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 684557,
+            "range": "± 2513",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 821738,
+            "range": "± 8343",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11826014,
+            "range": "± 298311",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 161943,
+            "range": "± 2205",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 157156,
+            "range": "± 7219",
             "unit": "ns/iter"
           }
         ]

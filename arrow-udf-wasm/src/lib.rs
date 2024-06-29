@@ -92,7 +92,7 @@ impl Runtime {
     pub fn with_config(binary: &[u8], config: Config) -> Result<Self> {
         // use a global engine by default
         static ENGINE: once_cell::sync::Lazy<Engine> =
-            once_cell::sync::Lazy::new(|| Engine::default());
+            once_cell::sync::Lazy::new(Engine::default);
         Self::with_config_engine(binary, config, &ENGINE)
     }
 

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1719640525961,
+  "lastUpdate": 1719643306214,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -8843,6 +8843,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 154144,
             "range": "± 3984",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8e9ee0018a9180d72c86c574fb055ab8d9ef75ea",
+          "message": "Bump org.codehaus.mojo:exec-maven-plugin from 3.2.0 to 3.3.0 in /arrow-udf-flight/java (#43)\n\nBumps\r\n[org.codehaus.mojo:exec-maven-plugin](https://github.com/mojohaus/exec-maven-plugin)\r\nfrom 3.2.0 to 3.3.0.\r\n<details>\r\n<summary>Release notes</summary>\r\n<p><em>Sourced from <a\r\nhref=\"https://github.com/mojohaus/exec-maven-plugin/releases\">org.codehaus.mojo:exec-maven-plugin's\r\nreleases</a>.</em></p>\r\n<blockquote>\r\n<h2>3.3.0</h2>\r\n<!-- raw HTML omitted -->\r\n<h2>🚀 New features and improvements</h2>\r\n<ul>\r\n<li>Add option to include runtime and provided (<a\r\nhref=\"https://redirect.github.com/mojohaus/exec-maven-plugin/pull/61\">#61</a>)\r\n<a href=\"https://github.com/rehevkor5\"><code>@​rehevkor5</code></a></li>\r\n</ul>\r\n<h2>📦 Dependency updates</h2>\r\n<ul>\r\n<li>Bump org.codehaus.mojo:mojo-parent from 80 to 82 (<a\r\nhref=\"https://redirect.github.com/mojohaus/exec-maven-plugin/pull/429\">#429</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump org.codehaus.plexus:plexus-utils from 4.0.0 to 4.0.1 (<a\r\nhref=\"https://redirect.github.com/mojohaus/exec-maven-plugin/pull/424\">#424</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump asm.version from 9.6 to 9.7 (<a\r\nhref=\"https://redirect.github.com/mojohaus/exec-maven-plugin/pull/422\">#422</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump apache/maven-gh-actions-shared from 3 to 4 (<a\r\nhref=\"https://redirect.github.com/mojohaus/exec-maven-plugin/pull/420\">#420</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n</ul>\r\n</blockquote>\r\n</details>\r\n<details>\r\n<summary>Commits</summary>\r\n<ul>\r\n<li><a\r\nhref=\"https://github.com/mojohaus/exec-maven-plugin/commit/366da2fc02116bb26910563df8b27884863a4b91\"><code>366da2f</code></a>\r\n[maven-release-plugin] prepare release 3.3.0</li>\r\n<li><a\r\nhref=\"https://github.com/mojohaus/exec-maven-plugin/commit/416c83a3e02038c0f427f9c3c858d66828009c4b\"><code>416c83a</code></a>\r\nBump org.codehaus.mojo:mojo-parent from 80 to 82 (<a\r\nhref=\"https://redirect.github.com/mojohaus/exec-maven-plugin/issues/429\">#429</a>)</li>\r\n<li><a\r\nhref=\"https://github.com/mojohaus/exec-maven-plugin/commit/8d3327f48ad03bc910bc9ce4d203492c7e2af074\"><code>8d3327f</code></a>\r\nBump org.codehaus.plexus:plexus-utils from 4.0.0 to 4.0.1</li>\r\n<li><a\r\nhref=\"https://github.com/mojohaus/exec-maven-plugin/commit/662ab09f6e7e37e79920d2a9a23af9a67d5823ca\"><code>662ab09</code></a>\r\nBump asm.version from 9.6 to 9.7</li>\r\n<li><a\r\nhref=\"https://github.com/mojohaus/exec-maven-plugin/commit/ec97f4dd03f0393a20bbc810479cb8518af702e9\"><code>ec97f4d</code></a>\r\nAdd &quot;provided&quot; classpathScope (runtime+provided)</li>\r\n<li><a\r\nhref=\"https://github.com/mojohaus/exec-maven-plugin/commit/d18ed80b374f121520a0a82c0922b7c0164ab8ab\"><code>d18ed80</code></a>\r\nBump apache/maven-gh-actions-shared from 3 to 4</li>\r\n<li><a\r\nhref=\"https://github.com/mojohaus/exec-maven-plugin/commit/f19bde12df30d521ec245c8156463ec73066d2c6\"><code>f19bde1</code></a>\r\n[maven-release-plugin] prepare for next development iteration</li>\r\n<li>See full diff in <a\r\nhref=\"https://github.com/mojohaus/exec-maven-plugin/compare/3.2.0...3.3.0\">compare\r\nview</a></li>\r\n</ul>\r\n</details>\r\n<br />\r\n\r\n\r\n[![Dependabot compatibility\r\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=org.codehaus.mojo:exec-maven-plugin&package-manager=maven&previous-version=3.2.0&new-version=3.3.0)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\r\n\r\nDependabot will resolve any conflicts with this PR as long as you don't\r\nalter it yourself. You can also trigger a rebase manually by commenting\r\n`@dependabot rebase`.\r\n\r\n[//]: # (dependabot-automerge-start)\r\n[//]: # (dependabot-automerge-end)\r\n\r\n---\r\n\r\n<details>\r\n<summary>Dependabot commands and options</summary>\r\n<br />\r\n\r\nYou can trigger Dependabot actions by commenting on this PR:\r\n- `@dependabot rebase` will rebase this PR\r\n- `@dependabot recreate` will recreate this PR, overwriting any edits\r\nthat have been made to it\r\n- `@dependabot merge` will merge this PR after your CI passes on it\r\n- `@dependabot squash and merge` will squash and merge this PR after\r\nyour CI passes on it\r\n- `@dependabot cancel merge` will cancel a previously requested merge\r\nand block automerging\r\n- `@dependabot reopen` will reopen this PR if it is closed\r\n- `@dependabot close` will close this PR and stop Dependabot recreating\r\nit. You can achieve the same result by closing it manually\r\n- `@dependabot show <dependency name> ignore conditions` will show all\r\nof the ignore conditions of the specified dependency\r\n- `@dependabot ignore this major version` will close this PR and stop\r\nDependabot creating any more for this major version (unless you reopen\r\nthe PR or upgrade to it yourself)\r\n- `@dependabot ignore this minor version` will close this PR and stop\r\nDependabot creating any more for this minor version (unless you reopen\r\nthe PR or upgrade to it yourself)\r\n- `@dependabot ignore this dependency` will close this PR and stop\r\nDependabot creating any more for this dependency (unless you reopen the\r\nPR or upgrade to it yourself)\r\n\r\n\r\n</details>\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2024-06-29T14:26:54+08:00",
+          "tree_id": "ebf8586b7fc1cac7c59c6e6941034843fc23cda2",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/8e9ee0018a9180d72c86c574fb055ab8d9ef75ea"
+        },
+        "date": 1719643305870,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3902,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3976,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24067,
+            "range": "± 2072",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 171984,
+            "range": "± 6765",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 229595,
+            "range": "± 1016",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 258136,
+            "range": "± 6118",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 88024,
+            "range": "± 3154",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 404480,
+            "range": "± 22044",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6227089,
+            "range": "± 206798",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9606048,
+            "range": "± 166957",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 930160,
+            "range": "± 10578",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 54973,
+            "range": "± 280",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 704011,
+            "range": "± 11730",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 841819,
+            "range": "± 9194",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11445456,
+            "range": "± 193820",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 159784,
+            "range": "± 1337",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 156691,
+            "range": "± 4167",
             "unit": "ns/iter"
           }
         ]

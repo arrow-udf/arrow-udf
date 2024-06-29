@@ -25,3 +25,15 @@ updates:
     open-pull-requests-limit: 1
     schedule:
       interval: "monthly"
+
+  - package-ecosystem: "maven"
+    directory: "/arrow-udf-flight/java"
+    open-pull-requests-limit: 1
+    schedule:
+      interval: "monthly"
+
+  - package-ecosystem: "pip"
+    directory: "/arrow-udf-flight/python"
+    open-pull-requests-limit: 1
+    schedule:
+      interval: "monthly"

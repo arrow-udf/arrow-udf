@@ -13,3 +13,7 @@ members = [
     "arrow-udf-python",
     "arrow-udf-wasm",
 ]
+
+# Remove me after https://github.com/denoland/deno_core/pull/799 released
+[patch.crates-io]
+bit-vec = { git="https://github.com/contain-rs/bit-vec", rev="12142adc" }

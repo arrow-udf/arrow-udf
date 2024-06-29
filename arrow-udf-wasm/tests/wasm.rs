@@ -22,10 +22,10 @@ use expect_test::{expect, Expect};
 
 const BINARY_PATH: &str = "../target/wasm32-wasi/release/arrow_udf_example.wasm";
 
-lazy_static::lazy_static! {
-    static ref RUNTIME: Runtime = Runtime::new(&std::fs::read(BINARY_PATH).expect("failed to load wasm binary"))
-        .expect("failed to create wasm runtime");
-}
+static RUNTIME: once_cell::sync::Lazy<Runtime> = once_cell::sync::Lazy::new(|| {
+    Runtime::new(&std::fs::read(BINARY_PATH).expect("failed to load wasm binary"))
+        .expect("failed to create wasm runtime")
+});
 
 #[test]
 fn test_oom() {

@@ -20,7 +20,7 @@ arrow-schema = ">=50"
 async-trait = "0.1"
 base64 = "0.22"
 genawaiter = "0.99"
-lazy_static = "1"
+once_cell = "1"
 tempfile = { version = "3", optional = true }
 wasi-common = "22"
 wasmtime = "22"

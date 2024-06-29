@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1719643306214,
+  "lastUpdate": 1719645238605,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -8969,6 +8969,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 156691,
             "range": "± 4167",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "github@xuanwo.io",
+            "name": "Xuanwo",
+            "username": "Xuanwo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "577ab41463d27e86d066f7c8cab0466e82e45dbd",
+          "message": "deps: Use the same version like other crates (#45)\n\nSigned-off-by: Xuanwo <github@xuanwo.io>",
+          "timestamp": "2024-06-29T14:59:06+08:00",
+          "tree_id": "1a5d4cef70a864694a82029b60aa80327a848f77",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/577ab41463d27e86d066f7c8cab0466e82e45dbd"
+        },
+        "date": 1719645238323,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3900,
+            "range": "± 23",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4013,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23573,
+            "range": "± 1368",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 179326,
+            "range": "± 4089",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 230301,
+            "range": "± 1174",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 255554,
+            "range": "± 5205",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 77327,
+            "range": "± 838",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 397877,
+            "range": "± 30691",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6115935,
+            "range": "± 125406",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9364324,
+            "range": "± 179115",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 969111,
+            "range": "± 24361",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 54973,
+            "range": "± 901",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 702632,
+            "range": "± 21844",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 825675,
+            "range": "± 5066",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11465025,
+            "range": "± 230135",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 169379,
+            "range": "± 2086",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 155637,
+            "range": "± 1628",
             "unit": "ns/iter"
           }
         ]

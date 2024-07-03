@@ -22,7 +22,7 @@ Add the following lines to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-arrow-udf-flight = "0.1"
+arrow-udf-flight = "0.2"
 ```
 
 ```rust,ignore

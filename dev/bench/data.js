@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1719975074592,
+  "lastUpdate": 1719988294472,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -9221,6 +9221,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 166001,
             "range": "± 1570",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d248f2100e4911127d917df463a168a776c1d0e0",
+          "message": "chore: release arrow-udf-flight 0.2 (#50)\n\nto be discussed: shall we hide tonic from public API so that we don't\r\nneed to bump minor version if arrow or tonic bumps?\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-07-03T06:16:22Z",
+          "tree_id": "e6b2a513bc4d9af5b0b8035235e8e77bee07d80b",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/d248f2100e4911127d917df463a168a776c1d0e0"
+        },
+        "date": 1719988293489,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3904,
+            "range": "± 50",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3987,
+            "range": "± 40",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24379,
+            "range": "± 1523",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 181404,
+            "range": "± 3865",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 229291,
+            "range": "± 755",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 267912,
+            "range": "± 4145",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 78235,
+            "range": "± 273",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 398435,
+            "range": "± 18609",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6124502,
+            "range": "± 68245",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9562142,
+            "range": "± 137948",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 939849,
+            "range": "± 21281",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 54951,
+            "range": "± 1916",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 696939,
+            "range": "± 2686",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 813575,
+            "range": "± 5936",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11795366,
+            "range": "± 516377",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 159271,
+            "range": "± 1347",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 164693,
+            "range": "± 7178",
             "unit": "ns/iter"
           }
         ]

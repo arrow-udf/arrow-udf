@@ -38,7 +38,7 @@ fn main() {
     )
     .unwrap();
 
-    let output = runtime.call("gcd(int4,int4)->int4", &input).unwrap();
+    let output = runtime.call("gcd(int32,int32)->int32", &input).unwrap();
     print(&input, &output);
 
     println!("\ncall range");
@@ -50,7 +50,7 @@ fn main() {
     .unwrap();
 
     let iter = runtime
-        .call_table_function("range(int4)->>int4", &input)
+        .call_table_function("range(int32)->>int32", &input)
         .unwrap();
     for output in iter {
         let output = output.unwrap();

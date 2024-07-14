@@ -108,6 +108,31 @@ impl FunctionAttr {
         user_fn: &UserFunctionAttr,
         eval_fn_name: &Ident,
     ) -> Result<TokenStream2> {
+        let fn_with_visibility = if let Some(visiblity) = &self.visibility {
+            // handle the scope of the visibility by parsing the visibility string
+            match syn::parse_str::<syn::Visibility>(&visiblity)? {
+                syn::Visibility::Public(token) => quote! { #token fn },
+                syn::Visibility::Restricted(vis_restricted) => {
+                    let pub_token = vis_restricted.pub_token;
+                    match vis_restricted.in_token {
+                        Some(in_token) => {
+                            let path: Box<syn::Path> = vis_restricted.path;
+                            quote! { #pub_token(#in_token #path) fn }
+                        }
+                        None => {
+                            let path_ident = vis_restricted.path.get_ident().ok_or_else(|| {
+                                Error::new_spanned(&vis_restricted.path, "expected identifier")
+                            })?;
+                            quote! { #pub_token(#path_ident) fn }
+                        }
+                    }
+                }
+                syn::Visibility::Inherited => quote! { fn },
+            }
+        } else {
+            quote! { fn }
+        };
+
         let variadic = matches!(self.args.last(), Some(t) if t == "...");
         let num_args = self.args.len() - if variadic { 1 } else { 0 };
         let user_fn_name = format_ident!("{}", user_fn.name);
@@ -417,7 +442,7 @@ impl FunctionAttr {
 
         Ok(if self.is_table_function {
             quote! {
-                fn #eval_fn_name<'a>(input: &'a ::arrow_udf::codegen::arrow_array::RecordBatch)
+                #fn_with_visibility #eval_fn_name<'a>(input: &'a ::arrow_udf::codegen::arrow_array::RecordBatch)
                     -> ::arrow_udf::Result<Box<dyn Iterator<Item = ::arrow_udf::codegen::arrow_array::RecordBatch> + 'a>>
                 {
                     const BATCH_SIZE: usize = 1024;
@@ -429,7 +454,7 @@ impl FunctionAttr {
             }
         } else {
             quote! {
-                fn #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
+                #fn_with_visibility #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
                     -> ::arrow_udf::Result<::arrow_udf::codegen::arrow_array::RecordBatch>
                 {
                     #downcast_arrays

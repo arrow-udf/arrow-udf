@@ -84,6 +84,8 @@ impl Parse for FunctionAttr {
                 parsed.volatile = true;
             } else if meta.path().is_ident("append_only") {
                 parsed.append_only = true;
+            } else if meta.path().is_ident("visibility") {
+                parsed.visibility = Some(get_value()?);
             } else {
                 return Err(Error::new(
                     meta.span(),

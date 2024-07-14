@@ -112,21 +112,7 @@ impl FunctionAttr {
             // handle the scope of the visibility by parsing the visibility string
             match syn::parse_str::<syn::Visibility>(&visiblity)? {
                 syn::Visibility::Public(token) => quote! { #token fn },
-                syn::Visibility::Restricted(vis_restricted) => {
-                    let pub_token = vis_restricted.pub_token;
-                    match vis_restricted.in_token {
-                        Some(in_token) => {
-                            let path: Box<syn::Path> = vis_restricted.path;
-                            quote! { #pub_token(#in_token #path) fn }
-                        }
-                        None => {
-                            let path_ident = vis_restricted.path.get_ident().ok_or_else(|| {
-                                Error::new_spanned(&vis_restricted.path, "expected identifier")
-                            })?;
-                            quote! { #pub_token(#path_ident) fn }
-                        }
-                    }
-                }
+                syn::Visibility::Restricted(vis_restricted) => quote! { #vis_restricted fn },
                 syn::Visibility::Inherited => quote! { fn },
             }
         } else {

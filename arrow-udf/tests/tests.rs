@@ -20,11 +20,15 @@ use arrow_array::cast::AsArray;
 use arrow_array::temporal_conversions::time_to_time64us;
 use arrow_array::types::{Date32Type, Int32Type};
 use arrow_array::*;
-use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
 use arrow_udf::function;
 use arrow_udf::types::*;
-use expect_test::{expect, Expect};
+use cases::visibility_tests::{maybe_visible_pub_crate_udf, maybe_visible_pub_udf};
+use common::check;
+use expect_test::expect;
+
+mod cases;
+mod common;
 
 // test no return value
 #[function("null()")]
@@ -670,10 +674,42 @@ fn test_json_array_elements() {
     );
 }
 
-/// Compare the actual output with the expected output.
-#[track_caller]
-fn check(actual: &[RecordBatch], expect: Expect) {
-    expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
+#[test]
+fn test_pub() {
+    let schema = Schema::new(vec![Field::new("uint32", DataType::UInt32, true)]);
+    let arg0 = UInt32Array::from(vec![Some(1), None]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = maybe_visible_pub_udf(&input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+    +---------------+
+    | maybe_visible |
+    +---------------+
+    | 1             |
+    |               |
+    +---------------+"#]],
+    );
+}
+
+#[test]
+fn test_pub_crate() {
+    let schema = Schema::new(vec![Field::new("float32", DataType::Float32, true)]);
+    let arg0 = Float32Array::from(vec![Some(1.0), None]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = maybe_visible_pub_crate_udf(&input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+    +---------------+
+    | maybe_visible |
+    +---------------+
+    | 1.0           |
+    |               |
+    +---------------+"#]],
+    );
 }
 
 /// Returns a field with JSON type.

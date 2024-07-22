@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix deprecated warnings with `arrow` v52.
+- Allow writer-style return value for `largestring`. 
 
 ## [0.3.0] - 2024-04-25
 

@@ -110,7 +110,7 @@ impl FunctionAttr {
     ) -> Result<TokenStream2> {
         let fn_with_visibility = if let Some(visiblity) = &self.visibility {
             // handle the scope of the visibility by parsing the visibility string
-            match syn::parse_str::<syn::Visibility>(&visiblity)? {
+            match syn::parse_str::<syn::Visibility>(visiblity)? {
                 syn::Visibility::Public(token) => quote! { #token fn },
                 syn::Visibility::Restricted(vis_restricted) => quote! { #vis_restricted fn },
                 syn::Visibility::Inherited => quote! { fn },

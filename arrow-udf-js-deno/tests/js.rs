@@ -718,11 +718,7 @@ async fn test_interval() {
 
     /// Generate a record batch with a single column of type `List<T>`.
     fn interval_input(unit: arrow_schema::IntervalUnit) -> RecordBatch {
-        let schema = Schema::new(vec![Field::new(
-            "x",
-            DataType::Interval(unit.clone()),
-            true,
-        )]);
+        let schema = Schema::new(vec![Field::new("x", DataType::Interval(unit), true)]);
 
         match unit {
             arrow_schema::IntervalUnit::YearMonth => {
@@ -781,11 +777,7 @@ async fn test_interval_identity() {
 
     /// Generate a record batch with a single column of type `List<T>`.
     fn interval_input(unit: arrow_schema::IntervalUnit) -> RecordBatch {
-        let schema = Schema::new(vec![Field::new(
-            "x",
-            DataType::Interval(unit.clone()),
-            true,
-        )]);
+        let schema = Schema::new(vec![Field::new("x", DataType::Interval(unit), true)]);
 
         match unit {
             arrow_schema::IntervalUnit::YearMonth => {
@@ -831,7 +823,7 @@ async fn test_interval_identity() {
         runtime
             .add_function(
                 "interval_type",
-                DataType::Interval(unit.clone()),
+                DataType::Interval(unit),
                 CallMode::ReturnNullOnNullInput,
                 r#"
                 export function interval_type(a) {

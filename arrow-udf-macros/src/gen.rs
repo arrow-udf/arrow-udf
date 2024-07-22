@@ -330,10 +330,13 @@ impl FunctionAttr {
             let builder = builder(&self.ret);
             // append the `output` to the `builder`
             let append_output = if user_fn.write {
-                if self.ret != "string" && self.ret != "binary" {
+                if !matches!(
+                    self.ret.as_str(),
+                    "string" | "binary" | "largestring" | "largebinary"
+                ) {
                     return Err(Error::new(
                         Span::call_site(),
-                        "`&mut Write` can only be used for functions that return `string` or `binary`",
+                        "`&mut Write` can only be used for functions that return `string`, `binary`, `largestring`, or `largebinary`",
                     ));
                 }
                 quote! {{

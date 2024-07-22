@@ -141,21 +141,25 @@ fn substring_binary(s: &[u8], start: i32) -> &[u8] {
 }
 
 #[function("to_string1(int) -> string")]
+#[function("to_string1(int) -> largestring")]
 fn to_string1(x: i32) -> String {
     x.to_string()
 }
 
 #[function("to_string2(int) -> string")]
+#[function("to_string2(int) -> largestring")]
 fn to_string2(x: i32) -> Box<str> {
     x.to_string().into()
 }
 
 #[function("to_string3(int) -> string")]
+#[function("to_string3(int) -> largestring")]
 fn to_string3(x: i32, output: &mut impl std::fmt::Write) {
     write!(output, "{}", x).unwrap();
 }
 
 #[function("to_string4(int) -> string")]
+#[function("to_string4(int) -> largestring")]
 fn to_string4(x: i32, output: &mut impl std::fmt::Write) -> Option<()> {
     let x = usize::try_from(x).ok()?;
     write!(output, "{}", x).unwrap();
@@ -163,22 +167,26 @@ fn to_string4(x: i32, output: &mut impl std::fmt::Write) -> Option<()> {
 }
 
 #[function("bytes1(int) -> binary")]
+#[function("bytes1(int) -> largebinary")]
 fn bytes1(x: i32) -> Vec<u8> {
     vec![0; x as usize]
 }
 
 #[function("bytes2(int) -> binary")]
+#[function("bytes2(int) -> largebinary")]
 fn bytes2(x: i32) -> Box<[u8]> {
     vec![0; x as usize].into()
 }
 
 #[function("bytes3(int) -> binary")]
+#[function("bytes3(int) -> largebinary")]
 fn bytes3(x: i32) -> [u8; 10] {
     [x as u8; 10]
 }
 
 // FIXME: std::io::Write is not supported yet
 // #[function("bytes4(int) -> binary")]
+// #[function("bytes4(int) -> largebinary")]
 // fn bytes4(x: i32, output: &mut impl std::io::Write) {
 //     for _ in 0..x {
 //         output.write_all(&[0]).unwrap();

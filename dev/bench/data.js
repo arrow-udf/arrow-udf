@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1720241645186,
+  "lastUpdate": 1721648811573,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -9473,6 +9473,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 162369,
             "range": "± 4481",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e3797649655eb89e0a52b924d18d7befd769962d",
+          "message": "fix: allow writer-style return value for `largestring` (#54)\n\nWriter-style return value was only supported for `string` but not\r\n`largestring`.\r\n\r\n---------\r\n\r\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-07-22T19:31:44+08:00",
+          "tree_id": "4a7f6582458eeb74c9ad3ace7cff303504c824bd",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/e3797649655eb89e0a52b924d18d7befd769962d"
+        },
+        "date": 1721648811225,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3898,
+            "range": "± 12",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3972,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24417,
+            "range": "± 1409",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 183895,
+            "range": "± 4165",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 230834,
+            "range": "± 1217",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 255002,
+            "range": "± 4395",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 75565,
+            "range": "± 1032",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 395936,
+            "range": "± 38556",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6236147,
+            "range": "± 537957",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9459051,
+            "range": "± 255210",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 922310,
+            "range": "± 28381",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 55889,
+            "range": "± 1538",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 712495,
+            "range": "± 10945",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 832659,
+            "range": "± 20084",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11639417,
+            "range": "± 103803",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 161413,
+            "range": "± 4278",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 157244,
+            "range": "± 9685",
             "unit": "ns/iter"
           }
         ]

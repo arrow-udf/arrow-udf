@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1721648811573,
+  "lastUpdate": 1721658639838,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -9599,6 +9599,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 157244,
             "range": "± 9685",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "33629085+xinlifoobar@users.noreply.github.com",
+            "name": "Xin Li",
+            "username": "xinlifoobar"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "92fdc1687be02685d842c652225745b36f297bcf",
+          "message": "[feat] Add Ability to Generate Function Visibility to arrow-udf (#52)\n\nThis PR will add an additional meta parameter `visibility` to\r\n`arrow-udf`. I might want this to be added while working on\r\nhttps://github.com/apache/datafusion/issues/11413. Sometimes it is\r\nbetter to reference the symbol directly instead of using the function\r\nregistry.\r\n\r\n---------\r\n\r\nCo-authored-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-07-22T14:15:42Z",
+          "tree_id": "697862793803856f132bb0db6f48ee00f21ee6b2",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/92fdc1687be02685d842c652225745b36f297bcf"
+        },
+        "date": 1721658639517,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3898,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3972,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23748,
+            "range": "± 1392",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 174620,
+            "range": "± 4377",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 230680,
+            "range": "± 2199",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 258726,
+            "range": "± 3348",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 77284,
+            "range": "± 395",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 410264,
+            "range": "± 27816",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6200094,
+            "range": "± 52747",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9382195,
+            "range": "± 177327",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 942122,
+            "range": "± 30628",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 56254,
+            "range": "± 970",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 702614,
+            "range": "± 20317",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 839314,
+            "range": "± 16275",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11811464,
+            "range": "± 472242",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 159566,
+            "range": "± 4586",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 174469,
+            "range": "± 4553",
             "unit": "ns/iter"
           }
         ]

@@ -125,3 +125,5 @@ let output = sig.function.as_scalar().unwrap()(&input).unwrap();
 ```
 
 See the [example](https://github.com/risingwavelabs/arrow-udf/blob/main/arrow-udf/examples/rust.rs) and the [documentation for the #[function] macro](https://docs.rs/arrow-udf/latest/arrow_udf/attr.function.html) for more details.
+
+See also the blog post: [Simplifying SQL Function Implementation with Rust Procedural Macro](https://risingwave.com/blog/simplifying-sql-function-implementation-with-rust-procedural-macro/).

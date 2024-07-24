@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1721658639838,
+  "lastUpdate": 1721802488413,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -9725,6 +9725,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 174469,
             "range": "± 4553",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xxchan22f@gmail.com",
+            "name": "xxchan",
+            "username": "xxchan"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a82c02a8936c1e6ea1d35682c4cf0f4fb7e1fe7f",
+          "message": "doc: refine doc to highlight arrow-udf's difference (#55)\n\nI'm inspired by https://github.com/apache/datafusion/issues/11413. It\r\nseems they just need the function macro, not like \"UDF\", which surprised\r\nme a little.\r\n\r\n---------\r\n\r\nSigned-off-by: xxchan <xxchan22f@gmail.com>",
+          "timestamp": "2024-07-24T14:12:36+08:00",
+          "tree_id": "f03eb60f142a8fbde820f00521112c504e0afdad",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/a82c02a8936c1e6ea1d35682c4cf0f4fb7e1fe7f"
+        },
+        "date": 1721802487440,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3900,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3979,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24369,
+            "range": "± 1655",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 179806,
+            "range": "± 4253",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 232361,
+            "range": "± 1463",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 264683,
+            "range": "± 7742",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 77910,
+            "range": "± 2677",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 400354,
+            "range": "± 26332",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6131804,
+            "range": "± 174948",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9228537,
+            "range": "± 177869",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 910640,
+            "range": "± 14237",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 55313,
+            "range": "± 1843",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 695026,
+            "range": "± 6916",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 836842,
+            "range": "± 9781",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11921739,
+            "range": "± 401578",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 158540,
+            "range": "± 4026",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 164526,
+            "range": "± 2977",
             "unit": "ns/iter"
           }
         ]

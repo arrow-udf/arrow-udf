@@ -3,6 +3,8 @@
 [![Crate](https://img.shields.io/crates/v/arrow-udf.svg)](https://crates.io/crates/arrow-udf)
 [![Docs](https://docs.rs/arrow-udf/badge.svg)](https://docs.rs/arrow-udf)
 
+Generate `RecordBatch` functions from scalar functions painlessly with the [#[function] macro](https://docs.rs/arrow-udf/latest/arrow_udf/attr.function.html).
+
 ## Usage
 
 Add the following lines to your `Cargo.toml`:
@@ -26,8 +28,7 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
 }
 ```
 
-The macro will generate a function that takes a `RecordBatch` as input and returns a `RecordBatch` as output.
-The function can be named with the optional `output` parameter.
+The generated function can be named with the optional `output` parameter.
 If not specified, it will be named arbitrarily like `gcd_int32_int32_int32_eval`.
 
 You can then call the generated function on a `RecordBatch`:
@@ -123,4 +124,6 @@ let sig = REGISTRY.get("gcd", &[int32.clone(), int32.clone()], &int32).expect("g
 let output = sig.function.as_scalar().unwrap()(&input).unwrap();
 ```
 
-See the [example](./examples/rust.rs) for more details.
+See the [example](https://github.com/risingwavelabs/arrow-udf/blob/main/arrow-udf/examples/rust.rs) and the [documentation for the #[function] macro](https://docs.rs/arrow-udf/latest/arrow_udf/attr.function.html) for more details.
+
+See also the blog post: [Simplifying SQL Function Implementation with Rust Procedural Macro](https://risingwave.com/blog/simplifying-sql-function-implementation-with-rust-procedural-macro/).

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1721802488413,
+  "lastUpdate": 1721808331308,
   "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -9851,6 +9851,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 164526,
             "range": "± 2977",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f887e6acd4565dc2eb7c6e9815b396c537e2bfb4",
+          "message": "Bump org.apache.maven.plugins:maven-javadoc-plugin from 3.5.0 to 3.7.0 in /arrow-udf-flight/java (#48)\n\nBumps\r\n[org.apache.maven.plugins:maven-javadoc-plugin](https://github.com/apache/maven-javadoc-plugin)\r\nfrom 3.5.0 to 3.7.0.\r\n<details>\r\n<summary>Release notes</summary>\r\n<p><em>Sourced from <a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/releases\">org.apache.maven.plugins:maven-javadoc-plugin's\r\nreleases</a>.</em></p>\r\n<blockquote>\r\n<h2>3.7.0</h2>\r\n<!-- raw HTML omitted -->\r\n<ul>\r\n<li><a\r\nhref=\"https://issues.apache.org/jira/browse/MJAVADOC-795\">[MJAVADOC-795]</a>\r\n- Upgrade to Parent 42 and Maven 3.6.3 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/281\">#281</a>)\r\n<a href=\"https://github.com/michael-o\"><code>@​michael-o</code></a></li>\r\n<li><a\r\nhref=\"https://issues.apache.org/jira/browse/MJAVADOC-682\">[MJAVADOC-682]</a>\r\n- Reactor builds fail when multiple modules with same gr… (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/253\">#253</a>)\r\n<a href=\"https://github.com/michael-o\"><code>@​michael-o</code></a></li>\r\n<li>directory, not folder (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/252\">#252</a>)\r\n<a href=\"https://github.com/michael-o\"><code>@​michael-o</code></a></li>\r\n<li><a\r\nhref=\"https://issues.apache.org/jira/browse/MJAVADOC-782\">[MJAVADOC-782]</a>\r\n- Align read-only parameters naming with other plugins (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/251\">#251</a>)\r\n<a href=\"https://github.com/michael-o\"><code>@​michael-o</code></a></li>\r\n<li><a\r\nhref=\"https://issues.apache.org/jira/browse/MJAVADOC-781\">[MJAVADOC-781]</a>\r\n- Upgrade plugins and components (in ITs) (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/250\">#250</a>)\r\n<a href=\"https://github.com/michael-o\"><code>@​michael-o</code></a></li>\r\n<li><a\r\nhref=\"https://issues.apache.org/jira/browse/MJAVADOC-780\">[MJAVADOC-780]</a>\r\n- add missing plugin configuration (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/249\">#249</a>)\r\n<a href=\"https://github.com/hboutemy\"><code>@​hboutemy</code></a></li>\r\n</ul>\r\n<h2>📦 Dependency updates</h2>\r\n<ul>\r\n<li>Bump org.apache.maven.shared:maven-invoker from 3.2.0 to 3.3.0 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/283\">#283</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump org.assertj:assertj-core from 3.25.3 to 3.26.0 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/282\">#282</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump org.codehaus.plexus:plexus-archiver from 4.9.1 to 4.9.2 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/271\">#271</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump org.apache.commons:commons-text from 1.11.0 to 1.12.0 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/277\">#277</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump commons-io:commons-io from 2.16.0 to 2.16.1 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/276\">#276</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li><a\r\nhref=\"https://issues.apache.org/jira/browse/MJAVADOC-789\">[MJAVADOC-789]</a>\r\n- Bump org.codehaus.plexus:plexus-interactivity-api from 1.2 to 1.3 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/268\">#268</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li><a\r\nhref=\"https://issues.apache.org/jira/browse/MJAVADOC-788\">[MJAVADOC-788]</a>\r\n- Bump commons-io:commons-io from 2.15.1 to 2.16.0 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/273\">#273</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump apache/maven-gh-actions-shared from 3 to 4 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/270\">#270</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump com.thoughtworks.qdox:qdox from 2.0.3 to 2.1.0 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/266\">#266</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump org.assertj:assertj-core from 3.25.1 to 3.25.3 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/269\">#269</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump org.codehaus.plexus:plexus-interactivity-api from 1.1 to 1.2\r\n(<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/258\">#258</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump org.codehaus.plexus:plexus-archiver from 4.9.0 to 4.9.1 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/263\">#263</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump org.assertj:assertj-core from 3.24.2 to 3.25.1 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/260\">#260</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump org.codehaus.plexus:plexus-io from 3.4.1 to 3.4.2 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/262\">#262</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump org.codehaus.plexus:plexus-archiver from 4.9.0 to 4.9.1 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/256\">#256</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump org.codehaus.plexus:plexus-io from 3.4.1 to 3.4.2 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/257\">#257</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Bump commons-io:commons-io from 2.15.0 to 2.15.1 (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/254\">#254</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n</ul>\r\n<h2>📝 Documentation updates</h2>\r\n<ul>\r\n<li>Fix <code>addStylesheets</code> Javadoc (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/261\">#261</a>)\r\n<a href=\"https://github.com/scordio\"><code>@​scordio</code></a></li>\r\n</ul>\r\n<h2>👻 Maintenance</h2>\r\n<ul>\r\n<li>Bump org.springframework:spring-context from 4.3.29.RELEASE to\r\n5.2.21.RELEASE in /src/it/projects/MJAVADOC-434_fixcompile (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/280\">#280</a>)\r\n<a\r\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\r\n<li>Exclude JDK 8 - temurin, adopt-openj9 on macos (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/279\">#279</a>)\r\n<a\r\nhref=\"https://github.com/slawekjaranowski\"><code>@​slawekjaranowski</code></a></li>\r\n</ul>\r\n<h2>🔧 Build</h2>\r\n<ul>\r\n<li>Fix build (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/264\">#264</a>)\r\n<a\r\nhref=\"https://github.com/slawekjaranowski\"><code>@​slawekjaranowski</code></a></li>\r\n</ul>\r\n<h2>3.6.2</h2>\r\n<!-- raw HTML omitted -->\r\n<h2>🐛 Bug Fixes</h2>\r\n<ul>\r\n<li><a\r\nhref=\"https://issues.apache.org/jira/browse/MJAVADOC-716\">[MJAVADOC-716]</a>\r\n- Fix stale files detection failing because of the newline (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/144\">#144</a>)\r\n<a href=\"https://github.com/gnodet\"><code>@​gnodet</code></a></li>\r\n<li><a\r\nhref=\"https://issues.apache.org/jira/browse/MJAVADOC-713\">[MJAVADOC-713]</a>\r\n- Skipping Javadoc reportset leaves empty Javadoc link i… (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/246\">#246</a>)\r\n<a href=\"https://github.com/michael-o\"><code>@​michael-o</code></a></li>\r\n<li><a\r\nhref=\"https://issues.apache.org/jira/browse/MJAVADOC-762\">[MJAVADOC-762]</a>\r\n- don't share state between tests (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/218\">#218</a>)\r\n<a href=\"https://github.com/elharo\"><code>@​elharo</code></a></li>\r\n<li><a\r\nhref=\"https://issues.apache.org/jira/browse/MJAVADOC-726\">[MJAVADOC-726]</a>\r\n- exclude velocity (<a\r\nhref=\"https://redirect.github.com/apache/maven-javadoc-plugin/pull/243\">#243</a>)\r\n<a href=\"https://github.com/elharo\"><code>@​elharo</code></a></li>\r\n</ul>\r\n<!-- raw HTML omitted -->\r\n</blockquote>\r\n<p>... (truncated)</p>\r\n</details>\r\n<details>\r\n<summary>Commits</summary>\r\n<ul>\r\n<li><a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/commit/2c28b8d90ede19c28ae7b94d07ad0fbb6c23b720\"><code>2c28b8d</code></a>\r\n[maven-release-plugin] prepare release maven-javadoc-plugin-3.7.0</li>\r\n<li><a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/commit/5530d6801179f388db07a2f1f42e4dc9d06bf447\"><code>5530d68</code></a>\r\n[MJAVADOC-793] java.lang.NullPointerException: Cannot invoke\r\n&quot;String.length()...</li>\r\n<li><a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/commit/08cf68e7d3e0a6ac2e1cae4a1336878e4f19dd2b\"><code>08cf68e</code></a>\r\nRevert &quot;Bump org.codehaus.plexus:plexus-archiver from 4.9.1 to\r\n4.9.2&quot;</li>\r\n<li><a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/commit/64468220d5d27d3d219c51baf55cdadfcb4fdd48\"><code>6446822</code></a>\r\nBump org.apache.maven.shared:maven-invoker from 3.2.0 to 3.3.0</li>\r\n<li><a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/commit/49c93adfc132f648dbdc8fe64a7043ec45ba0022\"><code>49c93ad</code></a>\r\nBump org.assertj:assertj-core from 3.25.3 to 3.26.0</li>\r\n<li><a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/commit/4e720486ab401acfabc616b85a153126960b1370\"><code>4e72048</code></a>\r\n[MJAVADOC-795] Upgrade to Parent 42 and Maven 3.6.3</li>\r\n<li><a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/commit/b55dd967254813dcb51d19bb3c3667bc951590b4\"><code>b55dd96</code></a>\r\nBump org.codehaus.plexus:plexus-archiver from 4.9.1 to 4.9.2</li>\r\n<li><a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/commit/77ad41087057ae507d1d0e4c834205322227b0db\"><code>77ad410</code></a>\r\nBump org.apache.commons:commons-text from 1.11.0 to 1.12.0</li>\r\n<li><a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/commit/c21568ad451a622ed6ecefeb9f77d82a1a84bd2a\"><code>c21568a</code></a>\r\nBump commons-io:commons-io from 2.16.0 to 2.16.1</li>\r\n<li><a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/commit/ded56a90d22dfb53ec99c03fdaf735fb62e1afd7\"><code>ded56a9</code></a>\r\nExclude JDK 8 - temurin, adopt-openj9 on macos</li>\r\n<li>Additional commits viewable in <a\r\nhref=\"https://github.com/apache/maven-javadoc-plugin/compare/maven-javadoc-plugin-3.5.0...maven-javadoc-plugin-3.7.0\">compare\r\nview</a></li>\r\n</ul>\r\n</details>\r\n<br />\r\n\r\n\r\n[![Dependabot compatibility\r\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=org.apache.maven.plugins:maven-javadoc-plugin&package-manager=maven&previous-version=3.5.0&new-version=3.7.0)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\r\n\r\nDependabot will resolve any conflicts with this PR as long as you don't\r\nalter it yourself. You can also trigger a rebase manually by commenting\r\n`@dependabot rebase`.\r\n\r\n[//]: # (dependabot-automerge-start)\r\n[//]: # (dependabot-automerge-end)\r\n\r\n---\r\n\r\n<details>\r\n<summary>Dependabot commands and options</summary>\r\n<br />\r\n\r\nYou can trigger Dependabot actions by commenting on this PR:\r\n- `@dependabot rebase` will rebase this PR\r\n- `@dependabot recreate` will recreate this PR, overwriting any edits\r\nthat have been made to it\r\n- `@dependabot merge` will merge this PR after your CI passes on it\r\n- `@dependabot squash and merge` will squash and merge this PR after\r\nyour CI passes on it\r\n- `@dependabot cancel merge` will cancel a previously requested merge\r\nand block automerging\r\n- `@dependabot reopen` will reopen this PR if it is closed\r\n- `@dependabot close` will close this PR and stop Dependabot recreating\r\nit. You can achieve the same result by closing it manually\r\n- `@dependabot show <dependency name> ignore conditions` will show all\r\nof the ignore conditions of the specified dependency\r\n- `@dependabot ignore this major version` will close this PR and stop\r\nDependabot creating any more for this major version (unless you reopen\r\nthe PR or upgrade to it yourself)\r\n- `@dependabot ignore this minor version` will close this PR and stop\r\nDependabot creating any more for this minor version (unless you reopen\r\nthe PR or upgrade to it yourself)\r\n- `@dependabot ignore this dependency` will close this PR and stop\r\nDependabot creating any more for this dependency (unless you reopen the\r\nPR or upgrade to it yourself)\r\n\r\n\r\n</details>\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>\r\nCo-authored-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-07-24T07:50:31Z",
+          "tree_id": "89a6f0517e10ec53ab16ba16785661fae712e39b",
+          "url": "https://github.com/risingwavelabs/arrow-udf/commit/f887e6acd4565dc2eb7c6e9815b396c537e2bfb4"
+        },
+        "date": 1721808330379,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3899,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3980,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24800,
+            "range": "± 1444",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 179360,
+            "range": "± 10568",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 231383,
+            "range": "± 1032",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 262771,
+            "range": "± 3200",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76594,
+            "range": "± 822",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 395223,
+            "range": "± 19317",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6092003,
+            "range": "± 74091",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9369637,
+            "range": "± 197184",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 907872,
+            "range": "± 16051",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 54503,
+            "range": "± 217",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 696453,
+            "range": "± 12558",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 843773,
+            "range": "± 31336",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11486707,
+            "range": "± 237189",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 160827,
+            "range": "± 3400",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 170388,
+            "range": "± 4650",
             "unit": "ns/iter"
           }
         ]

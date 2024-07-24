@@ -63,7 +63,7 @@ let input: RecordBatch = ...;
 let output = runtime.call("gcd(int4,int4)->int4", &input).unwrap();
 ```
 
-The WebAssembly runtime is powered by [wasmtime](https://wasmtime.dev/). 
+The WebAssembly runtime is powered by [Wasmtime](https://wasmtime.dev/). 
 Notice that each WebAssembly instance can only run single-threaded, we maintain an instance pool internally to support parallel calls from multiple threads.
 
 See the [example](./examples/wasm.rs) for more details. To run the example:

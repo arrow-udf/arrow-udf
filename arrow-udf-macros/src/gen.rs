@@ -108,6 +108,17 @@ impl FunctionAttr {
         user_fn: &UserFunctionAttr,
         eval_fn_name: &Ident,
     ) -> Result<TokenStream2> {
+        let fn_with_visibility = if let Some(visiblity) = &self.visibility {
+            // handle the scope of the visibility by parsing the visibility string
+            match syn::parse_str::<syn::Visibility>(visiblity)? {
+                syn::Visibility::Public(token) => quote! { #token fn },
+                syn::Visibility::Restricted(vis_restricted) => quote! { #vis_restricted fn },
+                syn::Visibility::Inherited => quote! { fn },
+            }
+        } else {
+            quote! { fn }
+        };
+
         let variadic = matches!(self.args.last(), Some(t) if t == "...");
         let num_args = self.args.len() - if variadic { 1 } else { 0 };
         let user_fn_name = format_ident!("{}", user_fn.name);
@@ -330,10 +341,13 @@ impl FunctionAttr {
             let builder = builder(&self.ret);
             // append the `output` to the `builder`
             let append_output = if user_fn.write {
-                if self.ret != "string" && self.ret != "binary" {
+                if !matches!(
+                    self.ret.as_str(),
+                    "string" | "binary" | "largestring" | "largebinary"
+                ) {
                     return Err(Error::new(
                         Span::call_site(),
-                        "`&mut Write` can only be used for functions that return `string` or `binary`",
+                        "`&mut Write` can only be used for functions that return `string`, `binary`, `largestring`, or `largebinary`",
                     ));
                 }
                 quote! {{
@@ -417,7 +431,7 @@ impl FunctionAttr {
 
         Ok(if self.is_table_function {
             quote! {
-                fn #eval_fn_name<'a>(input: &'a ::arrow_udf::codegen::arrow_array::RecordBatch)
+                #fn_with_visibility #eval_fn_name<'a>(input: &'a ::arrow_udf::codegen::arrow_array::RecordBatch)
                     -> ::arrow_udf::Result<Box<dyn Iterator<Item = ::arrow_udf::codegen::arrow_array::RecordBatch> + 'a>>
                 {
                     const BATCH_SIZE: usize = 1024;
@@ -429,7 +443,7 @@ impl FunctionAttr {
             }
         } else {
             quote! {
-                fn #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
+                #fn_with_visibility #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
                     -> ::arrow_udf::Result<::arrow_udf::codegen::arrow_array::RecordBatch>
                 {
                     #downcast_arrays

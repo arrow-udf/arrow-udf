@@ -20,11 +20,15 @@ use arrow_array::cast::AsArray;
 use arrow_array::temporal_conversions::time_to_time64us;
 use arrow_array::types::{Date32Type, Int32Type};
 use arrow_array::*;
-use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
 use arrow_udf::function;
 use arrow_udf::types::*;
-use expect_test::{expect, Expect};
+use cases::visibility_tests::{maybe_visible_pub_crate_udf, maybe_visible_pub_udf};
+use common::check;
+use expect_test::expect;
+
+mod cases;
+mod common;
 
 // test no return value
 #[function("null()")]
@@ -137,21 +141,25 @@ fn substring_binary(s: &[u8], start: i32) -> &[u8] {
 }
 
 #[function("to_string1(int) -> string")]
+#[function("to_string1(int) -> largestring")]
 fn to_string1(x: i32) -> String {
     x.to_string()
 }
 
 #[function("to_string2(int) -> string")]
+#[function("to_string2(int) -> largestring")]
 fn to_string2(x: i32) -> Box<str> {
     x.to_string().into()
 }
 
 #[function("to_string3(int) -> string")]
+#[function("to_string3(int) -> largestring")]
 fn to_string3(x: i32, output: &mut impl std::fmt::Write) {
     write!(output, "{}", x).unwrap();
 }
 
 #[function("to_string4(int) -> string")]
+#[function("to_string4(int) -> largestring")]
 fn to_string4(x: i32, output: &mut impl std::fmt::Write) -> Option<()> {
     let x = usize::try_from(x).ok()?;
     write!(output, "{}", x).unwrap();
@@ -159,22 +167,26 @@ fn to_string4(x: i32, output: &mut impl std::fmt::Write) -> Option<()> {
 }
 
 #[function("bytes1(int) -> binary")]
+#[function("bytes1(int) -> largebinary")]
 fn bytes1(x: i32) -> Vec<u8> {
     vec![0; x as usize]
 }
 
 #[function("bytes2(int) -> binary")]
+#[function("bytes2(int) -> largebinary")]
 fn bytes2(x: i32) -> Box<[u8]> {
     vec![0; x as usize].into()
 }
 
 #[function("bytes3(int) -> binary")]
+#[function("bytes3(int) -> largebinary")]
 fn bytes3(x: i32) -> [u8; 10] {
     [x as u8; 10]
 }
 
 // FIXME: std::io::Write is not supported yet
 // #[function("bytes4(int) -> binary")]
+// #[function("bytes4(int) -> largebinary")]
 // fn bytes4(x: i32, output: &mut impl std::io::Write) {
 //     for _ in 0..x {
 //         output.write_all(&[0]).unwrap();
@@ -662,10 +674,42 @@ fn test_json_array_elements() {
     );
 }
 
-/// Compare the actual output with the expected output.
-#[track_caller]
-fn check(actual: &[RecordBatch], expect: Expect) {
-    expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
+#[test]
+fn test_pub() {
+    let schema = Schema::new(vec![Field::new("uint32", DataType::UInt32, true)]);
+    let arg0 = UInt32Array::from(vec![Some(1), None]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = maybe_visible_pub_udf(&input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+    +---------------+
+    | maybe_visible |
+    +---------------+
+    | 1             |
+    |               |
+    +---------------+"#]],
+    );
+}
+
+#[test]
+fn test_pub_crate() {
+    let schema = Schema::new(vec![Field::new("float32", DataType::Float32, true)]);
+    let arg0 = Float32Array::from(vec![Some(1.0), None]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = maybe_visible_pub_crate_udf(&input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+    +---------------+
+    | maybe_visible |
+    +---------------+
+    | 1.0           |
+    |               |
+    +---------------+"#]],
+    );
 }
 
 /// Returns a field with JSON type.

@@ -20,6 +20,16 @@ The functions can be executed natively, or in WebAssembly, or in a [remote serve
 [arrow-udf-flight/python]: ./arrow-udf-flight/python
 [arrow-udf-flight/java]: ./arrow-udf-flight/java
 
+> [!NOTE]
+> [arrow-udf] generates `RecordBatch` Rust functions from scalar functions, and can be used in more general contexts 
+> whenever you need to work with Arrow Data in Rust, not specifically user-provided code.
+>
+> Other crates are more focused on providing runtimes or protocols for running user-provided code.
+
+- `arrow-udf`: You call `fn(&RecordBatch)->RecordBatch` directly, as if you wrote it by hand.
+- `arrow-udf-python/js/wasm`: You first `add_function` to a `Runtime`, and then call it with the `Runtime`.
+- `arrow-udf-flight`: You start a `Client` to call the function running in a remote `Server` process.
+
 ## Extension Types
 
 In addition to the standard types defined by Arrow, these crates also support the following data types through Arrow's [extension type](https://arrow.apache.org/docs/format/Columnar.html#format-metadata-extension-types). When using extension types, you need to add the `ARROW:extension:name` key to the field's metadata.

@@ -1,6 +1,6 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1721808331308,
-  "repoUrl": "https://github.com/risingwavelabs/arrow-udf",
+  "lastUpdate": 1725627059631,
+  "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
       {
@@ -9977,6 +9977,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 170388,
             "range": "± 4650",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5ceb91957dc2339e14afec569ecc9c0e9365b14b",
+          "message": "build(deps): bump kr.motd.maven:os-maven-plugin from 1.7.0 to 1.7.1 in /arrow-udf-flight/java (#57)\n\nBumps\r\n[kr.motd.maven:os-maven-plugin](https://github.com/trustin/os-maven-plugin)\r\nfrom 1.7.0 to 1.7.1.\r\n<details>\r\n<summary>Release notes</summary>\r\n<p><em>Sourced from <a\r\nhref=\"https://github.com/trustin/os-maven-plugin/releases\">kr.motd.maven:os-maven-plugin's\r\nreleases</a>.</em></p>\r\n<blockquote>\r\n<h2>os-maven-plugin-1.7.1</h2>\r\n<ul>\r\n<li>Added detection of more RISC-V architectures. <a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/61\">#61</a>\r\n<a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/62\">#62</a>\r\n<a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/66\">#66</a>\r\n(Thanks to <a\r\nhref=\"https://github.com/zinovya\"><code>@​zinovya</code></a> and <a\r\nhref=\"https://github.com/luhenry\"><code>@​luhenry</code></a>)\r\n<ul>\r\n<li><code>riscv32</code> is detected as <code>riscv</code> for backward\r\ncompatibility with 1.7.0.</li>\r\n<li><code>riscv64</code> is detected as <code>riscv64</code>.</li>\r\n</ul>\r\n</li>\r\n<li>Added detection of Elbrus 2000 architecture. <a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/57\">#57</a>\r\n(Thanks to <a\r\nhref=\"https://github.com/antonbashir\"><code>@​antonbashir</code></a>)</li>\r\n<li>Added detection of LoongArch64 architecture. <a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/63\">#63</a>\r\n<a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/64\">#64</a>\r\n(Thanks to <a\r\nhref=\"https://github.com/zhangwenlong8911\"><code>@​zhangwenlong8911</code></a>\r\nand <a\r\nhref=\"https://github.com/xiangzhai\"><code>@​xiangzhai</code></a>)</li>\r\n<li>Fixed the detection logic so that it detects more MacOS variants. <a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/58\">#58</a>\r\n<a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/67\">#67</a>\r\n(Thanks to <a\r\nhref=\"https://github.com/aalmiray\"><code>@​aalmiray</code></a>)</li>\r\n</ul>\r\n</blockquote>\r\n</details>\r\n<details>\r\n<summary>Commits</summary>\r\n<ul>\r\n<li><a\r\nhref=\"https://github.com/trustin/os-maven-plugin/commit/9913130a2e3d77dedebc263e5c379685c438b59a\"><code>9913130</code></a>\r\n[maven-release-plugin] prepare release os-maven-plugin-1.7.1</li>\r\n<li><a\r\nhref=\"https://github.com/trustin/os-maven-plugin/commit/211db49dc8b2d743d9d9882d44f086122ccdba93\"><code>211db49</code></a>\r\nOverride the default Maven repository when testing against old Maven\r\nversions</li>\r\n<li><a\r\nhref=\"https://github.com/trustin/os-maven-plugin/commit/88bae1e838d0918d4d428019206873c80e00f7b0\"><code>88bae1e</code></a>\r\nDetect more <code>osx</code> variants (<a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/67\">#67</a>)</li>\r\n<li><a\r\nhref=\"https://github.com/trustin/os-maven-plugin/commit/cebc3e81379f378286df1eab692b26abd92fd6bd\"><code>cebc3e8</code></a>\r\nAdd support for LoongArch64 architecture (<a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/63\">#63</a>)</li>\r\n<li><a\r\nhref=\"https://github.com/trustin/os-maven-plugin/commit/4df54948f9eae82c6e5d9e20cc1e4d82c9a83872\"><code>4df5494</code></a>\r\nAdd <code>riscv32</code> and <code>riscv64</code> support (<a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/62\">#62</a>)</li>\r\n<li><a\r\nhref=\"https://github.com/trustin/os-maven-plugin/commit/6bd9cfa16757ac8b81ab1a7f380b0aabc0295c97\"><code>6bd9cfa</code></a>\r\nSupport for E2K (Elbrus 2000) architecture (<a\r\nhref=\"https://redirect.github.com/trustin/os-maven-plugin/issues/57\">#57</a>)</li>\r\n<li><a\r\nhref=\"https://github.com/trustin/os-maven-plugin/commit/6d8134545e654e564301ddff2745ab3f6b02b9f7\"><code>6d81345</code></a>\r\nUpdate README.md</li>\r\n<li><a\r\nhref=\"https://github.com/trustin/os-maven-plugin/commit/52e547c811f33dd1d5cf401bad0ee13f911e2f34\"><code>52e547c</code></a>\r\nUpdate the version in README.md</li>\r\n<li><a\r\nhref=\"https://github.com/trustin/os-maven-plugin/commit/ad10438f508639e59b4a2348373af397b93e160f\"><code>ad10438</code></a>\r\n[maven-release-plugin] prepare for next development iteration</li>\r\n<li>See full diff in <a\r\nhref=\"https://github.com/trustin/os-maven-plugin/compare/os-maven-plugin-1.7.0...os-maven-plugin-1.7.1\">compare\r\nview</a></li>\r\n</ul>\r\n</details>\r\n<br />\r\n\r\n\r\n[![Dependabot compatibility\r\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=kr.motd.maven:os-maven-plugin&package-manager=maven&previous-version=1.7.0&new-version=1.7.1)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\r\n\r\nDependabot will resolve any conflicts with this PR as long as you don't\r\nalter it yourself. You can also trigger a rebase manually by commenting\r\n`@dependabot rebase`.\r\n\r\n[//]: # (dependabot-automerge-start)\r\n[//]: # (dependabot-automerge-end)\r\n\r\n---\r\n\r\n<details>\r\n<summary>Dependabot commands and options</summary>\r\n<br />\r\n\r\nYou can trigger Dependabot actions by commenting on this PR:\r\n- `@dependabot rebase` will rebase this PR\r\n- `@dependabot recreate` will recreate this PR, overwriting any edits\r\nthat have been made to it\r\n- `@dependabot merge` will merge this PR after your CI passes on it\r\n- `@dependabot squash and merge` will squash and merge this PR after\r\nyour CI passes on it\r\n- `@dependabot cancel merge` will cancel a previously requested merge\r\nand block automerging\r\n- `@dependabot reopen` will reopen this PR if it is closed\r\n- `@dependabot close` will close this PR and stop Dependabot recreating\r\nit. You can achieve the same result by closing it manually\r\n- `@dependabot show <dependency name> ignore conditions` will show all\r\nof the ignore conditions of the specified dependency\r\n- `@dependabot ignore this major version` will close this PR and stop\r\nDependabot creating any more for this major version (unless you reopen\r\nthe PR or upgrade to it yourself)\r\n- `@dependabot ignore this minor version` will close this PR and stop\r\nDependabot creating any more for this minor version (unless you reopen\r\nthe PR or upgrade to it yourself)\r\n- `@dependabot ignore this dependency` will close this PR and stop\r\nDependabot creating any more for this dependency (unless you reopen the\r\nPR or upgrade to it yourself)\r\n\r\n\r\n</details>\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2024-09-06T20:35:48+08:00",
+          "tree_id": "cdb52ee74be4f3a880fc2ae63f29653e991442b0",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/5ceb91957dc2339e14afec569ecc9c0e9365b14b"
+        },
+        "date": 1725627059114,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3928,
+            "range": "± 44",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4013,
+            "range": "± 26",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24087,
+            "range": "± 1453",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 186968,
+            "range": "± 10663",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 219210,
+            "range": "± 5152",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 252389,
+            "range": "± 1910",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 78121,
+            "range": "± 931",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 393513,
+            "range": "± 35517",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6226147,
+            "range": "± 44821",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9352378,
+            "range": "± 158611",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 932987,
+            "range": "± 30842",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 60936,
+            "range": "± 432",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 715028,
+            "range": "± 27408",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 827162,
+            "range": "± 23644",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11371699,
+            "range": "± 361082",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 154687,
+            "range": "± 1424",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 167335,
+            "range": "± 4653",
             "unit": "ns/iter"
           }
         ]

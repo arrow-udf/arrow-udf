@@ -19,7 +19,6 @@ use arrow_array::{Int32Array, RecordBatch, StringArray};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf::function;
 use arrow_udf_js::Runtime as JsRuntime;
-use arrow_udf_js_deno::Runtime as DenoRuntime;
 use arrow_udf_python::Runtime as PythonRuntime;
 use arrow_udf_wasm::Runtime as WasmRuntime;
 use criterion::{criterion_group, criterion_main, Criterion};
@@ -80,27 +79,6 @@ def gcd(a: int, b: int) -> int:
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
         bencher.iter(|| rt.call("gcd(int32,int32)->int32", &input).unwrap())
-    });
-
-    c.bench_function("gcd/deno", |bencher| {
-        let rt = DenoRuntime::new();
-        let tokio_runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-
-        tokio_runtime
-            .block_on(rt.add_function(
-                "gcd",
-                DataType::Int32,
-                arrow_udf_js_deno::CallMode::ReturnNullOnNullInput,
-                js_code,
-            ))
-            .unwrap();
-
-        bencher
-            .to_async(tokio_runtime)
-            .iter(|| async { rt.call("gcd", input.clone()).await.unwrap() })
     });
 
     c.bench_function("gcd/js", |bencher| {
@@ -186,30 +164,6 @@ def range1(n: int):
         })
     });
 
-    c.bench_function("range/deno", |bencher| {
-        let rt = DenoRuntime::new();
-        let tokio_runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-
-        tokio_runtime
-            .block_on(rt.add_function(
-                "range",
-                DataType::Int32,
-                arrow_udf_js_deno::CallMode::ReturnNullOnNullInput,
-                js_code,
-            ))
-            .unwrap();
-        bencher.to_async(tokio_runtime).iter(|| async {
-            rt.call_table_function("range", input.clone(), 1024)
-                .await
-                .unwrap()
-                .for_each(|_| async {})
-                .await
-        })
-    });
-
     c.bench_function("range/python", |bencher| {
         let mut rt = PythonRuntime::new().unwrap();
         rt.add_function(
@@ -264,26 +218,6 @@ def decimal_(a):
         )
         .unwrap();
         bencher.iter(|| rt.call("decimal", &input).unwrap())
-    });
-
-    c.bench_function("decimal/deno", |bencher| {
-        let rt = DenoRuntime::new();
-        let tokio_runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-
-        tokio_runtime
-            .block_on(rt.add_function(
-                "decimal",
-                decimal_field("decimal"),
-                arrow_udf_js_deno::CallMode::ReturnNullOnNullInput,
-                js_code,
-            ))
-            .unwrap();
-        bencher
-            .to_async(tokio_runtime)
-            .iter(|| async { rt.call("decimal", input.clone()).await.unwrap() })
     });
 
     c.bench_function("decimal/python", |bencher| {

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1726727106331,
+  "lastUpdate": 1726730526599,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -10229,6 +10229,132 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 152897,
             "range": "± 5347",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "github@xuanwo.io",
+            "name": "Xuanwo",
+            "username": "Xuanwo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "93f07edf9afd46d10abb607b5e6d8c6c141ad30a",
+          "message": "deps: Pin all arrow version to 52 instead (#67)\n\nPart of https://github.com/arrow-udf/arrow-udf/issues/65\r\n\r\n---------\r\n\r\nSigned-off-by: Xuanwo <github@xuanwo.io>",
+          "timestamp": "2024-09-19T07:06:59Z",
+          "tree_id": "a9be016851b0dd8dbdc11bb19099b58028ddeb30",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/93f07edf9afd46d10abb607b5e6d8c6c141ad30a"
+        },
+        "date": 1726730525494,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3942,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4027,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24329,
+            "range": "± 2310",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/deno",
+            "value": 166923,
+            "range": "± 5575",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 219701,
+            "range": "± 1814",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 261121,
+            "range": "± 6503",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76910,
+            "range": "± 543",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 402421,
+            "range": "± 19934",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6128116,
+            "range": "± 97254",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/deno",
+            "value": 9287663,
+            "range": "± 107860",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 943054,
+            "range": "± 22185",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 61597,
+            "range": "± 944",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 693014,
+            "range": "± 9196",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/deno",
+            "value": 850929,
+            "range": "± 12160",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12143519,
+            "range": "± 295604",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 158024,
+            "range": "± 1391",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 156400,
+            "range": "± 1312",
             "unit": "ns/iter"
           }
         ]

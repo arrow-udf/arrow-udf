@@ -15,7 +15,7 @@ build = ["tempfile"]
 [dependencies]
 anyhow = { workspace = true }
 arrow-array = { workspace = true }
-arrow-ipc = ">=50"
+arrow-ipc = { workspace = true }
 arrow-schema = { workspace = true }
 async-trait = "0.1"
 base64 = "0.22"
@@ -26,5 +26,5 @@ wasi-common = "22"
 wasmtime = "22"
 
 [dev-dependencies]
-arrow-cast = { version = ">=50", features = ["prettyprint"] }
+arrow-cast = { workspace = true, features = ["prettyprint"] }
 expect-test = "1"

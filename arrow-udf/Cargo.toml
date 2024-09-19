@@ -7,18 +7,17 @@ repository = "https://github.com/risingwavelabs/arrow-udf"
 keywords = ["arrow", "udf"]
 categories = ["wasm"]
 license = "Apache-2.0"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 global_registry = ["linkme"]
 
 [dependencies]
-arrow-arith = ">=50"
-arrow-array = ">=50"
-arrow-buffer = ">=50"
-arrow-data = ">=50"
-arrow-ipc = ">=50"
-arrow-schema = ">=50"
+arrow-arith.workspace = true
+arrow-array.workspace = true
+arrow-buffer.workspace = true
+arrow-data.workspace = true
+arrow-ipc.workspace = true
+arrow-schema.workspace = true
 arrow-udf-macros = { version = "0.3.0", path = "../arrow-udf-macros" }
 chrono = { version = "0.4", default-features = false }
 genawaiter = "0.99"
@@ -29,5 +28,5 @@ serde_json = "1"
 thiserror = "1"
 
 [dev-dependencies]
-arrow-cast = { version = ">=50", features = ["prettyprint"] }
+arrow-cast = { workspace = true, features = ["prettyprint"] }
 expect-test = "1"

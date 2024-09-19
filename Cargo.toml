@@ -1,25 +1,30 @@
 [workspace]
 resolver = "2"
 members = [
-    "arrow-udf",
-    "arrow-udf-bench",
-    "arrow-udf-example",
-    "arrow-udf-flight",
-    "arrow-udf-js",
-    "arrow-udf-js-deno",
-    "arrow-udf-js-deno-runtime",
-    "arrow-udf-js-deno/examples/sse-server",
-    "arrow-udf-macros",
-    "arrow-udf-python",
-    "arrow-udf-wasm",
+  "arrow-udf",
+  "arrow-udf-bench",
+  "arrow-udf-example",
+  "arrow-udf-flight",
+  "arrow-udf-js",
+  "arrow-udf-js-deno",
+  "arrow-udf-js-deno-runtime",
+  "arrow-udf-js-deno/examples/sse-server",
+  "arrow-udf-macros",
+  "arrow-udf-python",
+  "arrow-udf-wasm",
 ]
 
 [workspace.dependencies]
-anyhow = "^1"
-arrow-array = ">=50"
-arrow-buffer = ">=50"
-arrow-cast = ">=50"
-arrow-schema = ">=50"
-expect-test = "^1"
-serde_json = "^1"
-tokio = "^1"
+anyhow = "1"
+arrow-arith = "52"
+arrow-array = "52"
+arrow-buffer = "52"
+arrow-cast = "52"
+arrow-schema = "52"
+arrow-select = "52"
+arrow-ipc = "52"
+arrow-data = "52"
+arrow-flight = "52"
+expect-test = "1"
+serde_json = "1"
+tokio = "1"

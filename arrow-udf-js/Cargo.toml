@@ -10,13 +10,13 @@ license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1"
-arrow-array = { workspace = true }
-arrow-buffer = ">=50"
-arrow-schema = { workspace = true }
+arrow-array.workspace = true
+arrow-buffer.workspace = true
+arrow-schema.workspace = true
 atomic-time = "0.1"
 rquickjs = { version = "0.6", features = ["array-buffer", "parallel"] }
 
 [dev-dependencies]
-arrow-cast = { version = ">=50", features = ["prettyprint"] }
-arrow-select = ">=50"
+arrow-cast = { workspace = true, features = ["prettyprint"] }
+arrow-select.workspace = true
 expect-test = "1"

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2024-09-18
+
+### Fixed
+
+- Fix `arrow` version requirement to `=52`.
+
 ## [0.2.0] - 2024-07-03
 
 ### Changed

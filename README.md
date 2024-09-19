@@ -4,17 +4,16 @@ Easily create and run user-defined functions (UDF) on Apache Arrow.
 You can define functions in Rust, Python, Java or JavaScript.
 The functions can be executed natively, or in WebAssembly, or in a [remote server].
 
-| Language   | Native             | WebAssembly             | Remote                    |
-| ---------- | ------------------ | ----------------------- | ------------------------- |
-| Rust       | [arrow-udf]        | [arrow-udf-wasm]        |                           |
-| Python     | [arrow-udf-python] |                         | [arrow-udf-flight/python] |
-| JavaScript | [arrow-udf-js] or [arrow-udf-js-deno] |      |                           |
-| Java       |                    |                         | [arrow-udf-flight/java]   |
+| Language   | Native             | WebAssembly      | Remote                    |
+| ---------- |--------------------|------------------|---------------------------|
+| Rust       | [arrow-udf]        | [arrow-udf-wasm] |                           |
+| Python     | [arrow-udf-python] |                  | [arrow-udf-flight/python] |
+| JavaScript | [arrow-udf-js]     |                  |                           |
+| Java       |                    |                  | [arrow-udf-flight/java]   |
 
 [arrow-udf]: ./arrow-udf
 [arrow-udf-python]: ./arrow-udf-python
 [arrow-udf-js]: ./arrow-udf-js
-[arrow-udf-js-deno]: ./arrow-udf-js-deno
 [arrow-udf-wasm]: ./arrow-udf-wasm
 [remote server]: ./arrow-udf-flight
 [arrow-udf-flight/python]: ./arrow-udf-flight/python
@@ -84,7 +83,6 @@ Performance comparison of calling `gcd` on a chunk of 1024 rows:
 gcd/native          1.5237 µs   x1
 gcd/wasm            15.547 µs   x10
 gcd/js(quickjs)     85.007 µs   x55
-gcd/js(deno)        93.584 µs   x62
 gcd/python          175.29 µs   x115
 ```
 

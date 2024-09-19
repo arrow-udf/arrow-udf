@@ -15,7 +15,6 @@ arrow-cast = { workspace = true, features = ["prettyprint"] }
 arrow-schema.workspace = true
 arrow-udf = { path = "../arrow-udf" }
 arrow-udf-js = { path = "../arrow-udf-js" }
-arrow-udf-js-deno = { path = "../arrow-udf-js-deno" }
 arrow-udf-python = { path = "../arrow-udf-python" }
 arrow-udf-wasm = { path = "../arrow-udf-wasm" }
 criterion = { version = "0.5", features = ["async_tokio", "async_futures"] }

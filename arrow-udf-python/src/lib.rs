@@ -577,7 +577,7 @@ impl Runtime {
                     continue;
                 }
                 row.clear();
-                row.push(state.clone());
+                row.push(state.clone_ref(py));
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
                     let pyobj = self.converter.get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
@@ -637,7 +637,7 @@ impl Runtime {
                     continue;
                 }
                 row.clear();
-                row.push(state.clone());
+                row.push(state.clone_ref(py));
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
                     let pyobj = self.converter.get_pyobject(py, field, column, i)?;
                     row.push(pyobj);

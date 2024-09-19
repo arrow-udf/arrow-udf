@@ -11,7 +11,7 @@ license = "Apache-2.0"
 anyhow = { workspace = true }
 arrow-array = { workspace = true }
 arrow-buffer = { workspace = true }
-arrow-ipc = ">=50"
+arrow-ipc = { workspace = true }
 arrow-schema = { workspace = true }
 pyo3 = "0.21"
 
@@ -19,6 +19,6 @@ pyo3 = "0.21"
 pyo3-build-config = "0.21"
 
 [dev-dependencies]
-arrow-cast = { version = ">=50", features = ["prettyprint"] }
-arrow-select = ">=50"
+arrow-cast = { workspace = true, features = ["prettyprint"] }
+arrow-select = { workspace = true }
 expect-test = "1"

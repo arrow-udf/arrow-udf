@@ -19,10 +19,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: npm install
-        working-directory: ./arrow-udf-js-deno/examples/sse/
-      - run: npm run build
-        working-directory: ./arrow-udf-js-deno/examples/sse/
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -42,7 +38,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ ubuntu-latest, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -52,10 +48,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - run: npm install
-        working-directory: ./arrow-udf-js-deno/examples/sse/
-      - run: npm run build
-        working-directory: ./arrow-udf-js-deno/examples/sse/
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -86,7 +78,7 @@ jobs:
   test-flight:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ ubuntu-latest, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -143,9 +135,9 @@ jobs:
           python-version: '3.10'
       - name: Build docs
         uses: actions-rs/cargo@v1
-        env: 
+        env:
           RUSTDOCFLAGS: "--cfg docsrs"
           DOCS_RS: 1
         with:
           command: doc
-          args: --no-deps --workspace --exclude arrow-udf-js-deno
+          args: --no-deps --workspace

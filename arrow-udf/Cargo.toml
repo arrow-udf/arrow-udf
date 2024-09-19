@@ -1,6 +1,6 @@
 [package]
 name = "arrow-udf"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 description = "User-defined function framework for arrow-rs."
 repository = "https://github.com/risingwavelabs/arrow-udf"
@@ -18,7 +18,7 @@ arrow-buffer.workspace = true
 arrow-data.workspace = true
 arrow-ipc.workspace = true
 arrow-schema.workspace = true
-arrow-udf-macros = { version = "0.3.0", path = "../arrow-udf-macros" }
+arrow-udf-macros = { version = "0.4.0", path = "../arrow-udf-macros" }
 chrono = { version = "0.4", default-features = false }
 genawaiter = "0.99"
 linkme = { version = "0.3", optional = true }

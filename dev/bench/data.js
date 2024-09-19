@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1726732637534,
+  "lastUpdate": 1726735645261,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -10481,6 +10481,114 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 172989,
             "range": "± 2645",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "github@xuanwo.io",
+            "name": "Xuanwo",
+            "username": "Xuanwo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "76e71a974b678f65cb44d44dd76f0684735ae283",
+          "message": "*: Remove arrow-udf-js-deno support (#69)\n\nClose https://github.com/arrow-udf/arrow-udf/issues/38\r\n\r\nThis PR aims to remove deno entirely to eliminate the blocker preventing\r\nus from using hyper 1.0.\r\n\r\nWe are no longer using `arrow-udf-js-deno`:\r\nhttps://github.com/risingwavelabs/risingwave/pull/17875. Meanwhile,\r\nmaintaining deno support significantly increases our burden. Users who\r\nwant to use arrow-udf in deno can directly use our js support.\r\n\r\n---------\r\n\r\nSigned-off-by: Xuanwo <github@xuanwo.io>",
+          "timestamp": "2024-09-19T16:37:44+08:00",
+          "tree_id": "64b7b8ca7ac644a8e5cbbefb0969c20d07a8e335",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/76e71a974b678f65cb44d44dd76f0684735ae283"
+        },
+        "date": 1726735644963,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3949,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3998,
+            "range": "± 22",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23964,
+            "range": "± 1397",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 221471,
+            "range": "± 3116",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 255783,
+            "range": "± 2315",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76757,
+            "range": "± 637",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 400191,
+            "range": "± 23723",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6342795,
+            "range": "± 107147",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 927088,
+            "range": "± 126727",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 61522,
+            "range": "± 247",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 721824,
+            "range": "± 7669",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11770402,
+            "range": "± 214546",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 155047,
+            "range": "± 365",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 158269,
+            "range": "± 2898",
             "unit": "ns/iter"
           }
         ]

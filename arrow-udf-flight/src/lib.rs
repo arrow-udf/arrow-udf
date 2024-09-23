@@ -45,6 +45,7 @@ impl Client {
 
     /// Create a new client.
     pub async fn new(mut client: FlightServiceClient<Channel>) -> Result<Self> {
+        // get protocol version in server
         let protocol_version = match client.do_action(Action::new("protocol_version", "")).await {
             // if `do_action` is not implemented, assume protocol version is 1
             Err(_) => 1,

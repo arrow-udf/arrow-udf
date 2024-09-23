@@ -40,7 +40,7 @@ impl Client {
         let conn = tonic::transport::Endpoint::new(addr.into())?
             .connect()
             .await?;
-        Self::new(conn).await
+        Self::new(FlightServiceClient::new(conn)).await
     }
 
     /// Create a new client.

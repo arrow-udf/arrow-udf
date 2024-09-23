@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1726735645261,
+  "lastUpdate": 1727071461407,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -10589,6 +10589,114 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 158269,
             "range": "± 2898",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "stdrc@outlook.com",
+            "name": "Richard Chien",
+            "username": "stdrc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2c4024780adcc33a1087d6e0e021458f5297a580",
+          "message": "support creating `arrow_udf_flight::Client` from `FlightServiceClient` (#62)\n\nSeems we need to allow user of `arrow_udf_flight::Client` to change the\r\nmax message size of the underlying tonic client.\r\n\r\n---------\r\n\r\nSigned-off-by: Richard Chien <stdrc@outlook.com>",
+          "timestamp": "2024-09-23T13:54:35+08:00",
+          "tree_id": "7295ff9e6e6e931fb9f7778aebfd99c06239c5c6",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/2c4024780adcc33a1087d6e0e021458f5297a580"
+        },
+        "date": 1727071460893,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3943,
+            "range": "± 146",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4001,
+            "range": "± 12",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23925,
+            "range": "± 1472",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 222974,
+            "range": "± 1031",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 255629,
+            "range": "± 5781",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76165,
+            "range": "± 1199",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 401753,
+            "range": "± 22167",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6216734,
+            "range": "± 102565",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 939035,
+            "range": "± 16462",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 61087,
+            "range": "± 1047",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 685242,
+            "range": "± 30014",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11867849,
+            "range": "± 261231",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 154004,
+            "range": "± 941",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 159725,
+            "range": "± 2568",
             "unit": "ns/iter"
           }
         ]

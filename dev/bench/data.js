@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1727071461407,
+  "lastUpdate": 1728361565080,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -10697,6 +10697,114 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 159725,
             "range": "± 2568",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "stdrc@outlook.com",
+            "name": "Richard Chien",
+            "username": "stdrc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "09f36e0ae29dd0642917136ce758227e3be8df6d",
+          "message": "fix `as_primitive` not found error when building Rust UDF (#74)\n\nfix https://github.com/risingwavelabs/risingwave/issues/18797\r\n\r\n---------\r\n\r\nSigned-off-by: Richard Chien <stdrc@outlook.com>",
+          "timestamp": "2024-10-08T12:16:24+08:00",
+          "tree_id": "aaa7a2f30f6c31a55042d8c9e496480be924166e",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/09f36e0ae29dd0642917136ce758227e3be8df6d"
+        },
+        "date": 1728361564154,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3943,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3990,
+            "range": "± 13",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23764,
+            "range": "± 1608",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 222759,
+            "range": "± 1428",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 264757,
+            "range": "± 4645",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 77295,
+            "range": "± 547",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 396583,
+            "range": "± 19393",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6300139,
+            "range": "± 140353",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 919047,
+            "range": "± 12736",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 61201,
+            "range": "± 864",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 689313,
+            "range": "± 22181",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12050942,
+            "range": "± 118945",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 155276,
+            "range": "± 6684",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 166234,
+            "range": "± 6517",
             "unit": "ns/iter"
           }
         ]

@@ -16,7 +16,6 @@ use std::iter::Sum;
 use std::ops::{Add, Neg};
 use std::sync::Arc;
 
-use arrow_array::cast::AsArray;
 use arrow_array::temporal_conversions::time_to_time64us;
 use arrow_array::types::{Date32Type, Int32Type};
 use arrow_array::*;

@@ -40,13 +40,11 @@ impl Client {
         let conn = tonic::transport::Endpoint::new(addr.into())?
             .connect()
             .await?;
-        Self::new(conn).await
+        Self::new(FlightServiceClient::new(conn)).await
     }
 
     /// Create a new client.
-    pub async fn new(channel: Channel) -> Result<Self> {
-        let mut client = FlightServiceClient::new(channel);
-
+    pub async fn new(mut client: FlightServiceClient<Channel>) -> Result<Self> {
         // get protocol version in server
         let protocol_version = match client.do_action(Action::new("protocol_version", "")).await {
             // if `do_action` is not implemented, assume protocol version is 1

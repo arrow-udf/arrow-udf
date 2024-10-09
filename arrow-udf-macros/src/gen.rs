@@ -418,6 +418,7 @@ impl FunctionAttr {
             use ::arrow_udf::codegen::arrow_array::RecordBatch;
             use ::arrow_udf::codegen::arrow_array::array::*;
             use ::arrow_udf::codegen::arrow_array::builder::*;
+            use ::arrow_udf::codegen::arrow_array::cast::AsArray;
             use ::arrow_udf::codegen::arrow_schema::{Schema, SchemaRef, Field, DataType, IntervalUnit, TimeUnit};
             use ::arrow_udf::codegen::arrow_arith;
             use ::arrow_udf::codegen::arrow_schema;

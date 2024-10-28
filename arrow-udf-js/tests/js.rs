@@ -110,6 +110,106 @@ fn test_to_string() {
 }
 
 #[test]
+fn test_time_zone() {
+    test_zone_in(None);
+    test_zone_in(Some("+00:00".into()));
+    test_zone_in(Some("-03:00".into()));
+    test_zone_out(
+        None,
+        expect![[r#"
+        +-------------------------+
+        | from_unix               |
+        +-------------------------+
+        | 1970-01-01T00:00:00.123 |
+        | 1970-01-01T00:00:00     |
+        +-------------------------+"#]],
+    );
+    test_zone_out(
+        Some("+00:00".into()),
+        expect![[r#"
+        +--------------------------+
+        | from_unix                |
+        +--------------------------+
+        | 1970-01-01T00:00:00.123Z |
+        | 1970-01-01T00:00:00Z     |
+        +--------------------------+"#]],
+    );
+    test_zone_out(
+        Some("-03:00".into()),
+        expect![[r#"
+        +-------------------------------+
+        | from_unix                     |
+        +-------------------------------+
+        | 1969-12-31T21:00:00.123-03:00 |
+        | 1969-12-31T21:00:00-03:00     |
+        +-------------------------------+"#]],
+    );
+}
+
+fn test_zone_in(zone: Option<Arc<str>>) {
+    let mut runtime = Runtime::new().unwrap();
+
+    let js_code = r#"
+        export function to_unix(t) {
+            return t?.valueOf();
+        }
+    "#;
+    runtime
+        .add_function(
+            "to_unix",
+            DataType::Float64,
+            CallMode::CalledOnNullInput,
+            js_code,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new(
+        "t",
+        DataType::Timestamp(arrow_schema::TimeUnit::Microsecond, zone.clone()),
+        true,
+    )]);
+    let arg0 = TimestampMicrosecondArray::from(vec![Some(123456), None]).with_timezone_opt(zone);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("to_unix", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +---------+
+        | to_unix |
+        +---------+
+        | 123.0   |
+        |         |
+        +---------+"#]],
+    );
+}
+
+fn test_zone_out(zone: Option<Arc<str>>, expected: Expect) {
+    let mut runtime = Runtime::new().unwrap();
+
+    let js_code = r#"
+        export function from_unix(ms) {
+            return new Date(ms);
+        }
+    "#;
+    runtime
+        .add_function(
+            "from_unix",
+            DataType::Timestamp(arrow_schema::TimeUnit::Microsecond, zone.clone()),
+            CallMode::CalledOnNullInput,
+            js_code,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("ms", DataType::Float64, true)]);
+    let arg0 = arrow_array::Float64Array::from(vec![Some(123.25), None]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("from_unix", &input).unwrap();
+    check(&[output], expected);
+}
+
+#[test]
 fn test_concat() {
     let mut runtime = Runtime::new().unwrap();
 

@@ -109,11 +109,36 @@ macro_rules! build_array {
         }
         Ok(Arc::new(builder.finish()))
     }};
+    // view
+    ($builder_type: ty, $elem_type: ty, $ctx:expr, $values:expr, $dummy: expr) => {{
+        let mut builder = <$builder_type>::with_capacity($values.len());
+        for val in $values {
+            if val.is_null() || val.is_undefined() {
+                builder.append_null();
+            } else {
+                builder.append_value(<$elem_type>::from_js($ctx, val)?);
+            }
+        }
+        Ok(Arc::new(builder.finish()))
+    }};
 }
 
 macro_rules! build_json_array {
     ($array_type: ty, $ctx:expr, $values:expr) => {{
         let mut builder = <$array_type>::with_capacity($values.len(), 1024);
+        for val in $values {
+            if val.is_null() || val.is_undefined() {
+                builder.append_null();
+            } else if let Some(s) = $ctx.json_stringify(val)? {
+                builder.append_value(s.to_string()?);
+            } else {
+                builder.append_null();
+            }
+        }
+        Ok(Arc::new(builder.finish()))
+    }};
+    ($array_type: ty, $ctx:expr, $values:expr, $view: expr) => {{
+        let mut builder = <$array_type>::with_capacity($values.len());
         for val in $values {
             if val.is_null() || val.is_undefined() {
                 builder.append_null();
@@ -218,6 +243,14 @@ impl Converter {
                     _ => get_jsvalue!(LargeBinaryArray, ctx, array, i),
                 }
             }
+            DataType::Utf8View => get_jsvalue!(StringViewArray, ctx, array, i),
+            DataType::BinaryView => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == self.json_extension_name.as_ref() => {
+                    let array = array.as_any().downcast_ref::<BinaryViewArray>().unwrap();
+                    ctx.json_parse(array.value(i))
+                }
+                _ => get_jsvalue!(BinaryViewArray, ctx, array, i),
+            },
             DataType::Decimal128(_, _) => {
                 let array = array.as_any().downcast_ref::<Decimal128Array>().unwrap();
                 let decimal_str = array.value_as_string(i);
@@ -360,6 +393,7 @@ impl Converter {
                 _ => build_array!(StringBuilder, String, ctx, values),
             },
             DataType::LargeUtf8 => build_array!(LargeStringBuilder, String, ctx, values),
+            DataType::Utf8View => build_array!(StringViewBuilder, String, ctx, values, 1),
             DataType::Binary => match field.metadata().get(self.arrow_extension_key.as_ref()) {
                 Some(x) if x == self.json_extension_name.as_ref() => {
                     build_json_array!(BinaryBuilder, ctx, values)
@@ -374,6 +408,12 @@ impl Converter {
                     _ => build_array!(LargeBinaryBuilder, Vec::<u8>, ctx, values),
                 }
             }
+            DataType::BinaryView => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == self.json_extension_name.as_ref() => {
+                    build_json_array!(BinaryViewBuilder, ctx, values, 1)
+                }
+                _ => build_array!(BinaryViewBuilder, Vec::<u8>, ctx, values, 1),
+            },
             DataType::Decimal128(precision, scale) => {
                 let mut builder = Decimal128Builder::with_capacity(values.len())
                     .with_precision_and_scale(*precision, *scale)?;

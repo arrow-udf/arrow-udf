@@ -16,8 +16,8 @@ use std::{sync::Arc, time::Duration};
 
 use arrow_array::{
     types::*, ArrayRef, BinaryArray, Date32Array, Decimal128Array, Decimal256Array, Int32Array,
-    LargeBinaryArray, LargeStringArray, ListArray, RecordBatch, StringArray, StructArray,
-    TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
+    LargeBinaryArray, LargeStringArray, ListArray, RecordBatch, StringArray, StringViewArray,
+    StructArray, TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
     TimestampSecondArray,
 };
 use arrow_buffer::i256;
@@ -1046,6 +1046,40 @@ fn test_memory_limit() {
 
     let err = runtime.call("alloc", &input).unwrap_err();
     assert!(format!("{err:?}").contains("out of memory"))
+}
+
+#[test]
+fn test_view_array() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_function(
+            "echo",
+            DataType::Utf8View,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+export function echo(x) {
+    return x + "!"
+}
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8View, true)]);
+    let arg0 = StringViewArray::from(vec!["hello", "world"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("echo", &input).unwrap();
+
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | echo   |
+        +--------+
+        | hello! |
+        | world! |
+        +--------+"#]],
+    );
 }
 
 /// assert Runtime is Send and Sync

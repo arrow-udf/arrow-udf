@@ -63,6 +63,18 @@ macro_rules! build_array {
         }
         Ok(Arc::new(builder.finish()))
     }};
+    // view types
+    ($builder_type: ty, $elem_type: ty, $py:expr, $pyobjects:expr, $dummy: expr) => {{
+        let mut builder = <$builder_type>::with_capacity($pyobjects.len());
+        for pyobj in $pyobjects {
+            if pyobj.is_none($py) {
+                builder.append_null();
+            } else {
+                builder.append_value(pyobj.extract::<$elem_type>($py)?);
+            }
+        }
+        Ok(Arc::new(builder.finish()))
+    }};
 }
 
 macro_rules! build_json_array {
@@ -167,6 +179,17 @@ impl Converter {
                 _ => get_pyobject!(BinaryArray, py, array, i),
             },
             DataType::LargeBinary => get_pyobject!(LargeBinaryArray, py, array, i),
+            DataType::Utf8View => get_pyobject!(StringViewArray, py, array, i),
+            DataType::BinaryView => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == &self.pickle_extension_name => {
+                    let array = array.as_any().downcast_ref::<BinaryViewArray>().unwrap();
+                    let bytes = array.value(i);
+                    let pickle_loads = py.eval_bound("pickle.loads", None, None)?;
+                    pickle_loads.call1((bytes,))?.into()
+                }
+                _ => get_pyobject!(BinaryViewArray, py, array, i),
+            },
+
             DataType::List(field) => {
                 let array = array.as_any().downcast_ref::<ListArray>().unwrap();
                 let list = array.value(i);
@@ -258,6 +281,13 @@ impl Converter {
                     _ => build_array!(LargeBinaryBuilder, &[u8], py, values),
                 }
             }
+            DataType::Utf8View => build_array!(StringViewBuilder, &str, py, values, 1),
+            DataType::BinaryView => match field.metadata().get(self.arrow_extension_key.as_ref()) {
+                Some(x) if x == &self.json_extension_name => {
+                    build_json_array!(py, values)
+                }
+                _ => build_array!(BinaryViewBuilder, &[u8], py, values, 1),
+            },
             // list
             DataType::List(inner) => {
                 // flatten lists

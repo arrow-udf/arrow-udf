@@ -246,10 +246,10 @@ impl Converter {
             DataType::Utf8View => get_jsvalue!(StringViewArray, ctx, array, i),
             DataType::BinaryView => match field.metadata().get(self.arrow_extension_key.as_ref()) {
                 Some(x) if x == self.json_extension_name.as_ref() => {
-                    let array = array.as_any().downcast_ref::<BinaryArray>().unwrap();
+                    let array = array.as_any().downcast_ref::<BinaryViewArray>().unwrap();
                     ctx.json_parse(array.value(i))
                 }
-                _ => get_jsvalue!(BinaryArray, ctx, array, i),
+                _ => get_jsvalue!(BinaryViewArray, ctx, array, i),
             },
             DataType::Decimal128(_, _) => {
                 let array = array.as_any().downcast_ref::<Decimal128Array>().unwrap();

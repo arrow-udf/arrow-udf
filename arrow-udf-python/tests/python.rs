@@ -953,6 +953,39 @@ def neg(x):
     .unwrap();
 }
 
+#[test]
+fn test_view_array() {
+    let mut runtime = Runtime::new().unwrap();
+    runtime
+        .add_function(
+            "echo",
+            DataType::Utf8View,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+def echo(x):
+    return x + "!"
+"#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8View, true)]);
+    let arg0 = StringViewArray::from(vec!["hello", "world"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("echo", &input).unwrap();
+
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | echo   |
+        +--------+
+        | hello! |
+        | world! |
+        +--------+"#]],
+    );
+}
+
 /// Compare the actual output with the expected output.
 #[track_caller]
 fn check(actual: &[RecordBatch], expect: Expect) {

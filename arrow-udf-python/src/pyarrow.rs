@@ -39,7 +39,7 @@ macro_rules! build_array {
         }
         Ok(Arc::new(builder.finish()))
     }};
-    // primitive types and view types
+    // primitive types
     ($builder_type: ty, $py:expr, $pyobjects:expr) => {{
         let mut builder = <$builder_type>::with_capacity($pyobjects.len());
         for pyobj in $pyobjects {
@@ -63,7 +63,7 @@ macro_rules! build_array {
         }
         Ok(Arc::new(builder.finish()))
     }};
-    // view
+    // view types
     ($builder_type: ty, $elem_type: ty, $py:expr, $pyobjects:expr, $dummy: expr) => {{
         let mut builder = <$builder_type>::with_capacity($pyobjects.len());
         for pyobj in $pyobjects {

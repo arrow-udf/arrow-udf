@@ -20,7 +20,7 @@ use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_wasm::Runtime;
 use expect_test::{expect, Expect};
 
-const BINARY_PATH: &str = "../target/wasm32-wasi/release/arrow_udf_example.wasm";
+const BINARY_PATH: &str = "../target/wasm32-wasip1/release/arrow_udf_example.wasm";
 
 static RUNTIME: once_cell::sync::Lazy<Runtime> = once_cell::sync::Lazy::new(|| {
     Runtime::new(&std::fs::read(BINARY_PATH).expect("failed to load wasm binary"))

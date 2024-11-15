@@ -64,7 +64,7 @@ pub struct BuildOpts {
 
 /// Build a wasm binary with options.
 pub fn build_with(opts: &BuildOpts) -> Result<Vec<u8>> {
-    // install wasm32-wasi target
+    // install wasm32-wasip1 target
     if !opts.offline {
         let mut command = Command::new("rustup");
         if let Some(toolchain) = &opts.toolchain {
@@ -73,12 +73,12 @@ pub fn build_with(opts: &BuildOpts) -> Result<Vec<u8>> {
         let output = command
             .arg("target")
             .arg("add")
-            .arg("wasm32-wasi")
+            .arg("wasm32-wasip1")
             .output()
-            .context("failed to run `rustup target add wasm32-wasi`")?;
+            .context("failed to run `rustup target add wasm32-wasip1`")?;
         if !output.status.success() {
             return Err(anyhow::anyhow!(
-                "failed to install wasm32-wasi target. ({})\n--- stdout\n{}\n--- stderr\n{}",
+                "failed to install wasm32-wasip1 target. ({})\n--- stdout\n{}\n--- stderr\n{}",
                 output.status,
                 String::from_utf8_lossy(&output.stdout),
                 String::from_utf8_lossy(&output.stderr)
@@ -129,7 +129,7 @@ version = "0.99"
         .arg("build")
         .arg("--release")
         .arg("--target")
-        .arg("wasm32-wasi")
+        .arg("wasm32-wasip1")
         .current_dir(dir);
     if opts.offline {
         command.arg("--offline");
@@ -143,7 +143,7 @@ version = "0.99"
             String::from_utf8_lossy(&output.stderr)
         ));
     }
-    let binary_path = dir.join("target/wasm32-wasi/release/udf.wasm");
+    let binary_path = dir.join("target/wasm32-wasip1/release/udf.wasm");
     // strip the wasm binary if wasm-strip exists
     if Command::new("wasm-strip").arg("--version").output().is_ok() {
         let output = Command::new("wasm-strip")

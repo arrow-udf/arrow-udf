@@ -31,10 +31,10 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
 Then compile the project into WebAssembly:
 
 ```sh
-cargo build --release --target wasm32-wasi
+cargo build --release --target wasm32-wasip1
 ```
 
-You can find the generated WebAssembly module in `target/wasm32-wasi/release/*.wasm`.
+You can find the generated WebAssembly module in `target/wasm32-wasip1/release/*.wasm`.
 
 ## Run UDF in WebAssembly
 
@@ -69,8 +69,8 @@ Notice that each WebAssembly instance can only run single-threaded, we maintain 
 See the [example](./examples/wasm.rs) for more details. To run the example:
 
 ```sh
-cargo build --release -p arrow-udf-example --target wasm32-wasi
-cargo run --example wasm -- target/wasm32-wasi/release/arrow_udf_example.wasm
+cargo build --release -p arrow-udf-example --target wasm32-wasip1
+cargo run --example wasm -- target/wasm32-wasip1/release/arrow_udf_example.wasm
 ```
 
 ## Build WASM UDF at Runtime

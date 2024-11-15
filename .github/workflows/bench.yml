@@ -24,9 +24,9 @@ jobs:
         with:
           profile: minimal
           toolchain: stable
-          target: wasm32-wasi
+          target: wasm32-wasip1
       - name: Build UDF
-        run: cargo build --release -p arrow-udf-example --target wasm32-wasi
+        run: cargo build --release -p arrow-udf-example --target wasm32-wasip1
       - name: Run benchmark
         run: set -o pipefail && cargo bench --bench bench -- --output-format bencher | tee output.txt
 

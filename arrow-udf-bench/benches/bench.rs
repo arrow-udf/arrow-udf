@@ -75,7 +75,7 @@ def gcd(a: int, b: int) -> int:
     });
 
     c.bench_function("gcd/wasm", |bencher| {
-        let filepath = "../target/wasm32-wasi/release/arrow_udf_example.wasm";
+        let filepath = "../target/wasm32-wasip1/release/arrow_udf_example.wasm";
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
         bencher.iter(|| rt.call("gcd(int32,int32)->int32", &input).unwrap())
@@ -138,7 +138,7 @@ def range1(n: int):
     .unwrap();
 
     c.bench_function("range/wasm", |bencher| {
-        let filepath = "../target/wasm32-wasi/release/arrow_udf_example.wasm";
+        let filepath = "../target/wasm32-wasip1/release/arrow_udf_example.wasm";
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
         bencher.iter(|| {

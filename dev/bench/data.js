@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731639051605,
+  "lastUpdate": 1733140897907,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -11345,6 +11345,114 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 153090,
             "range": "± 4695",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b26638783c726cc320ded0a29382235383d6570e",
+          "message": "build(deps): update wasmtime requirement from 22 to 27 (#83)\n\nUpdates the requirements on\n[wasmtime](https://github.com/bytecodealliance/wasmtime) to permit the\nlatest version.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/bytecodealliance/wasmtime/releases\">wasmtime's\nreleases</a>.</em></p>\n<blockquote>\n<h2>v27.0.0</h2>\n<h2>27.0.0</h2>\n<p>Released 2024-11-20.</p>\n<h3>Added</h3>\n<ul>\n<li>\n<p>Support for the Wasm GC proposal is now complete. A new\n&quot;null&quot; GC has been\nalso added which does not ever collect garbage.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9389\">#9389</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9392\">#9392</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9401\">#9401</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9435\">#9435</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9437\">#9437</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9438\">#9438</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9446\">#9446</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9448\">#9448</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9454\">#9454</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9455\">#9455</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9484\">#9484</a></p>\n</li>\n<li>\n<p>Unstable WIT APIs now have feature gates configured at link-time and\nnew\n<code>-Scli-exit-with-code</code> / <code>-Snetwork-error-code</code>\noptions are available as well.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9381\">#9381</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9276\">#9276</a></p>\n</li>\n<li>\n<p>Initial support for the wide-arithmetic proposal has been\nimplemented.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9403\">#9403</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9500\">#9500</a></p>\n</li>\n<li>\n<p>Guests on s390x now implement the &quot;inline probestacks&quot; for\nCranelift to more\nrobustly detect stack overflows.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9423\">#9423</a></p>\n</li>\n<li>\n<p>Missing CLI options for the pooling allocator have been filled out.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9447\">#9447</a></p>\n</li>\n<li>\n<p>Cranelift now supports 128-bit atomics on x64.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9459\">#9459</a></p>\n</li>\n<li>\n<p>A new Cargo feature has been added to the <code>wasmtime</code> crate\nto reexport the\n<code>wasmparser</code> dependency.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9485\">#9485</a></p>\n</li>\n<li>\n<p>Support for a new PyTorch backend for wasi-nn has been added.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9234\">#9234</a></p>\n</li>\n<li>\n<p>A new <code>-Cnative-unwind-info</code> flag has been added to the\n<code>wasmtime</code> CLI.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9494\">#9494</a></p>\n</li>\n</ul>\n<!-- raw HTML omitted -->\n</blockquote>\n<p>... (truncated)</p>\n</details>\n<details>\n<summary>Changelog</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/bytecodealliance/wasmtime/blob/v27.0.0/RELEASES.md\">wasmtime's\nchangelog</a>.</em></p>\n<blockquote>\n<h2>27.0.0</h2>\n<p>Released 2024-11-20.</p>\n<h3>Added</h3>\n<ul>\n<li>\n<p>Support for the Wasm GC proposal is now complete. A new\n&quot;null&quot; GC has been\nalso added which does not ever collect garbage.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9389\">#9389</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9392\">#9392</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9401\">#9401</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9435\">#9435</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9437\">#9437</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9438\">#9438</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9446\">#9446</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9448\">#9448</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9454\">#9454</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9455\">#9455</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9484\">#9484</a></p>\n</li>\n<li>\n<p>Unstable WIT APIs now have feature gates configured at link-time and\nnew\n<code>-Scli-exit-with-code</code> / <code>-Snetwork-error-code</code>\noptions are available as well.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9381\">#9381</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9276\">#9276</a></p>\n</li>\n<li>\n<p>Initial support for the wide-arithmetic proposal has been\nimplemented.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9403\">#9403</a>\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9500\">#9500</a></p>\n</li>\n<li>\n<p>Guests on s390x now implement the &quot;inline probestacks&quot; for\nCranelift to more\nrobustly detect stack overflows.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9423\">#9423</a></p>\n</li>\n<li>\n<p>Missing CLI options for the pooling allocator have been filled out.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9447\">#9447</a></p>\n</li>\n<li>\n<p>Cranelift now supports 128-bit atomics on x64.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9459\">#9459</a></p>\n</li>\n<li>\n<p>A new Cargo feature has been added to the <code>wasmtime</code> crate\nto reexport the\n<code>wasmparser</code> dependency.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9485\">#9485</a></p>\n</li>\n<li>\n<p>Support for a new PyTorch backend for wasi-nn has been added.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9234\">#9234</a></p>\n</li>\n<li>\n<p>A new <code>-Cnative-unwind-info</code> flag has been added to the\n<code>wasmtime</code> CLI.\n<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/pull/9494\">#9494</a></p>\n</li>\n<li>\n<p>Initial support for illumos has been added.</p>\n</li>\n</ul>\n<!-- raw HTML omitted -->\n</blockquote>\n<p>... (truncated)</p>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/bytecodealliance/wasmtime/commit/8eefa236f8ef0cc766977e0c0cbb0d602132dfa4\"><code>8eefa23</code></a>\nRelease Wasmtime 27.0.0 (<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/issues/9624\">#9624</a>)</li>\n<li><a\nhref=\"https://github.com/bytecodealliance/wasmtime/commit/432d98c78fd199ff49fdaf994c17285844f9a443\"><code>432d98c</code></a>\n[27.0.0] Backport some C API changes to the release branch (<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/issues/9607\">#9607</a>)</li>\n<li><a\nhref=\"https://github.com/bytecodealliance/wasmtime/commit/55f2250eb8d4660584748e83b07fce8ea263e21f\"><code>55f2250</code></a>\nAdd release notes (<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/issues/9594\">#9594</a>)</li>\n<li><a\nhref=\"https://github.com/bytecodealliance/wasmtime/commit/46b744df84992f61f91a8416e2d1ad2fd74f7e6f\"><code>46b744d</code></a>\n[27.0.0] winch: Sync registers and locals before fuel check (<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/issues/9564\">#9564</a>)</li>\n<li><a\nhref=\"https://github.com/bytecodealliance/wasmtime/commit/490ea3300f5d6eb01306935e4e05bf84a65caff4\"><code>490ea33</code></a>\nUpdate to cap-std 3.4.1. (<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/issues/9556\">#9556</a>)</li>\n<li><a\nhref=\"https://github.com/bytecodealliance/wasmtime/commit/48a0f486d814b2b74b330deb7c46f751b314470a\"><code>48a0f48</code></a>\nFix a panic on the CLI with <code>-Scli=n</code> (<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/issues/9551\">#9551</a>)</li>\n<li><a\nhref=\"https://github.com/bytecodealliance/wasmtime/commit/92cc0ad77ce7962d5cf0cbc133a8ee12b0eb771a\"><code>92cc0ad</code></a>\nAdd very basic logging to the debug info transform (<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/issues/9526\">#9526</a>)</li>\n<li><a\nhref=\"https://github.com/bytecodealliance/wasmtime/commit/859d38dbd22bc075833a78086fd14b66d4bab609\"><code>859d38d</code></a>\nISLE: update language reference (<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/issues/9517\">#9517</a>)</li>\n<li><a\nhref=\"https://github.com/bytecodealliance/wasmtime/commit/c0f03d08864620608deb463b7bb60051fd645846\"><code>c0f03d0</code></a>\nMinor ergonomic improvements to pooling config (<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/issues/9546\">#9546</a>)</li>\n<li><a\nhref=\"https://github.com/bytecodealliance/wasmtime/commit/6ec48545fe2577435e529e5199dc29db353392cf\"><code>6ec4854</code></a>\nFix a panic with custom-page-sizes and pooling allocation (<a\nhref=\"https://redirect.github.com/bytecodealliance/wasmtime/issues/9547\">#9547</a>)</li>\n<li>Additional commits viewable in <a\nhref=\"https://github.com/bytecodealliance/wasmtime/compare/v22.0.0...v27.0.0\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\n---------\n\nSigned-off-by: dependabot[bot] <support@github.com>\nSigned-off-by: Runji Wang <wangrunji0408@163.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>\nCo-authored-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2024-12-02T11:51:42Z",
+          "tree_id": "7422d170c821142641d271114e1fa12548528fe6",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/b26638783c726cc320ded0a29382235383d6570e"
+        },
+        "date": 1733140896918,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3873,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4008,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22402,
+            "range": "± 1468",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 208797,
+            "range": "± 1214",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 260974,
+            "range": "± 8671",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 75514,
+            "range": "± 879",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 384452,
+            "range": "± 21170",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5854344,
+            "range": "± 99421",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1014964,
+            "range": "± 22794",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 62759,
+            "range": "± 1334",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 687941,
+            "range": "± 15860",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11578498,
+            "range": "± 174734",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 142886,
+            "range": "± 2811",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 164347,
+            "range": "± 10068",
             "unit": "ns/iter"
           }
         ]

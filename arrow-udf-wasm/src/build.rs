@@ -99,9 +99,6 @@ crate-type = ["cdylib"]
 [dependencies.arrow-udf]
 version = "{}"
 
-[dependencies.genawaiter]
-version = "0.99"
-
 {}"#,
         opts.arrow_udf_version.as_deref().unwrap_or("0.2"),
         opts.manifest

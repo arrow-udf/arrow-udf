@@ -436,7 +436,7 @@ impl FunctionAttr {
                     -> ::arrow_udf::Result<Box<dyn Iterator<Item = ::arrow_udf::codegen::arrow_array::RecordBatch> + 'a>>
                 {
                     const BATCH_SIZE: usize = 1024;
-                    use ::arrow_udf::codegen::genawaiter::{rc::gen, yield_};
+                    use ::arrow_udf::codegen::genawaiter2::{self, rc::gen, yield_};
                     use ::arrow_udf::codegen::arrow_array::array::*;
                     #downcast_arrays
                     Ok(Box::new(gen!({ #body }).into_iter()))

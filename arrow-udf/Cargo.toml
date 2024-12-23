@@ -20,7 +20,7 @@ arrow-ipc.workspace = true
 arrow-schema.workspace = true
 arrow-udf-macros = { version = "0.4.1", path = "../arrow-udf-macros" }
 chrono = { version = "0.4", default-features = false }
-genawaiter = "0.99"
+genawaiter2 = "0.100.1"
 linkme = { version = "0.3", optional = true }
 once_cell = "1"
 rust_decimal = "1"

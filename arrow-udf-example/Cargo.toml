@@ -9,4 +9,3 @@ crate-type = ["cdylib"]
 
 [dependencies]
 arrow-udf = { path = "../arrow-udf" }
-genawaiter = "0.99"

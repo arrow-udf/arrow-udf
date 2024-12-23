@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2024-12-23
+
+### Changed
+
+- Now users of the `arrow-udf::function` macro don't need to add `genawaiter` as a dependency.
+
 ## [0.5.0] - 2024-10-10
 
 ### Fixed

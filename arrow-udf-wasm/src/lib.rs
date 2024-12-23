@@ -214,7 +214,7 @@ impl Runtime {
         name: &'a str,
         input: &'a RecordBatch,
     ) -> Result<impl Iterator<Item = Result<RecordBatch>> + 'a> {
-        use genawaiter::{sync::gen, yield_};
+        use genawaiter2::{sync::gen, yield_};
         if !self.functions.contains(name) {
             bail!("function not found: {name}");
         }

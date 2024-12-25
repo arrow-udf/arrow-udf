@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1735034724172,
+  "lastUpdate": 1735108970314,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -11777,6 +11777,114 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 159571,
             "range": "± 4095",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xxchan22f@gmail.com",
+            "name": "xxchan",
+            "username": "xxchan"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5b33218ffcd002267123d9626e47513b776b91bf",
+          "message": "refactor: minor refactor on macro (#87)\n\n- rename variables\n- add comments\n\nSigned-off-by: xxchan <xxchan22f@gmail.com>",
+          "timestamp": "2024-12-25T06:32:52Z",
+          "tree_id": "67014f3744b1feb16f97ca6712feaf6c0f1812dd",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/5b33218ffcd002267123d9626e47513b776b91bf"
+        },
+        "date": 1735108969364,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3876,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4015,
+            "range": "± 44",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22612,
+            "range": "± 1314",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 208944,
+            "range": "± 778",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 260755,
+            "range": "± 3898",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76728,
+            "range": "± 960",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 385272,
+            "range": "± 19537",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5844118,
+            "range": "± 385181",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 970629,
+            "range": "± 20111",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 61893,
+            "range": "± 810",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 681647,
+            "range": "± 68150",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11742232,
+            "range": "± 287335",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 142903,
+            "range": "± 1779",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 155840,
+            "range": "± 4072",
             "unit": "ns/iter"
           }
         ]

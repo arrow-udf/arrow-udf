@@ -125,18 +125,17 @@ impl FunctionAttr {
 
         let children_indices = (0..num_args).collect_vec();
 
-        /// Return a list of identifiers with the given prefix and indices.
-        fn idents(prefix: &str, indices: &[usize]) -> Vec<Ident> {
-            indices
+        let (input_idents, array_idents, array_types): (Vec<Ident>, Vec<Ident>, Vec<Ident>) =
+            children_indices
                 .iter()
-                .map(|i| format_ident!("{prefix}{i}"))
-                .collect()
-        }
-        let inputs = idents("i", &children_indices);
-        let arrays = idents("a", &children_indices);
-        let arg_arrays = children_indices
-            .iter()
-            .map(|i| format_ident!("{}", types::array_type(&self.args[*i])));
+                .map(|i| {
+                    (
+                        format_ident!("i{i}"),
+                        format_ident!("a{i}"),
+                        format_ident!("{}", types::array_type(&self.args[*i])),
+                    )
+                })
+                .multiunzip();
         let ret_array_type = format_ident!("{}", types::array_type(&self.ret));
         let ret_data_type = field(&self.name, &self.ret);
 
@@ -146,18 +145,19 @@ impl FunctionAttr {
         let await_ = user_fn.async_.then(|| quote! { .await });
         // transform inputs for array arguments
         // e.g. for `int[]`, transform `ArrayRef` -> `&[T]`
-        let transformed_inputs = inputs
+        let transformed_inputs = input_idents
             .iter()
             .zip(&self.args)
             .map(|(input, ty)| transform_input(input, ty));
-        // call the user defined function
+
+        // 0. call the user defined function
         let mut output = quote! { #user_fn_name(
             #(#transformed_inputs,)*
             #variadic_args
             #context
             #writer
         ) #await_ };
-        // handle error if the function returns `Result`
+        // 1. handle error if the function returns `Result`
         // wrap a `Some` if the function doesn't return `Option`
         output = if self.is_table_function {
             match user_fn.return_type_kind {
@@ -204,33 +204,36 @@ impl FunctionAttr {
                 }
             }
         };
-        // if user function accepts non-option arguments, we assume the function
+        // 2. if user function accepts non-option arguments, we assume the function
         // returns null on null input, so we need to unwrap the inputs before calling.
-        let some_inputs = inputs
-            .iter()
-            .zip(user_fn.args_option.iter())
-            .map(|(input, opt)| {
-                if *opt {
-                    quote! { #input }
-                } else {
-                    quote! { Some(#input) }
+        output = {
+            let some_inputs =
+                input_idents
+                    .iter()
+                    .zip(user_fn.args_option.iter())
+                    .map(|(input, opt)| {
+                        if *opt {
+                            quote! { #input }
+                        } else {
+                            quote! { Some(#input) }
+                        }
+                    });
+            if !self.is_table_function && user_fn.has_error() {
+                quote! {
+                    match (#(#input_idents,)*) {
+                        (#(#some_inputs,)*) => #output,
+                        _ => { error_builder.append_null(); None },
+                    }
                 }
-            });
-        if !self.is_table_function && user_fn.has_error() {
-            output = quote! {
-                match (#(#inputs,)*) {
-                    (#(#some_inputs,)*) => #output,
-                    _ => { error_builder.append_null(); None },
+            } else {
+                quote! {
+                    match (#(#input_idents,)*) {
+                        (#(#some_inputs,)*) => #output,
+                        _ => None,
+                    }
                 }
-            };
-        } else {
-            output = quote! {
-                match (#(#inputs,)*) {
-                    (#(#some_inputs,)*) => #output,
-                    _ => None,
-                }
-            };
-        }
+            }
+        };
 
         let eval = if self.is_table_function {
             let builder = builder(&self.ret);
@@ -282,7 +285,7 @@ impl FunctionAttr {
                 let builder = &mut builder;
                 #let_error_builder
                 for i in 0..input.num_rows() {
-                    #(let #inputs = unsafe { (!#arrays.is_null(i)).then(|| #arrays.value_unchecked(i)) };)*
+                    #(let #input_idents = unsafe { (!#array_idents.is_null(i)).then(|| #array_idents.value_unchecked(i)) };)*
                     let Some(iter) = (#output) else {
                         continue;
                     };
@@ -309,7 +312,7 @@ impl FunctionAttr {
             // user defined batch function
             let fn_name = format_ident!("{}", batch_fn);
             quote! {
-                let c = #fn_name(#(#arrays),*);
+                let c = #fn_name(#(#array_idents),*);
                 let array = Arc::new(c);
             }
         } else if types::is_primitive(&self.ret)
@@ -368,14 +371,15 @@ impl FunctionAttr {
                 let mut builder = #builder;
                 let builder = &mut builder;
                 for i in 0..input.num_rows() {
-                    #(let #inputs = unsafe { (!#arrays.is_null(i)).then(|| #arrays.value_unchecked(i)) };)*
+                    #(let #input_idents = unsafe { (!#array_idents.is_null(i)).then(|| #array_idents.value_unchecked(i)) };)*
                     #append_output
                 }
                 let array = Arc::new(builder.finish());
             }
         };
 
-        let eval_and_return = if self.is_table_function {
+        // the function body
+        let body = if self.is_table_function {
             quote! {
                 #eval
             }
@@ -403,15 +407,14 @@ impl FunctionAttr {
         // downcast input arrays
         let downcast_arrays = quote! {
             #(
-                let #arrays: &#arg_arrays = input.column(#children_indices).as_any().downcast_ref()
+                let #array_idents: &#array_types = input.column(#children_indices).as_any().downcast_ref()
                     .ok_or_else(|| ::arrow_udf::codegen::arrow_schema::ArrowError::CastError(
-                        format!("expect {} for the {}-th argument", stringify!(#arg_arrays), #children_indices)
+                        format!("expect {} for the {}-th argument", stringify!(#array_types), #children_indices)
                     ))?;
             )*
         };
 
-        // the function body
-        let body = quote! {
+        let body_with_imports = quote! {
             use ::std::sync::Arc;
             use ::arrow_udf::{Result, Error};
             use ::arrow_udf::codegen::arrow_array;
@@ -427,7 +430,7 @@ impl FunctionAttr {
             use ::arrow_udf::codegen::rust_decimal;
             use ::arrow_udf::codegen::serde_json;
 
-            #eval_and_return
+            #body
         };
 
         Ok(if self.is_table_function {
@@ -439,7 +442,7 @@ impl FunctionAttr {
                     use ::arrow_udf::codegen::genawaiter2::{self, rc::gen, yield_};
                     use ::arrow_udf::codegen::arrow_array::array::*;
                     #downcast_arrays
-                    Ok(Box::new(gen!({ #body }).into_iter()))
+                    Ok(Box::new(gen!({ #body_with_imports }).into_iter()))
                 }
             }
         } else {
@@ -448,7 +451,7 @@ impl FunctionAttr {
                     -> ::arrow_udf::Result<::arrow_udf::codegen::arrow_array::RecordBatch>
                 {
                     #downcast_arrays
-                    #body
+                    #body_with_imports
                 }
             }
         })

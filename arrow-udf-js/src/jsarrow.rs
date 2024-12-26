@@ -509,6 +509,33 @@ impl Converter {
                     Some(nulls),
                 )))
             }
+            DataType::LargeList(inner) => {
+                // flatten lists
+                let mut flatten_values = vec![];
+                let mut offsets = Vec::<i64>::with_capacity(values.len() + 1);
+                offsets.push(0);
+                for val in &values {
+                    if !val.is_null() && !val.is_undefined() {
+                        let array = val.as_array().context("failed to convert to array")?;
+                        flatten_values.reserve(array.len());
+                        for elem in array.iter() {
+                            flatten_values.push(elem?);
+                        }
+                    }
+                    offsets.push(flatten_values.len() as i64);
+                }
+                let values_array = self.build_array(inner, ctx, flatten_values)?;
+                let nulls = values
+                    .iter()
+                    .map(|v| !v.is_null() && !v.is_undefined())
+                    .collect();
+                Ok(Arc::new(LargeListArray::new(
+                    inner.clone(),
+                    OffsetBuffer::new(offsets.into()),
+                    values_array,
+                    Some(nulls),
+                )))
+            }
             DataType::Struct(fields) => {
                 let mut arrays = Vec::with_capacity(fields.len());
                 for field in fields {

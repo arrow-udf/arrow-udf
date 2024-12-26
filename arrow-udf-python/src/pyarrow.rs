@@ -199,6 +199,15 @@ impl Converter {
                 }
                 values.into_py(py)
             }
+            DataType::LargeList(field) => {
+                let array = array.as_any().downcast_ref::<LargeListArray>().unwrap();
+                let list = array.value(i);
+                let mut values = Vec::with_capacity(list.len());
+                for j in 0..list.len() {
+                    values.push(self.get_pyobject(py, field, list.as_ref(), j)?);
+                }
+                values.into_py(py)
+            }
             DataType::Struct(fields) => {
                 let array = array.as_any().downcast_ref::<StructArray>().unwrap();
                 let object = py.eval_bound("Struct()", None, None)?;

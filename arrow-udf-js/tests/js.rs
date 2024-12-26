@@ -722,6 +722,44 @@ fn test_return_array() {
 }
 
 #[test]
+fn test_return_large_array() {
+    let mut runtime = Runtime::new().unwrap();
+
+    runtime
+        .add_function(
+            "to_large_array",
+            DataType::new_large_list(DataType::Int32, true),
+            CallMode::CalledOnNullInput,
+            r#"
+            export function to_large_array(x) {
+                if(x == null) {
+                    return null;
+                }
+                return [x, x+1, x+2];
+            }
+            "#,
+        )
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("to_large_array", &input).unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +----------------+
+        | to_large_array |
+        +----------------+
+        | [1, 2, 3]      |
+        |                |
+        | [3, 4, 5]      |
+        +----------------+"#]],
+    );
+}
+
+#[test]
 fn test_key_value() {
     let mut runtime = Runtime::new().unwrap();
 

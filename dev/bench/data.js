@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1735108970314,
+  "lastUpdate": 1735208201728,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -11885,6 +11885,114 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 155840,
             "range": "± 4072",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "baishen2009@gmail.com",
+            "name": "baishen",
+            "username": "b41sh"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ade868f7d40bfc8eda19aa1eca8f675c7ea29234",
+          "message": "feat: support convert large list type (#88)",
+          "timestamp": "2024-12-26T10:06:51Z",
+          "tree_id": "38a78a9c63e041775dcb620dba87de0986721836",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/ade868f7d40bfc8eda19aa1eca8f675c7ea29234"
+        },
+        "date": 1735208201391,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3875,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4039,
+            "range": "± 12",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22764,
+            "range": "± 1396",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 210582,
+            "range": "± 3355",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 277048,
+            "range": "± 3548",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76637,
+            "range": "± 710",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 384510,
+            "range": "± 19051",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5924077,
+            "range": "± 297915",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 969181,
+            "range": "± 41922",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 61717,
+            "range": "± 131",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 676322,
+            "range": "± 9393",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11912257,
+            "range": "± 314703",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 145812,
+            "range": "± 373",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 164624,
+            "range": "± 2542",
             "unit": "ns/iter"
           }
         ]

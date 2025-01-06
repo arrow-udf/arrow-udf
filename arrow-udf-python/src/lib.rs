@@ -152,11 +152,9 @@ impl Builder {
         thread::spawn(move || {
             pyo3::prepare_freethreaded_python();
 
-            Python::with_gil(|py| {
-                for task in receiver {
-                    task(py);
-                }
-            })
+            for task in receiver {
+                Python::with_gil(|py| task(py))
+            }
         });
 
         let runtime = Runtime {

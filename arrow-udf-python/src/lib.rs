@@ -177,6 +177,7 @@ def limited_import(name, globals=None, locals=None, fromlist=(), level=0):
     allowlist = (
         'json',
         'decimal',
+        'pickle',
         're',
         'math',
         'datetime',

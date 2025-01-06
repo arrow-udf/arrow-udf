@@ -13,10 +13,10 @@ arrow-array = { workspace = true }
 arrow-buffer = { workspace = true }
 arrow-ipc = { workspace = true }
 arrow-schema = { workspace = true }
-pyo3 = { version = "0.21", features = ["gil-refs"] }
+pyo3 = { version = "0.23" }
 
 [build-dependencies]
-pyo3-build-config = "0.21"
+pyo3-build-config = "0.23"
 
 [dev-dependencies]
 arrow-cast = { workspace = true, features = ["prettyprint"] }

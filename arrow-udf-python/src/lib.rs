@@ -24,20 +24,18 @@
 // Special attention is needed for PyErr in PyResult.
 // Remember to convert `PyErr` using the `pyerr_to_anyhow` function before passing it out of the sub-interpreter.
 
-use self::interpreter::SubInterpreter;
 pub use self::into_field::IntoField;
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Context, Error, Result};
 use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
 use arrow_array::{Array, ArrayRef, BooleanArray, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
 use pyo3::types::{PyAnyMethods, PyIterator, PyModule, PyTuple};
-use pyo3::{Py, PyObject};
+use pyo3::{Py, PyObject, Python};
 use std::collections::HashMap;
+use std::ffi::CString;
 use std::fmt::Debug;
 use std::sync::Arc;
 
-// #[cfg(Py_3_12)]
-mod interpreter;
 mod into_field;
 mod pyarrow;
 
@@ -71,7 +69,6 @@ mod pyarrow;
 /// [`merge`]: Runtime::merge
 /// [`finish`]: Runtime::finish
 pub struct Runtime {
-    interpreter: SubInterpreter,
     functions: HashMap<String, Function>,
     aggregates: HashMap<String, Aggregate>,
     converter: pyarrow::Converter,
@@ -149,8 +146,15 @@ impl Builder {
 
     /// Build the `Runtime`.
     pub fn build(self) -> Result<Runtime> {
-        let interpreter = SubInterpreter::new()?;
-        interpreter.run(
+        let runtime = Runtime {
+            functions: HashMap::new(),
+            aggregates: HashMap::new(),
+            converter: pyarrow::Converter::new(),
+        };
+
+        pyo3::prepare_freethreaded_python();
+
+        runtime.run(
             r#"
 # internal use for json types
 import json
@@ -198,14 +202,9 @@ del limited_import
             for symbol in self.removed_symbols {
                 script.push_str(&format!("del {}\n", symbol));
             }
-            interpreter.run(&script)?;
+            runtime.run(&script)?;
         }
-        Ok(Runtime {
-            interpreter,
-            functions: HashMap::new(),
-            aggregates: HashMap::new(),
-            converter: pyarrow::Converter::new(),
-        })
+        Ok(runtime)
     }
 }
 
@@ -218,6 +217,14 @@ impl Runtime {
     /// Return a new builder for `Runtime`.
     pub fn builder() -> Builder {
         Builder::default()
+    }
+
+    /// Run Python code in the interpreter.
+    fn run(&self, code: &str) -> Result<()> {
+        Python::with_gil(|py| {
+            py.run(&CString::new(code)?, None, None)
+                .map_err(|e| e.into())
+        })
     }
 
     /// Add a new scalar function or table function.
@@ -292,10 +299,17 @@ impl Runtime {
         code: &str,
         handler: &str,
     ) -> Result<()> {
-        let function = self.interpreter.with_gil(|py| {
-            Ok(PyModule::from_code_bound(py, code, name, name)?
+        let function = Python::with_gil(|py| {
+            Ok::<_, Error>(
+                PyModule::from_code(
+                    py,
+                    &CString::new(code)?,
+                    &CString::new(name)?,
+                    &CString::new(name)?,
+                )?
                 .getattr(handler)?
-                .into())
+                .into(),
+            )
         })?;
         let function = Function {
             function,
@@ -365,9 +379,14 @@ impl Runtime {
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
-        let aggregate = self.interpreter.with_gil(|py| {
-            let module = PyModule::from_code_bound(py, code, name, name)?;
-            Ok(Aggregate {
+        let aggregate = Python::with_gil(|py| {
+            let module = PyModule::from_code(
+                py,
+                &CString::new(code)?,
+                &CString::new(name)?,
+                &CString::new(name)?,
+            )?;
+            Ok::<_, Error>(Aggregate {
                 state_field: state_type.into_field(name).into(),
                 output_field: output_type.into_field(name).into(),
                 mode,
@@ -388,9 +407,8 @@ impl Runtime {
     /// Remove a scalar or table function.
     pub fn del_function(&mut self, name: &str) -> Result<()> {
         let function = self.functions.remove(name).context("function not found")?;
-        _ = self.interpreter.with_gil(|_| {
+        Python::with_gil(|_| {
             drop(function);
-            Ok(())
         });
         Ok(())
     }
@@ -398,9 +416,8 @@ impl Runtime {
     /// Remove an aggregate function.
     pub fn del_aggregate(&mut self, name: &str) -> Result<()> {
         let aggregate = self.functions.remove(name).context("function not found")?;
-        _ = self.interpreter.with_gil(|_| {
+        Python::with_gil(|_| {
             drop(aggregate);
-            Ok(())
         });
         Ok(())
     }
@@ -428,7 +445,7 @@ impl Runtime {
     pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let function = self.functions.get(name).context("function not found")?;
         // convert each row to python objects and call the function
-        let (output, error) = self.interpreter.with_gil(|py| {
+        let (output, error) = Python::with_gil(|py| {
             let mut results = Vec::with_capacity(input.num_rows());
             let mut errors = vec![];
             let mut row = Vec::with_capacity(input.num_columns());
@@ -444,7 +461,7 @@ impl Runtime {
                     let pyobj = self.converter.get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
                 }
-                let args = PyTuple::new_bound(py, row.drain(..));
+                let args = PyTuple::new(py, row.drain(..))?;
                 match function.function.call1(py, args) {
                     Ok(result) => results.push(result),
                     Err(e) => {
@@ -457,8 +474,9 @@ impl Runtime {
                 .converter
                 .build_array(&function.return_field, py, &results)?;
             let error = build_error_array(input.num_rows(), errors);
-            Ok((output, error))
+            Ok::<_, anyhow::Error>((output, error))
         })?;
+
         if let Some(error) = error {
             let schema = Schema::new(vec![
                 function.return_field.clone(),
@@ -508,7 +526,6 @@ impl Runtime {
 
         // initial state
         Ok(RecordBatchIter {
-            interpreter: &self.interpreter,
             input,
             function,
             schema: Arc::new(Schema::new(vec![
@@ -532,14 +549,13 @@ impl Runtime {
     /// ```
     pub fn create_state(&self, name: &str) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
-        let state = self.interpreter.with_gil(|py| {
+        Python::with_gil(|py| {
             let state = aggregate.create_state.call0(py)?;
             let state = self
                 .converter
                 .build_array(&aggregate.state_field, py, &[state])?;
             Ok(state)
-        })?;
-        Ok(state)
+        })
     }
 
     /// Call accumulate of an aggregate function.
@@ -564,7 +580,7 @@ impl Runtime {
     ) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         // convert each row to python objects and call the accumulate function
-        let new_state = self.interpreter.with_gil(|py| {
+        Python::with_gil(|py| {
             let mut state = self
                 .converter
                 .get_pyobject(py, &aggregate.state_field, state, 0)?;
@@ -582,15 +598,14 @@ impl Runtime {
                     let pyobj = self.converter.get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
                 }
-                let args = PyTuple::new_bound(py, row.drain(..));
+                let args = PyTuple::new(py, row.drain(..))?;
                 state = aggregate.accumulate.call1(py, args)?;
             }
             let output = self
                 .converter
                 .build_array(&aggregate.state_field, py, &[state])?;
             Ok(output)
-        })?;
-        Ok(new_state)
+        })
     }
 
     /// Call accumulate or retract of an aggregate function.
@@ -624,7 +639,7 @@ impl Runtime {
             .as_ref()
             .context("function does not support retraction")?;
         // convert each row to python objects and call the accumulate function
-        let new_state = self.interpreter.with_gil(|py| {
+        Python::with_gil(|py| {
             let mut state = self
                 .converter
                 .get_pyobject(py, &aggregate.state_field, state, 0)?;
@@ -642,7 +657,7 @@ impl Runtime {
                     let pyobj = self.converter.get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
                 }
-                let args = PyTuple::new_bound(py, row.drain(..));
+                let args = PyTuple::new(py, row.drain(..))?;
                 let func = if ops.is_valid(i) && ops.value(i) {
                     retract
                 } else {
@@ -654,8 +669,7 @@ impl Runtime {
                 .converter
                 .build_array(&aggregate.state_field, py, &[state])?;
             Ok(output)
-        })?;
-        Ok(new_state)
+        })
     }
 
     /// Merge states of an aggregate function.
@@ -671,7 +685,7 @@ impl Runtime {
     pub fn merge(&self, name: &str, states: &dyn Array) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         let merge = aggregate.merge.as_ref().context("merge not found")?;
-        let output = self.interpreter.with_gil(|py| {
+        Python::with_gil(|py| {
             let mut state = self
                 .converter
                 .get_pyobject(py, &aggregate.state_field, states, 0)?;
@@ -682,15 +696,14 @@ impl Runtime {
                 let state2 = self
                     .converter
                     .get_pyobject(py, &aggregate.state_field, states, i)?;
-                let args = PyTuple::new_bound(py, [state, state2]);
+                let args = PyTuple::new(py, [state, state2])?;
                 state = merge.call1(py, args)?;
             }
             let output = self
                 .converter
                 .build_array(&aggregate.state_field, py, &[state])?;
             Ok(output)
-        })?;
-        Ok(output)
+        })
     }
 
     /// Get the result of an aggregate function.
@@ -710,7 +723,8 @@ impl Runtime {
         let Some(finish) = &aggregate.finish else {
             return Ok(states.clone());
         };
-        let output = self.interpreter.with_gil(|py| {
+
+        Python::with_gil(|py| {
             let mut results = Vec::with_capacity(states.len());
             for i in 0..states.len() {
                 if aggregate.mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
@@ -720,7 +734,7 @@ impl Runtime {
                 let state = self
                     .converter
                     .get_pyobject(py, &aggregate.state_field, states, i)?;
-                let args = PyTuple::new_bound(py, [state]);
+                let args = PyTuple::new(py, [state])?;
                 let result = finish.call1(py, args)?;
                 results.push(result);
             }
@@ -728,14 +742,12 @@ impl Runtime {
                 .converter
                 .build_array(&aggregate.output_field, py, &results)?;
             Ok(output)
-        })?;
-        Ok(output)
+        })
     }
 }
 
 /// An iterator over the result of a table function.
 pub struct RecordBatchIter<'a> {
-    interpreter: &'a SubInterpreter,
     input: &'a RecordBatch,
     function: &'a Function,
     schema: SchemaRef,
@@ -758,7 +770,8 @@ impl RecordBatchIter<'_> {
         if self.row == self.input.num_rows() {
             return Ok(None);
         }
-        let batch = self.interpreter.with_gil(|py| {
+
+        Python::with_gil(|py| {
             let mut indexes = Int32Builder::with_capacity(self.chunk_size);
             let mut results = Vec::with_capacity(self.input.num_rows());
             let mut errors = vec![];
@@ -781,10 +794,10 @@ impl RecordBatchIter<'_> {
                         let val = self.converter.get_pyobject(py, field, column, self.row)?;
                         row.push(val);
                     }
-                    let args = PyTuple::new_bound(py, row.drain(..));
+                    let args = PyTuple::new(py, row.drain(..))?;
                     match self.function.function.bind(py).call1(args) {
                         Ok(result) => {
-                            let iter = result.iter()?.into();
+                            let iter = result.try_iter()?.into();
                             self.generator.insert(iter)
                         }
                         Err(e) => {
@@ -838,8 +851,7 @@ impl RecordBatchIter<'_> {
                     RecordBatch::try_new(self.schema.clone(), vec![indexes, output]).unwrap(),
                 ))
             }
-        })?;
-        Ok(batch)
+        })
     }
 }
 
@@ -853,10 +865,9 @@ impl Iterator for RecordBatchIter<'_> {
 impl Drop for RecordBatchIter<'_> {
     fn drop(&mut self) {
         if let Some(generator) = self.generator.take() {
-            _ = self.interpreter.with_gil(|_| {
+            Python::with_gil(|_| {
                 drop(generator);
-                Ok(())
-            });
+            })
         }
     }
 }
@@ -878,11 +889,10 @@ pub enum CallMode {
 impl Drop for Runtime {
     fn drop(&mut self) {
         // `PyObject` must be dropped inside the interpreter
-        _ = self.interpreter.with_gil(|_| {
+        Python::with_gil(|_| {
             self.functions.clear();
             self.aggregates.clear();
-            Ok(())
-        });
+        })
     }
 }
 

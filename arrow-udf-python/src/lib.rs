@@ -153,7 +153,7 @@ impl Builder {
             pyo3::prepare_freethreaded_python();
 
             for task in receiver {
-                Python::with_gil(|py| task(py))
+                Python::with_gil(task)
             }
         });
 

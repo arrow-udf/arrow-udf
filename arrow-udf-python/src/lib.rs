@@ -36,6 +36,7 @@ use std::ffi::CString;
 use std::fmt::Debug;
 use std::sync::mpsc::{self, Sender};
 use std::sync::Arc;
+use std::thread::JoinHandle;
 use std::{mem, thread};
 
 mod into_field;
@@ -72,7 +73,8 @@ pub struct Runtime {
     functions: HashMap<String, Function>,
     aggregates: HashMap<String, Aggregate>,
     converter: pyarrow::Converter,
-    sender: Sender<Task>,
+    sender: Option<Sender<Task>>,
+    handle: Option<JoinHandle<()>>,
 }
 
 impl Debug for Runtime {
@@ -149,7 +151,7 @@ impl Builder {
     pub fn build(self) -> Result<Runtime> {
         let (sender, receiver) = mpsc::channel::<Task>();
 
-        thread::spawn(move || {
+        let handle = thread::spawn(move || {
             pyo3::prepare_freethreaded_python();
 
             for task in receiver {
@@ -161,7 +163,8 @@ impl Builder {
             functions: HashMap::new(),
             aggregates: HashMap::new(),
             converter: pyarrow::Converter::new(),
-            sender,
+            sender: Some(sender),
+            handle: Some(handle),
         };
 
         runtime.run(
@@ -235,6 +238,8 @@ impl Runtime {
         F: FnOnce(Python) + Send + 'static,
     {
         self.sender
+            .as_ref()
+            .ok_or_else(|| anyhow!("runtime has been shutdown"))?
             .send(Box::new(task))
             .map_err(|err| anyhow!("failed to send task to python runtime: {:?}", err))
     }
@@ -252,6 +257,8 @@ impl Runtime {
         let ctx_ptr = UnsafeContext::new(ctx);
 
         self.sender
+            .as_ref()
+            .ok_or_else(|| anyhow!("runtime has been shutdown"))?
             .send(Box::new(move |py| {
                 // Safety
                 //
@@ -974,6 +981,14 @@ impl Drop for Runtime {
             let _ = functions;
             let _ = aggregates;
         });
+
+        // Drop the sender.
+        let _ = self.sender.take();
+
+        // Make sure the handle has been joined.
+        if let Some(handle) = self.handle.take() {
+            let _ = handle.join();
+        }
     }
 }
 

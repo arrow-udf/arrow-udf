@@ -54,11 +54,6 @@ mod pyarrow;
 ///
 /// Click on each function to see the example.
 ///
-/// # Parallelism
-///
-/// As we know, Python has a Global Interpreter Lock (GIL) that prevents multiple threads from executing Python code simultaneously.
-/// To work around this limitation, each runtime creates a sub-interpreter with its own GIL. This feature requires Python 3.12 or later.
-///
 /// [`add_function`]: Runtime::add_function
 /// [`add_aggregate`]: Runtime::add_aggregate
 /// [`call`]: Runtime::call
@@ -177,7 +172,6 @@ def limited_import(name, globals=None, locals=None, fromlist=(), level=0):
     allowlist = (
         'json',
         'decimal',
-        'pickle',
         're',
         'math',
         'datetime',

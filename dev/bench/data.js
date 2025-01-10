@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1735208201728,
+  "lastUpdate": 1736487796872,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -11993,6 +11993,114 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 164624,
             "range": "± 2542",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "db1005c28356dce59424aa58ee2f92b0d405b832",
+          "message": "build(deps): bump org.slf4j:slf4j-api from 2.0.13 to 2.0.16 in /arrow-udf-flight/java (#90)\n\nBumps org.slf4j:slf4j-api from 2.0.13 to 2.0.16.\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=org.slf4j:slf4j-api&package-manager=maven&previous-version=2.0.13&new-version=2.0.16)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-01-10T13:33:11+08:00",
+          "tree_id": "652b5296effc152415f0d2b1d431ca38425a715f",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/db1005c28356dce59424aa58ee2f92b0d405b832"
+        },
+        "date": 1736487795958,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3933,
+            "range": "± 14",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4009,
+            "range": "± 20",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22724,
+            "range": "± 1372",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 217358,
+            "range": "± 1056",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 263640,
+            "range": "± 3498",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 75150,
+            "range": "± 1408",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 387231,
+            "range": "± 24904",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5777534,
+            "range": "± 49876",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1019351,
+            "range": "± 41823",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 63328,
+            "range": "± 258",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 649762,
+            "range": "± 10343",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12206985,
+            "range": "± 183358",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 142580,
+            "range": "± 1873",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 163877,
+            "range": "± 4730",
             "unit": "ns/iter"
           }
         ]

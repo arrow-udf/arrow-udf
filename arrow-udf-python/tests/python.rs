@@ -14,6 +14,7 @@
 
 use std::sync::Arc;
 
+use arrow_array::types::Int32Type;
 use arrow_array::*;
 use arrow_buffer::{NullBuffer, OffsetBuffer};
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
@@ -389,8 +390,8 @@ fn test_arg_map() {
             CallMode::CalledOnNullInput,
             r#"
 def from_map(x):
-    if 'k' in x:
-        return d['k']
+    if isinstance(x, dict) and 'k' in x:
+        return x['k']
     else:
         return None
 "#,
@@ -399,18 +400,16 @@ def from_map(x):
 
     let fields = Fields::from(vec![
         Field::new("key", DataType::Utf8, false),
-        Field::new("values", DataType::Utf8, false),
+        Field::new("value", DataType::Utf8, false),
     ]);
+    let field = Arc::new(Field::new(
+        "entries",
+        DataType::Struct(fields.clone()),
+        false,
+    ));
     let schema = Schema::new(vec![Field::new(
         "x",
-        DataType::Map(
-            Arc::new(Field::new(
-                "entries",
-                DataType::Struct(fields.clone()),
-                false,
-            )),
-            false,
-        ),
+        DataType::Map(field.clone(), false),
         true,
     )]);
     let offsets = OffsetBuffer::new(vec![0, 1, 3, 3].into());
@@ -419,7 +418,6 @@ def from_map(x):
         Arc::new(StringArray::from(vec!["v", "v1", "v2"])) as _,
     ];
     let entries = StructArray::new(fields.clone(), columns, None);
-    let field = Arc::new(Field::new("entries", DataType::Struct(fields), false));
     let nulls = NullBuffer::from(vec![true, true, false]);
     let arg0 = MapArray::new(
         field.clone(),

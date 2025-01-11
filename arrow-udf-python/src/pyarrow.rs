@@ -233,7 +233,7 @@ impl Converter {
                 for j in 0..list.len() {
                     let key = self.get_pyobject(py, key_field, keys.as_ref(), j)?;
                     let value = self.get_pyobject(py, value_field, values.as_ref(), j)?;
-                    let _ = dict.set_item(key, value)?;
+                    dict.set_item(key, value)?;
                 }
                 dict.into()
             }

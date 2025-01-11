@@ -886,18 +886,16 @@ fn test_arg_map() {
 
     let fields = Fields::from(vec![
         Field::new("key", DataType::Utf8, false),
-        Field::new("values", DataType::Utf8, false),
+        Field::new("value", DataType::Utf8, false),
     ]);
+    let field = Arc::new(Field::new(
+        "entries",
+        DataType::Struct(fields.clone()),
+        false,
+    ));
     let schema = Schema::new(vec![Field::new(
         "x",
-        DataType::Map(
-            Arc::new(Field::new(
-                "entries",
-                DataType::Struct(fields.clone()),
-                false,
-            )),
-            false,
-        ),
+        DataType::Map(field.clone(), false),
         true,
     )]);
     let offsets = OffsetBuffer::new(vec![0, 1, 3, 3].into());
@@ -906,7 +904,6 @@ fn test_arg_map() {
         Arc::new(StringArray::from(vec!["v", "v1", "v2"])) as _,
     ];
     let entries = StructArray::new(fields.clone(), columns, None);
-    let field = Arc::new(Field::new("entries", DataType::Struct(fields), false));
     let nulls = NullBuffer::from(vec![true, true, false]);
     let arg0 = MapArray::new(
         field.clone(),

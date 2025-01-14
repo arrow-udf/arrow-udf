@@ -76,7 +76,7 @@ class ScalarFunction(UserDefinedFunction):
                     lambda args: self._func(*args),  # manual `starmap`
                     (
                         # converts column-based inputs to rows
-                        (col[i] for col in inputs)
+                        [col[i] for col in inputs]
                         for i in range(batch.num_rows)
                     ),
                 )

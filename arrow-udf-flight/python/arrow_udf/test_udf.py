@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from decimal import Decimal
-from multiprocessing import Process
+import random
 from arrow_udf import udf, UdfServer, DecimalType, JsonType
 import pyarrow as pa
 import pyarrow.flight as flight
@@ -44,14 +44,14 @@ def add(x, y):
 
 @udf(input_types=["INT"], result_type="INT")
 def wait(x):
-    time.sleep(0.01)
-    return 0
+    time.sleep(random.choice([0.00, 0.01, 0.02]))
+    return x
 
 
 @udf(input_types=["INT"], result_type="INT", io_threads=32)
 def wait_concurrent(x):
-    time.sleep(0.01)
-    return 0
+    time.sleep(random.choice([0.00, 0.01, 0.02]))
+    return x
 
 
 @udf(
@@ -195,6 +195,7 @@ def test_io_concurrency():
         # Single-threaded function takes a long time
         flight_info = flight.FlightDescriptor.for_path(b"wait")
         writer, reader = client.do_exchange(descriptor=flight_info)
+        chunks = []
         with writer:
             writer.begin(schema=data.schema)
             for batch in batches:
@@ -205,15 +206,25 @@ def test_io_concurrency():
             total_len = 0
             for chunk in reader:
                 total_len += len(chunk.data)
+                chunks.append(chunk)
 
             assert total_len == LEN
 
             elapsed_time = time.time() - start_time  # ~0.64s
             assert elapsed_time > 0.5
 
+        # Check that the results in the chunks are in input order
+        pos = 0
+        for chunk in chunks:
+            assert chunk.data.column("wait").equals(
+                pa.array(range(pos, pos + len(chunk.data)), type=pa.int32())
+            )
+            pos += len(chunk.data)
+
         # Multi-threaded I/O bound function will take a much shorter time
         flight_info = flight.FlightDescriptor.for_path(b"wait_concurrent")
         writer, reader = client.do_exchange(descriptor=flight_info)
+        chunks = []
         with writer:
             writer.begin(schema=data.schema)
             for batch in batches:
@@ -224,11 +235,20 @@ def test_io_concurrency():
             total_len = 0
             for chunk in reader:
                 total_len += len(chunk.data)
+                chunks.append(chunk)
 
             assert total_len == LEN
 
             elapsed_time = time.time() - start_time
             assert elapsed_time < 0.25
+
+        # Check that the results in the chunks are in input order
+        pos = 0
+        for chunk in chunks:
+            assert chunk.data.column("wait_concurrent").equals(
+                pa.array(range(pos, pos + len(chunk.data)), type=pa.int32())
+            )
+            pos += len(chunk.data)
 
 
 def test_all_types():

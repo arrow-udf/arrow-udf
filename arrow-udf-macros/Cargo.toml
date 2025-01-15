@@ -10,12 +10,16 @@ license = "Apache-2.0"
 [lib]
 proc-macro = true
 
+[features]
+global_registry = ["linkme"]
+
 [dependencies]
 base64 = "0.22"
 itertools = "0.12"
 proc-macro2 = "1"
 quote = "1"
 syn = { version = "2", features = ["full", "extra-traits"] }
+linkme = { version = "0.3", optional = true }
 
 [dev-dependencies]
 expect-test = "1"

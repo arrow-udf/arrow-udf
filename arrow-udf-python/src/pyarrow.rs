@@ -16,8 +16,13 @@
 
 use arrow_array::{array::*, builder::*};
 use arrow_buffer::OffsetBuffer;
-use arrow_schema::{DataType, Field};
-use pyo3::{exceptions::PyTypeError, types::PyAnyMethods, IntoPy, PyObject, PyResult, Python};
+use arrow_schema::{DataType, Field, Fields};
+use pyo3::{
+    exceptions::PyTypeError,
+    prelude::PyDictMethods,
+    types::{PyAnyMethods, PyDict},
+    IntoPy, PyObject, PyResult, Python,
+};
 use std::{borrow::Cow, sync::Arc};
 
 macro_rules! get_pyobject {
@@ -208,6 +213,30 @@ impl Converter {
                 }
                 values.into_py(py)
             }
+            DataType::Map(_, _) => {
+                let array = array.as_any().downcast_ref::<MapArray>().unwrap();
+                let list = array.value(i);
+                if list.num_columns() != 2 {
+                    return Err(PyTypeError::new_err(format!(
+                        "Invalid map inner struct fields length {}",
+                        list.num_columns()
+                    )));
+                }
+                let fields = list.fields();
+                let key_field = &fields[0];
+                let value_field = &fields[1];
+                let columns = list.columns();
+                let keys = &columns[0];
+                let values = &columns[1];
+
+                let dict = PyDict::new(py);
+                for j in 0..list.len() {
+                    let key = self.get_pyobject(py, key_field, keys.as_ref(), j)?;
+                    let value = self.get_pyobject(py, value_field, values.as_ref(), j)?;
+                    dict.set_item(key, value)?;
+                }
+                dict.into()
+            }
             DataType::Struct(fields) => {
                 let array = array.as_any().downcast_ref::<StructArray>().unwrap();
                 let object = py.eval_bound("Struct()", None, None)?;
@@ -345,6 +374,58 @@ impl Converter {
                     OffsetBuffer::new(offsets.into()),
                     values_array,
                     Some(nulls),
+                )))
+            }
+            DataType::Map(inner, _) => {
+                let (key_field, value_field) = match inner.data_type() {
+                    DataType::Struct(fields) => {
+                        if fields.len() != 2 {
+                            return Err(PyTypeError::new_err(format!(
+                                "Invalid map inner struct fields length {}",
+                                fields.len()
+                            )));
+                        }
+                        (fields[0].clone(), fields[1].clone())
+                    }
+                    _ => {
+                        return Err(PyTypeError::new_err(format!(
+                            "Invalid map inner datatype {}",
+                            inner.data_type()
+                        )));
+                    }
+                };
+                let mut flatten_keys = vec![];
+                let mut flatten_values = vec![];
+                let mut offsets = Vec::<i32>::with_capacity(values.len() + 1);
+                offsets.push(0);
+                for val in values {
+                    if !val.is_none(py) {
+                        let py_any = val.bind(py);
+                        let dict = py_any.downcast::<PyDict>()?;
+                        flatten_keys.reserve(dict.len());
+                        flatten_values.reserve(dict.len());
+                        for key in dict.keys() {
+                            flatten_keys.push(key.into());
+                        }
+                        for value in dict.values() {
+                            flatten_values.push(value.into());
+                        }
+                    }
+                    offsets.push(flatten_keys.len() as i32);
+                }
+                let arrays = vec![
+                    self.build_array(&key_field, py, &flatten_keys)?,
+                    self.build_array(&value_field, py, &flatten_values)?,
+                ];
+                let struct_array =
+                    StructArray::new(Fields::from([key_field, value_field]), arrays, None);
+                let nulls = values.iter().map(|v| !v.is_none(py)).collect();
+                Ok(Arc::new(MapArray::new(
+                    inner.clone(),
+                    OffsetBuffer::new(offsets.into()),
+                    struct_array,
+                    Some(nulls),
+                    false,
                 )))
             }
             DataType::Struct(fields) => {

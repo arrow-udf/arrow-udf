@@ -23,7 +23,6 @@ use arrow_udf_python::Runtime as PythonRuntime;
 use arrow_udf_wasm::Runtime as WasmRuntime;
 use criterion::{criterion_group, criterion_main, Criterion};
 
-#[allow(unexpected_cfgs)]
 fn bench_eval_gcd(c: &mut Criterion) {
     #[function("gcd(int, int) -> int")]
     fn gcd(mut a: i32, mut b: i32) -> i32 {
@@ -182,7 +181,6 @@ def range1(n: int):
     });
 }
 
-#[allow(unexpected_cfgs)]
 fn bench_eval_decimal(c: &mut Criterion) {
     #[function("decimal(decimal) -> decimal")]
     fn decimal<T>(a: T) -> T {

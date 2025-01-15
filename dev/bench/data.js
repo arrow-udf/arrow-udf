@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1736923884018,
+  "lastUpdate": 1736927895170,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -12209,6 +12209,114 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 156554,
             "range": "± 10813",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "stdrc@outlook.com",
+            "name": "Richard Chien",
+            "username": "stdrc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5c41e3f2324a6238fa9a93306a07333f5af24f44",
+          "message": "fix: add `global_registry` as a feature in `arrow-udf-maros/Cargo.toml`, fixing CI clippy failure (#94)",
+          "timestamp": "2025-01-15T15:48:19+08:00",
+          "tree_id": "c05d3d68a56c2db02f4afec2ce2ae51ac629dabf",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/5c41e3f2324a6238fa9a93306a07333f5af24f44"
+        },
+        "date": 1736927894184,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3931,
+            "range": "± 169",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4010,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22804,
+            "range": "± 1488",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 211198,
+            "range": "± 767",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 259816,
+            "range": "± 3093",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76191,
+            "range": "± 735",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 382137,
+            "range": "± 18284",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5900825,
+            "range": "± 120323",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 978935,
+            "range": "± 12634",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 61516,
+            "range": "± 1480",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 665920,
+            "range": "± 20025",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11697516,
+            "range": "± 221408",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 143017,
+            "range": "± 7753",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 154040,
+            "range": "± 1566",
             "unit": "ns/iter"
           }
         ]

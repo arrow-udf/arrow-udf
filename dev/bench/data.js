@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1736487796872,
+  "lastUpdate": 1736923884018,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -12101,6 +12101,114 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 163877,
             "range": "± 4730",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "stdrc@outlook.com",
+            "name": "Richard Chien",
+            "username": "stdrc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "14e0467cc288b874939900ce9b4d861275efda1a",
+          "message": "fix: results out-of-order when `io_threads` is set larger than 1 (#93)\n\nIn previous version we use\n[`submit`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Executor.submit)\n+\n[`as_completed`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.as_completed)\nto spawn tasks and collect results. However, `as_completed` doesn't\nreturn results in the order of input futures. This led to a critical bug\nthat the results can be totally wrong.\n\nThis PR uses\n[`map`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Executor.map)\ninstead. Unit tests are also updated to check the correctness of\nresults.\n\nI think all old versions should be yanked.\n\n---------\n\nSigned-off-by: Richard Chien <stdrc@outlook.com>",
+          "timestamp": "2025-01-15T14:41:30+08:00",
+          "tree_id": "8a1d68f8a34afb4aab9a4f4213fce05879779f2d",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/14e0467cc288b874939900ce9b4d861275efda1a"
+        },
+        "date": 1736923883653,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3929,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4025,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22673,
+            "range": "± 1458",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 209802,
+            "range": "± 2238",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 258819,
+            "range": "± 9634",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74018,
+            "range": "± 1059",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 386763,
+            "range": "± 17859",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5820218,
+            "range": "± 174345",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 981307,
+            "range": "± 39879",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/rust",
+            "value": 61608,
+            "range": "± 500",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 683166,
+            "range": "± 7144",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12124658,
+            "range": "± 560736",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 142698,
+            "range": "± 1865",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 156554,
+            "range": "± 10813",
             "unit": "ns/iter"
           }
         ]

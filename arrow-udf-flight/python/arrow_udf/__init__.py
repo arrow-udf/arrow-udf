@@ -68,22 +68,26 @@ class ScalarFunction(UserDefinedFunction):
         # parse value from json string for jsonb columns
         inputs = [[v.as_py() for v in array] for array in batch]
 
+        # evaluate the function for each row
         if self._executor is not None:
-            # evaluate the function for each row
-            tasks = [
-                self._executor.submit(self._func, *[col[i] for col in inputs])
-                for i in range(batch.num_rows)
-            ]
-            column = [
-                future.result() for future in concurrent.futures.as_completed(tasks)
-            ]
+            # run in executor concurrently
+            results = list(
+                self._executor.map(
+                    lambda args: self._func(*args),  # manual `starmap`
+                    (
+                        # converts column-based inputs to rows
+                        [col[i] for col in inputs]
+                        for i in range(batch.num_rows)
+                    ),
+                )
+            )
         else:
-            # evaluate the function for each row
-            column = [
+            # run sequentially
+            results = [
                 self.eval(*[col[i] for col in inputs]) for i in range(batch.num_rows)
             ]
 
-        array = _to_arrow_array(column, self._result_schema.types[0])
+        array = _to_arrow_array(results, self._result_schema.types[0])
 
         yield pa.RecordBatch.from_arrays([array], schema=self._result_schema)
 

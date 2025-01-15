@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - todo
+
+### Fixed
+
+- Fix results out-of-order issue when `io_threads` is set larger than `1`. This is a CRITICAL fix. We highly encourage every user to upgrade.
+
 ## [0.2.1] - 2024-05-07
 
 ### Fixed

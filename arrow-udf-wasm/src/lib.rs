@@ -14,14 +14,14 @@
 
 #![doc = include_str!("../README.md")]
 
-use anyhow::{anyhow, bail, ensure, Context};
-use arrow_array::RecordBatch;
+use anyhow::{anyhow, bail, ensure, Context, Result};
+use arrow_array::{Array, ArrayRef, BooleanArray, RecordBatch};
 use ram_file::{RamFile, RamFileRef};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::sync::Mutex;
 use wasi_common::{sync::WasiCtxBuilder, WasiCtx};
-use wasmtime::*;
+use wasmtime::{Engine, Linker, Memory, Module, Store, StoreLimits, StoreLimitsBuilder, TypedFunc};
 
 #[cfg(feature = "build")]
 pub mod build;
@@ -243,6 +243,24 @@ impl Runtime {
             self.instances.lock().unwrap().push(instance);
         })
         .into_iter())
+    }
+
+    pub fn create_state(&self, name: &str) -> Result<ArrayRef> {
+        todo!()
+    }
+
+    pub fn accumulate_or_retract(
+        &self,
+        name: &str,
+        state: &dyn Array,
+        ops: &BooleanArray,
+        input: &RecordBatch,
+    ) -> Result<ArrayRef> {
+        todo!()
+    }
+
+    pub fn finish(&self, name: &str, states: &ArrayRef) -> Result<ArrayRef> {
+        todo!()
     }
 }
 

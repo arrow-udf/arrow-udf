@@ -22,10 +22,11 @@ use std::time::{Duration, Instant};
 use anyhow::{anyhow, bail, Context as _, Result};
 use arrow_array::{builder::Int32Builder, Array, ArrayRef, BooleanArray, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
+use rquickjs::async_with;
 pub use rquickjs::runtime::MemoryUsage;
 use rquickjs::{
-    context::intrinsic::All, function::Args, module::Evaluated, Context, Ctx, FromJs, Module,
-    Object, Persistent, Value,
+    context::intrinsic::All, function::Args, module::Evaluated, AsyncContext, AsyncRuntime, Ctx,
+    FromJs, Module, Object, Persistent, Value,
 };
 
 pub use self::into_field::IntoField;
@@ -62,8 +63,8 @@ pub struct Runtime {
     aggregates: HashMap<String, Aggregate>,
     // NOTE: `functions` and `aggregates` must be put before the `runtime` and `context` to be dropped first.
     converter: jsarrow::Converter,
-    runtime: rquickjs::Runtime,
-    context: Context,
+    runtime: AsyncRuntime,
+    context: AsyncContext,
     /// Timeout of each function call.
     timeout: Option<Duration>,
     /// Deadline of the current function call.
@@ -99,8 +100,26 @@ struct Aggregate {
     merge: Option<JsFunction>,
 }
 
+struct AggregateWrapper {
+    create_state: JsFunction,
+    accumulate: JsFunction,
+    retract: Option<JsFunction>,
+    finish: Option<JsFunction>,
+    merge: Option<JsFunction>,
+}
+
+unsafe impl Send for AggregateWrapper {}
+
 /// A persistent function.
 type JsFunction = Persistent<rquickjs::Function<'static>>;
+
+struct JsFunctionWrapper(pub JsFunction);
+
+unsafe impl Send for JsFunctionWrapper {}
+
+unsafe impl Sync for Function {}
+
+unsafe impl Sync for Aggregate {}
 
 // SAFETY: `rquickjs::Runtime` is `Send` and `Sync`
 unsafe impl Send for Runtime {}
@@ -122,9 +141,10 @@ pub enum CallMode {
 
 impl Runtime {
     /// Create a new `Runtime`.
-    pub fn new() -> Result<Self> {
-        let runtime = rquickjs::Runtime::new().context("failed to create quickjs runtime")?;
-        let context = rquickjs::Context::custom::<All>(&runtime)
+    pub async fn new() -> Result<Self> {
+        let runtime = AsyncRuntime::new().context("failed to create quickjs runtime")?;
+        let context = AsyncContext::custom::<All>(&runtime)
+            .await
             .context("failed to create quickjs context")?;
 
         Ok(Self {
@@ -176,17 +196,9 @@ impl Runtime {
         }
     }
 
-    /// Get memory usage of the internal quickjs runtime.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use arrow_udf_js::Runtime;
-    /// let runtime = Runtime::new().unwrap();
-    /// let usage = runtime.memory_usage();
-    /// ```
-    pub fn memory_usage(&self) -> MemoryUsage {
-        self.runtime.memory_usage()
+    /// Return the inner quickjs runtime.
+    pub fn inner(&self) -> &AsyncRuntime {
+        &self.runtime
     }
 
     /// Return the converter where you can configure the extension metadata key and values.
@@ -246,7 +258,7 @@ impl Runtime {
     ///     )
     ///     .unwrap();
     /// ```
-    pub fn add_function(
+    pub async fn add_function(
         &mut self,
         name: &str,
         return_type: impl IntoField,
@@ -254,6 +266,7 @@ impl Runtime {
         code: &str,
     ) -> Result<()> {
         self.add_function_with_handler(name, return_type, mode, code, name)
+            .await
     }
 
     /// Add a new scalar function or table function with custom handler name.
@@ -264,7 +277,7 @@ impl Runtime {
     /// - others: Same as [`add_function`].
     ///
     /// [`add_function`]: Runtime::add_function
-    pub fn add_function_with_handler(
+    pub async fn add_function_with_handler(
         &mut self,
         name: &str,
         return_type: impl IntoField,
@@ -272,15 +285,18 @@ impl Runtime {
         code: &str,
         handler: &str,
     ) -> Result<()> {
-        let function = self.context.with(|ctx| {
+        let function = async_with!(self.context => |ctx| {
             let (module, _) = Module::declare(ctx.clone(), name, code)
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to declare module")?
                 .eval()
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to evaluate module")?;
-            Self::get_function(&ctx, &module, handler)
-        })?;
+            Ok(JsFunctionWrapper(Self::get_function(&ctx, &module, handler)?)) as Result<JsFunctionWrapper>
+        })
+        .await?;
+        let function = function.0;
+
         let function = Function {
             function,
             return_field: return_type.into_field(name).into(),
@@ -356,7 +372,7 @@ impl Runtime {
     ///     )
     ///     .unwrap();
     /// ```
-    pub fn add_aggregate(
+    pub async fn add_aggregate(
         &mut self,
         name: &str,
         state_type: impl IntoField,
@@ -364,24 +380,39 @@ impl Runtime {
         mode: CallMode,
         code: &str,
     ) -> Result<()> {
-        let aggregate = self.context.with(|ctx| {
+        let AggregateWrapper {
+            create_state,
+            accumulate,
+            retract,
+            finish,
+            merge,
+        } = async_with!(self.context => |ctx| {
             let (module, _) = Module::declare(ctx.clone(), name, code)
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to declare module")?
                 .eval()
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to evaluate module")?;
-            Ok(Aggregate {
-                state_field: state_type.into_field(name).into(),
-                output_field: output_type.into_field(name).into(),
-                mode,
+            Ok(AggregateWrapper {
                 create_state: Self::get_function(&ctx, &module, "create_state")?,
                 accumulate: Self::get_function(&ctx, &module, "accumulate")?,
                 retract: Self::get_function(&ctx, &module, "retract").ok(),
                 finish: Self::get_function(&ctx, &module, "finish").ok(),
                 merge: Self::get_function(&ctx, &module, "merge").ok(),
-            }) as Result<Aggregate>
-        })?;
+            }) as Result<AggregateWrapper>
+        })
+        .await?;
+
+        let aggregate = Aggregate {
+            state_field: state_type.into_field(name).into(),
+            output_field: output_type.into_field(name).into(),
+            mode,
+            create_state,
+            accumulate,
+            retract,
+            finish,
+            merge,
+        };
         if aggregate.finish.is_none() && aggregate.state_field != aggregate.output_field {
             bail!("`output_type` must be the same as `state_type` when `finish` is not defined");
         }
@@ -409,13 +440,14 @@ impl Runtime {
     /// let output = runtime.call("gcd", &input).unwrap();
     /// assert_eq!(&**output.column(0), &Int32Array::from(vec![Some(5), None]));
     /// ```
-    pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
+    pub async fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let function = self.functions.get(name).context("function not found")?;
-        // convert each row to python objects and call the function
-        self.context.with(|ctx| {
+
+        async_with!(self.context => |ctx| {
             let js_function = function.function.clone().restore(&ctx)?;
             let mut results = Vec::with_capacity(input.num_rows());
             let mut row = Vec::with_capacity(input.num_columns());
+
             for i in 0..input.num_rows() {
                 row.clear();
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
@@ -447,6 +479,7 @@ impl Runtime {
             let schema = Schema::new(vec![function.return_field.clone()]);
             Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
         })
+        .await
     }
 
     /// Call a table function.
@@ -508,9 +541,9 @@ impl Runtime {
     /// let state = runtime.create_state("sum").unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![0]));
     /// ```
-    pub fn create_state(&self, name: &str) -> Result<ArrayRef> {
+    pub async fn create_state(&self, name: &str) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
-        let state = self.context.with(|ctx| {
+        let state = async_with!(self.context => |ctx| {
             let create_state = aggregate.create_state.clone().restore(&ctx)?;
             let state = self
                 .call_user_fn(&ctx, &create_state, Args::new(ctx.clone(), 0))
@@ -519,7 +552,8 @@ impl Runtime {
                 .converter
                 .build_array(&aggregate.state_field, &ctx, vec![state])?;
             Ok(state) as Result<_>
-        })?;
+        })
+        .await?;
         Ok(state)
     }
 
@@ -537,7 +571,7 @@ impl Runtime {
     /// let state = runtime.accumulate("sum", &state, &input).unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![9]));
     /// ```
-    pub fn accumulate(
+    pub async fn accumulate(
         &self,
         name: &str,
         state: &dyn Array,
@@ -545,7 +579,7 @@ impl Runtime {
     ) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         // convert each row to python objects and call the accumulate function
-        let new_state = self.context.with(|ctx| {
+        let new_state = async_with!(self.context => |ctx| {
             let accumulate = aggregate.accumulate.clone().restore(&ctx)?;
             let mut state = self
                 .converter
@@ -574,7 +608,8 @@ impl Runtime {
                 .converter
                 .build_array(&aggregate.state_field, &ctx, vec![state])?;
             Ok(output) as Result<_>
-        })?;
+        })
+        .await?;
         Ok(new_state)
     }
 
@@ -596,7 +631,7 @@ impl Runtime {
     /// let state = runtime.accumulate_or_retract("sum", &state, &ops, &input).unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![3]));
     /// ```
-    pub fn accumulate_or_retract(
+    pub async fn accumulate_or_retract(
         &self,
         name: &str,
         state: &dyn Array,
@@ -605,47 +640,48 @@ impl Runtime {
     ) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         // convert each row to python objects and call the accumulate function
-        let new_state = self.context.with(|ctx| {
-            let accumulate = aggregate.accumulate.clone().restore(&ctx)?;
-            let retract = aggregate
-                .retract
-                .clone()
-                .context("function does not support retraction")?
-                .restore(&ctx)?;
+        let new_state = async_with!(self.context => |ctx| {
+        let accumulate = aggregate.accumulate.clone().restore(&ctx)?;
+        let retract = aggregate
+            .retract
+            .clone()
+            .context("function does not support retraction")?
+            .restore(&ctx)?;
 
-            let mut state = self
-                .converter
-                .get_jsvalue(&ctx, &aggregate.state_field, state, 0)?;
+        let mut state = self
+            .converter
+            .get_jsvalue(&ctx, &aggregate.state_field, state, 0)?;
 
-            let mut row = Vec::with_capacity(1 + input.num_columns());
-            for i in 0..input.num_rows() {
-                if aggregate.mode == CallMode::ReturnNullOnNullInput
-                    && input.columns().iter().any(|column| column.is_null(i))
-                {
-                    continue;
-                }
-                row.clear();
-                row.push(state.clone());
-                for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                    let pyobj = self.converter.get_jsvalue(&ctx, field, column, i)?;
-                    row.push(pyobj);
-                }
-                let func = if ops.is_valid(i) && ops.value(i) {
-                    &retract
-                } else {
-                    &accumulate
-                };
-                let mut args = Args::new(ctx.clone(), row.len());
-                args.push_args(row.drain(..))?;
-                state = self
-                    .call_user_fn(&ctx, func, args)
-                    .context("failed to call accumulate or retract")?;
+        let mut row = Vec::with_capacity(1 + input.num_columns());
+        for i in 0..input.num_rows() {
+            if aggregate.mode == CallMode::ReturnNullOnNullInput
+                && input.columns().iter().any(|column| column.is_null(i))
+            {
+                continue;
             }
-            let output = self
-                .converter
-                .build_array(&aggregate.state_field, &ctx, vec![state])?;
-            Ok(output) as Result<_>
-        })?;
+            row.clear();
+            row.push(state.clone());
+            for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+                let pyobj = self.converter.get_jsvalue(&ctx, field, column, i)?;
+                row.push(pyobj);
+            }
+            let func = if ops.is_valid(i) && ops.value(i) {
+                &retract
+            } else {
+                &accumulate
+            };
+            let mut args = Args::new(ctx.clone(), row.len());
+            args.push_args(row.drain(..))?;
+            state = self
+                .call_user_fn(&ctx, func, args)
+                .context("failed to call accumulate or retract")?;
+        }
+        let output = self
+            .converter
+            .build_array(&aggregate.state_field, &ctx, vec![state])?;
+        Ok(output) as Result<_>
+            })
+        .await?;
         Ok(new_state)
     }
 
@@ -659,9 +695,9 @@ impl Runtime {
     /// let state = runtime.merge("sum", &states).unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![9]));
     /// ```
-    pub fn merge(&self, name: &str, states: &dyn Array) -> Result<ArrayRef> {
+    pub async fn merge(&self, name: &str, states: &dyn Array) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
-        let output = self.context.with(|ctx| {
+        let output = async_with!(self.context => |ctx| {
             let merge = aggregate
                 .merge
                 .clone()
@@ -687,7 +723,8 @@ impl Runtime {
                 .converter
                 .build_array(&aggregate.state_field, &ctx, vec![state])?;
             Ok(output) as Result<_>
-        })?;
+        })
+        .await?;
         Ok(output)
     }
 
@@ -703,22 +740,22 @@ impl Runtime {
     /// let outputs = runtime.finish("sum", &states).unwrap();
     /// assert_eq!(&outputs, &states);
     /// ```
-    pub fn finish(&self, name: &str, states: &ArrayRef) -> Result<ArrayRef> {
+    pub async fn finish(&self, name: &str, states: &ArrayRef) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
-        let Some(finish) = &aggregate.finish else {
+        if aggregate.finish.is_none() {
             return Ok(states.clone());
         };
-        let output = self.context.with(|ctx| {
-            let finish = finish.clone().restore(&ctx)?;
+        let output = async_with!(self.context => |ctx| {
+            let finish = aggregate.finish.clone().unwrap().restore(&ctx)?;
             let mut results = Vec::with_capacity(states.len());
             for i in 0..states.len() {
                 if aggregate.mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
                     results.push(Value::new_null(ctx.clone()));
                     continue;
                 }
-                let state = self
-                    .converter
-                    .get_jsvalue(&ctx, &aggregate.state_field, states, i)?;
+                let state =
+                    self.converter
+                        .get_jsvalue(&ctx, &aggregate.state_field, states, i)?;
                 let mut args = Args::new(ctx.clone(), 1);
                 args.push_args([state])?;
                 let result = self
@@ -730,7 +767,8 @@ impl Runtime {
                 .converter
                 .build_array(&aggregate.output_field, &ctx, results)?;
             Ok(output) as Result<_>
-        })?;
+        })
+        .await?;
         Ok(output)
     }
 
@@ -780,11 +818,11 @@ impl RecordBatchIter<'_> {
         &self.schema
     }
 
-    fn next(&mut self) -> Result<Option<RecordBatch>> {
+    async fn next(&mut self) -> Result<Option<RecordBatch>> {
         if self.row == self.input.num_rows() {
             return Ok(None);
         }
-        self.rt.context.with(|ctx| {
+        async_with!(self.rt.context => |ctx| {
             let js_function = self.function.function.clone().restore(&ctx)?;
             let mut indexes = Int32Builder::with_capacity(self.chunk_size);
             let mut results = Vec::with_capacity(self.input.num_rows());
@@ -860,18 +898,20 @@ impl RecordBatchIter<'_> {
                 .context("failed to build arrow array from return values")?;
             Ok(Some(RecordBatch::try_new(
                 self.schema.clone(),
-                vec![indexes, array],
-            )?))
+                    vec![indexes, array],
+                )?))
         })
+        .await
     }
 }
 
-impl Iterator for RecordBatchIter<'_> {
-    type Item = Result<RecordBatch>;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.next().transpose()
-    }
-}
+// TODO(Eric)
+// impl Iterator for RecordBatchIter<'_> {
+//     type Item = Result<RecordBatch>;
+//     fn next(&mut self) -> Option<Self::Item> {
+//         self.next().transpose()
+//     }
+// }
 
 /// Get exception from `ctx` if the error is an exception.
 fn check_exception(err: rquickjs::Error, ctx: &Ctx) -> anyhow::Error {

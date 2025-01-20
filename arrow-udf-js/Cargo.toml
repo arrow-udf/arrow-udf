@@ -14,7 +14,7 @@ arrow-array.workspace = true
 arrow-buffer.workspace = true
 arrow-schema.workspace = true
 atomic-time = "0.1"
-rquickjs = { version = "0.6", features = ["array-buffer", "parallel"] }
+rquickjs = { version = "0.8", features = ["array-buffer", "parallel", "futures"] }
 
 [dev-dependencies]
 arrow-cast = { workspace = true, features = ["prettyprint"] }

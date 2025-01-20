@@ -16,14 +16,17 @@
 
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::pin::Pin;
 use std::sync::{atomic::Ordering, Arc};
+use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Context as _, Result};
 use arrow_array::{builder::Int32Builder, Array, ArrayRef, BooleanArray, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
-use rquickjs::async_with;
+use futures_util::{FutureExt, Stream};
 pub use rquickjs::runtime::MemoryUsage;
+use rquickjs::{async_with, Promise};
 use rquickjs::{
     context::intrinsic::All, function::Args, module::Evaluated, AsyncContext, AsyncRuntime, Ctx,
     FromJs, Module, Object, Persistent, Value,
@@ -167,8 +170,8 @@ impl Runtime {
     /// let runtime = Runtime::new().unwrap();
     /// runtime.set_memory_limit(Some(1 << 20)); // 1MB
     /// ```
-    pub fn set_memory_limit(&self, limit: Option<usize>) {
-        self.runtime.set_memory_limit(limit.unwrap_or(0));
+    pub async fn set_memory_limit(&self, limit: Option<usize>) {
+        self.runtime.set_memory_limit(limit.unwrap_or(0)).await;
     }
 
     /// Set the timeout of each function call.
@@ -181,18 +184,20 @@ impl Runtime {
     /// let mut runtime = Runtime::new().unwrap();
     /// runtime.set_timeout(Some(Duration::from_secs(1)));
     /// ```
-    pub fn set_timeout(&mut self, timeout: Option<Duration>) {
+    pub async fn set_timeout(&mut self, timeout: Option<Duration>) {
         self.timeout = timeout;
         if timeout.is_some() {
             let deadline = self.deadline.clone();
-            self.runtime.set_interrupt_handler(Some(Box::new(move || {
-                if let Some(deadline) = deadline.load(Ordering::Relaxed) {
-                    return deadline <= Instant::now();
-                }
-                false
-            })));
+            self.runtime
+                .set_interrupt_handler(Some(Box::new(move || {
+                    if let Some(deadline) = deadline.load(Ordering::Relaxed) {
+                        return deadline <= Instant::now();
+                    }
+                    false
+                })))
+                .await;
         } else {
-            self.runtime.set_interrupt_handler(None);
+            self.runtime.set_interrupt_handler(None).await;
         }
     }
 
@@ -468,6 +473,7 @@ impl Runtime {
                 args.push_args(row.drain(..))?;
                 let result = self
                     .call_user_fn(&ctx, &js_function, args)
+                    .await
                     .context("failed to call function")?;
                 results.push(result);
             }
@@ -547,6 +553,7 @@ impl Runtime {
             let create_state = aggregate.create_state.clone().restore(&ctx)?;
             let state = self
                 .call_user_fn(&ctx, &create_state, Args::new(ctx.clone(), 0))
+                .await
                 .context("failed to call create_state")?;
             let state = self
                 .converter
@@ -602,6 +609,7 @@ impl Runtime {
                 args.push_args(row.drain(..))?;
                 state = self
                     .call_user_fn(&ctx, &accumulate, args)
+                    .await
                     .context("failed to call accumulate")?;
             }
             let output = self
@@ -674,6 +682,7 @@ impl Runtime {
             args.push_args(row.drain(..))?;
             state = self
                 .call_user_fn(&ctx, func, args)
+                .await
                 .context("failed to call accumulate or retract")?;
         }
         let output = self
@@ -716,7 +725,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), 2);
                 args.push_args([state, state2])?;
                 state = self
-                    .call_user_fn(&ctx, &merge, args)
+                    .call_user_fn(&ctx, &merge, args).await
                     .context("failed to call accumulate or retract")?;
             }
             let output = self
@@ -759,7 +768,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), 1);
                 args.push_args([state])?;
                 let result = self
-                    .call_user_fn(&ctx, &finish, args)
+                    .call_user_fn(&ctx, &finish, args).await
                     .context("failed to call finish")?;
                 results.push(result);
             }
@@ -775,22 +784,26 @@ impl Runtime {
     /// Call a user function.
     ///
     /// If `timeout` is set, the function will be interrupted after the timeout.
-    fn call_user_fn<'js, T: FromJs<'js>>(
+    async fn call_user_fn<'js, T: FromJs<'js>>(
         &self,
         ctx: &Ctx<'js>,
         f: &rquickjs::Function<'js>,
         args: Args<'js>,
     ) -> Result<T> {
-        let result = if let Some(timeout) = self.timeout {
+        let call_result = if let Some(timeout) = self.timeout {
             self.deadline
                 .store(Some(Instant::now() + timeout), Ordering::Relaxed);
-            let result = f.call_arg(args);
+            let call_result = f.call_arg::<Promise>(args);
             self.deadline.store(None, Ordering::Relaxed);
-            result
+            call_result
         } else {
-            f.call_arg(args)
+            f.call_arg::<Promise>(args)
         };
-        result.map_err(|e| check_exception(e, ctx))
+        let promise = call_result.map_err(|e| check_exception(e, ctx))?;
+        promise
+            .into_future::<T>()
+            .await
+            .map_err(|e| check_exception(e, ctx))
     }
 }
 
@@ -818,7 +831,7 @@ impl RecordBatchIter<'_> {
         &self.schema
     }
 
-    async fn next(&mut self) -> Result<Option<RecordBatch>> {
+    pub async fn next(&mut self) -> Result<Option<RecordBatch>> {
         if self.row == self.input.num_rows() {
             return Ok(None);
         }
@@ -862,7 +875,7 @@ impl RecordBatchIter<'_> {
                     args.push_args(row.drain(..))?;
                     let gen: Object = self
                         .rt
-                        .call_user_fn(&ctx, &js_function, args)
+                        .call_user_fn(&ctx, &js_function, args).await
                         .context("failed to call function")?;
                     let next: rquickjs::Function =
                         gen.get("next").context("failed to get 'next' method")?;
@@ -874,7 +887,7 @@ impl RecordBatchIter<'_> {
                 args.this(gen.clone())?;
                 let object: Object = self
                     .rt
-                    .call_user_fn(&ctx, next, args)
+                    .call_user_fn(&ctx, next, args).await
                     .context("failed to call next")?;
                 let value: Value = object.get("value")?;
                 let done: bool = object.get("done")?;
@@ -905,13 +918,14 @@ impl RecordBatchIter<'_> {
     }
 }
 
-// TODO(Eric)
-// impl Iterator for RecordBatchIter<'_> {
-//     type Item = Result<RecordBatch>;
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.next().transpose()
-//     }
-// }
+impl Stream for RecordBatchIter<'_> {
+    type Item = Result<RecordBatch>;
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Box::pin(self.next().map(|v| v.transpose()))
+            .as_mut()
+            .poll_unpin(cx)
+    }
+}
 
 /// Get exception from `ctx` if the error is an exception.
 fn check_exception(err: rquickjs::Error, ctx: &Ctx) -> anyhow::Error {

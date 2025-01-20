@@ -18,8 +18,9 @@ use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js::{CallMode, Runtime};
 
-fn main() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::main(flavor = "current_thread")]
+async fn main() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -37,6 +38,7 @@ fn main() {
             }
             "#,
         )
+        .await
         .unwrap();
 
     runtime
@@ -52,6 +54,7 @@ fn main() {
             }
             "#,
         )
+        .await
         .unwrap();
 
     println!("call gcd");
@@ -67,7 +70,7 @@ fn main() {
     )
     .unwrap();
 
-    let output = runtime.call("gcd", &input).unwrap();
+    let output = runtime.call("gcd", &input).await.unwrap();
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
     arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();
@@ -79,7 +82,7 @@ fn main() {
     )
     .unwrap();
 
-    let output = runtime.call("fib", &input).unwrap();
+    let output = runtime.call("fib", &input).await.unwrap();
 
     arrow_cast::pretty::print_batches(std::slice::from_ref(&input)).unwrap();
     arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();

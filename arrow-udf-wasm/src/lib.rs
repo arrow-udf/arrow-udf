@@ -136,11 +136,6 @@ impl Runtime {
         })
     }
 
-    /// Return available WASM functions.
-    pub fn wasm_exported_functions(&self) -> impl Iterator<Item = &str> {
-        self.wasm_exported_functions.iter().map(|s| s.as_str())
-    }
-
     /// Return available WASM types.
     pub fn types(&self) -> impl Iterator<Item = (&str, &str)> {
         self.types.iter().map(|(k, v)| (k.as_str(), v.as_str()))
@@ -184,7 +179,7 @@ impl Runtime {
     /// input = "keyvalue(string, string) -> struct<key:string,value:string>"
     /// output = "keyvalue(string, string) -> struct KeyValue"
     /// ```
-    pub fn find_function_by_inlined_signature(&self, s: &str) -> Option<&str> {
+    fn find_function_by_inlined_signature(&self, s: &str) -> Option<&str> {
         self.wasm_exported_functions
             .iter()
             .find(|f| self.inline_types(f) == s)

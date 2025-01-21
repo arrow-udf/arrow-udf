@@ -136,6 +136,11 @@ impl Runtime {
         })
     }
 
+    /// Return available exported functions in WASM binary.
+    pub fn wasm_exported_functions(&self) -> impl Iterator<Item = &str> {
+        self.wasm_exported_functions.iter().map(String::as_str)
+    }
+
     /// Return available WASM types.
     pub fn types(&self) -> impl Iterator<Item = (&str, &str)> {
         self.types.iter().map(|(k, v)| (k.as_str(), v.as_str()))

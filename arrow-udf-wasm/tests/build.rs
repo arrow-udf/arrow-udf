@@ -23,7 +23,9 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
     let binary = build(manifest, script).unwrap();
 
     let runtime = Runtime::new(&binary).unwrap();
-    assert!(runtime.functions().any(|f| f == "gcd(int4,int4)->int4"));
+    assert!(runtime
+        .wasm_exported_functions()
+        .any(|f| f == "gcd(int4,int4)->int4"));
 
     // build again with offline mode
     test_build_offline();
@@ -53,5 +55,7 @@ fn test_build_offline() {
     let binary = build_with(&opt).unwrap();
 
     let runtime = Runtime::new(&binary).unwrap();
-    assert!(runtime.functions().any(|f| f == "gcd(int4,int4)->int4"));
+    assert!(runtime
+        .wasm_exported_functions()
+        .any(|f| f == "gcd(int4,int4)->int4"));
 }

@@ -934,8 +934,8 @@ impl RecordBatchIter<'_> {
                 .context("failed to build arrow array from return values")?;
             Ok(Some(RecordBatch::try_new(
                 self.schema.clone(),
-                    vec![indexes, array],
-                )?))
+                vec![indexes, array],
+            )?))
         })
         .await
     }

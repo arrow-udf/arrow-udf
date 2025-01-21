@@ -16,6 +16,7 @@
 
 use anyhow::{anyhow, bail, ensure, Context};
 use arrow_array::RecordBatch;
+use itertools::Itertools;
 use ram_file::{RamFile, RamFileRef};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
@@ -34,10 +35,15 @@ pub struct Runtime {
     module: Module,
     /// Configurations.
     config: Config,
-    /// Function names.
+    /// Names of exported functions in WASM binary.
+    /// These are actually not the original names from the WASM module, but instead the keys
+    /// used to find [`TypedFunc`] in [`Instance`].
     wasm_exported_functions: Arc<HashSet<String>>,
     /// User-defined types.
-    wasm_exported_types: Arc<HashMap<String, String>>,
+    types: Arc<HashMap<String, String>>,
+    /// Added/registered functions.
+    /// Mapping from UDF names to exported function names in `wasm_exported_functions`.
+    functions: HashMap<String, String>,
     /// Instance pool.
     instances: Mutex<Vec<Instance>>,
     /// ABI version. (major, minor)
@@ -60,7 +66,8 @@ impl Clone for Runtime {
             module: self.module.clone(), // this will share the immutable wasm binary
             config: self.config.clone(),
             wasm_exported_functions: self.wasm_exported_functions.clone(),
-            wasm_exported_types: self.wasm_exported_types.clone(),
+            types: self.types.clone(),
+            functions: self.functions.clone(),
             instances: Default::default(), // just initialize a new instance pool
             abi_version: self.abi_version.clone(),
         }
@@ -72,7 +79,8 @@ impl Debug for Runtime {
         f.debug_struct("Runtime")
             .field("config", &self.config)
             .field("wasm_exported_functions", &self.wasm_exported_functions)
-            .field("wasm_exported_types", &self.wasm_exported_types)
+            .field("types", &self.types)
+            .field("functions", &self.functions)
             .field("instances", &self.instances.lock().unwrap().len())
             .finish()
     }
@@ -121,7 +129,8 @@ impl Runtime {
             module,
             config,
             wasm_exported_functions: functions.into(),
-            wasm_exported_types: types.into(),
+            types: types.into(),
+            functions: Default::default(),
             instances: Default::default(),
             abi_version: (major, minor),
         })
@@ -133,15 +142,37 @@ impl Runtime {
     }
 
     /// Return available WASM types.
-    pub fn wasm_exported_types(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.wasm_exported_types
-            .iter()
-            .map(|(k, v)| (k.as_str(), v.as_str()))
+    pub fn types(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.types.iter().map(|(k, v)| (k.as_str(), v.as_str()))
     }
 
     /// Return the ABI version.
     pub fn abi_version(&self) -> (u8, u8) {
         self.abi_version
+    }
+
+    /// Register a UDF function.
+    pub fn add_function(
+        &mut self,
+        name: &str,
+        arg_type_names: &[impl AsRef<str>],
+        return_type_name: &str,
+        is_table_function: bool,
+    ) -> Result<()> {
+        // construct the function signature
+        let sig = function_signature_of(name, arg_type_names, return_type_name, is_table_function);
+        // now find the exported name
+        if let Some(exported_name) = self.find_function_by_inlined_signature(&sig) {
+            self.functions
+                .insert(name.to_owned(), exported_name.to_owned());
+            return Ok(());
+        }
+        bail!(
+            "function not found in wasm binary: \"{}\"\nHINT: available functions:\n  {}\navailable types:\n  {}",
+            sig,
+            self.wasm_exported_functions.iter().join("\n  "),
+            self.types.iter().map(|(k, v)| format!("{k}: {v}")).join("\n  "),
+        )
     }
 
     /// Given a function signature that inlines struct types, find the exported function name.
@@ -173,7 +204,7 @@ impl Runtime {
         let mut inlined = s.to_string();
         loop {
             let replaced = inlined.clone();
-            for (k, v) in self.wasm_exported_types.iter() {
+            for (k, v) in self.types.iter() {
                 inlined = inlined.replace(&format!("struct {k}"), &format!("struct<{v}>"));
             }
             if replaced == inlined {
@@ -184,9 +215,9 @@ impl Runtime {
 
     /// Call a function.
     pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
-        if !self.wasm_exported_functions.contains(name) {
+        let Some(exported_name) = self.functions.get(name) else {
             bail!("function not found: {name}");
-        }
+        };
 
         // get an instance from the pool, or create a new one if the pool is empty
         let mut instance = if let Some(instance) = self.instances.lock().unwrap().pop() {
@@ -196,7 +227,7 @@ impl Runtime {
         };
 
         // call the function
-        let output = instance.call_scalar_function(name, input);
+        let output = instance.call_scalar_function(exported_name, input);
 
         // put the instance back to the pool
         if output.is_ok() {
@@ -213,9 +244,10 @@ impl Runtime {
         input: &'a RecordBatch,
     ) -> Result<impl Iterator<Item = Result<RecordBatch>> + 'a> {
         use genawaiter2::{sync::gen, yield_};
-        if !self.wasm_exported_functions.contains(name) {
+
+        let Some(exported_name) = self.functions.get(name) else {
             bail!("function not found: {name}");
-        }
+        };
 
         // get an instance from the pool, or create a new one if the pool is empty
         let mut instance = if let Some(instance) = self.instances.lock().unwrap().pop() {
@@ -226,7 +258,7 @@ impl Runtime {
 
         Ok(gen!({
             // call the function
-            let iter = match instance.call_table_function(name, input) {
+            let iter = match instance.call_table_function(exported_name, input) {
                 Ok(iter) => iter,
                 Err(e) => {
                     yield_!(Err(e));
@@ -558,4 +590,20 @@ fn decode_record_batch(bytes: &[u8]) -> Result<RecordBatch> {
     let mut reader = arrow_ipc::reader::FileReader::try_new(std::io::Cursor::new(bytes), None)?;
     let batch = reader.next().unwrap()?;
     Ok(batch)
+}
+
+/// Construct the function signature generated by `function` macro.
+fn function_signature_of(
+    name: impl AsRef<str>,
+    args: &[impl AsRef<str>],
+    ret: impl AsRef<str>,
+    is_table_function: bool,
+) -> String {
+    format!(
+        "{}({}){}{}",
+        name.as_ref(),
+        args.iter().map(AsRef::as_ref).join(","),
+        if is_table_function { "->>" } else { "->" },
+        ret.as_ref()
+    )
 }

@@ -824,6 +824,10 @@ impl Runtime {
         };
         result.map_err(|e| check_exception(e, ctx))
     }
+
+    pub fn context(&self) -> &AsyncContext {
+        &self.context
+    }
 }
 
 /// An iterator over the result of a table function.

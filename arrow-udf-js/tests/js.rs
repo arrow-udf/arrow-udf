@@ -25,6 +25,8 @@ use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js::{CallMode, Runtime};
 use expect_test::{expect, Expect};
+use rquickjs::prelude::Async;
+use rquickjs::{async_with, Function};
 
 #[tokio::test]
 async fn test_gcd() {
@@ -1172,6 +1174,97 @@ export function echo(x) {
         | hello! |
         | world! |
         +--------+"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_async_echo() {
+    let mut runtime = Runtime::new().await.unwrap();
+    runtime
+        .add_function(
+            "echo",
+            DataType::Utf8View,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+export async function echo(x) {
+    return x + "!"
+}
+"#,
+            true,
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8View, true)]);
+    let arg0 = StringViewArray::from(vec!["hello", "world"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("echo", &input).await.unwrap();
+
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | echo   |
+        +--------+
+        | hello! |
+        | world! |
+        +--------+"#]],
+    );
+}
+
+async fn delay_strlen(msg: String) -> usize {
+    use tokio::time::*;
+    sleep(Duration::from_millis(100)).await;
+    msg.len()
+}
+
+#[tokio::test]
+async fn test_async_rust_fn() {
+    let mut runtime = Runtime::new().await.unwrap();
+
+    async_with!(runtime.context() => |ctx| {
+        let global = ctx.globals();
+        global.set(
+            "native_delay_strlen",
+            Function::new(ctx.clone(), Async(delay_strlen))
+                .unwrap()
+                .with_name("native_delay_strlen")
+                .unwrap(),
+        )
+        .unwrap();
+    })
+    .await;
+
+    runtime
+        .add_function(
+            "delayStrlen",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+export async function delayStrlen(s) {
+    return await native_delay_strlen(s);
+}
+"#,
+            true,
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("s", DataType::Utf8View, true)]);
+    let arg0 = StringViewArray::from(vec!["hello", "world"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("delayStrlen", &input).await.unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +-------------+
+        | delayStrlen |
+        +-------------+
+        | 5           |
+        | 5           |
+        +-------------+"#]],
     );
 }
 

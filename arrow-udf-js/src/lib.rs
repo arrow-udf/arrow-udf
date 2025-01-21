@@ -89,6 +89,7 @@ struct Function {
     function: JsFunction,
     return_field: FieldRef,
     mode: CallMode,
+    is_async: bool,
 }
 
 /// A user defined aggregate function.
@@ -101,28 +102,18 @@ struct Aggregate {
     retract: Option<JsFunction>,
     finish: Option<JsFunction>,
     merge: Option<JsFunction>,
+    is_async: bool,
 }
 
-struct AggregateWrapper {
-    create_state: JsFunction,
-    accumulate: JsFunction,
-    retract: Option<JsFunction>,
-    finish: Option<JsFunction>,
-    merge: Option<JsFunction>,
-}
-
-unsafe impl Send for AggregateWrapper {}
-
-/// A persistent function.
-type JsFunction = Persistent<rquickjs::Function<'static>>;
-
-struct JsFunctionWrapper(pub JsFunction);
-
-unsafe impl Send for JsFunctionWrapper {}
-
+// This is required to pass `Function` and `Aggregate` from `async_with!` to outside.
+unsafe impl Send for Function {}
 unsafe impl Sync for Function {}
 
+unsafe impl Send for Aggregate {}
 unsafe impl Sync for Aggregate {}
+
+/// A persistent function, can be either sync or async.
+type JsFunction = Persistent<rquickjs::Function<'static>>;
 
 // SAFETY: `rquickjs::Runtime` is `Send` and `Sync`
 unsafe impl Send for Runtime {}
@@ -245,6 +236,7 @@ impl Runtime {
     ///             return a;
     ///         }
     /// "#,
+    ///         false,
     ///     )
     ///     .unwrap();
     /// // add a table function
@@ -260,17 +252,19 @@ impl Runtime {
     ///             }
     ///         }
     /// "#,
+    ///         false,
     ///     )
     ///     .unwrap();
     /// ```
     pub async fn add_function(
         &mut self,
         name: &str,
-        return_type: impl IntoField,
+        return_type: impl IntoField + Send,
         mode: CallMode,
         code: &str,
+        is_async: bool,
     ) -> Result<()> {
-        self.add_function_with_handler(name, return_type, mode, code, name)
+        self.add_function_with_handler(name, return_type, mode, code, is_async, name)
             .await
     }
 
@@ -285,9 +279,10 @@ impl Runtime {
     pub async fn add_function_with_handler(
         &mut self,
         name: &str,
-        return_type: impl IntoField,
+        return_type: impl IntoField + Send,
         mode: CallMode,
         code: &str,
+        is_async: bool,
         handler: &str,
     ) -> Result<()> {
         let function = async_with!(self.context => |ctx| {
@@ -297,16 +292,15 @@ impl Runtime {
                 .eval()
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to evaluate module")?;
-            Ok(JsFunctionWrapper(Self::get_function(&ctx, &module, handler)?)) as Result<JsFunctionWrapper>
+            let function = Self::get_function(&ctx, &module, handler)?;
+            Ok(Function {
+                function,
+                return_field: return_type.into_field(name).into(),
+                mode,
+                is_async,
+            }) as Result<Function>
         })
         .await?;
-        let function = function.0;
-
-        let function = Function {
-            function,
-            return_field: return_type.into_field(name).into(),
-            mode,
-        };
         self.functions.insert(name.to_string(), function);
         Ok(())
     }
@@ -374,50 +368,40 @@ impl Runtime {
     ///             return state1 + state2;
     ///         }
     ///         "#,
+    ///         false,
     ///     )
     ///     .unwrap();
     /// ```
     pub async fn add_aggregate(
         &mut self,
         name: &str,
-        state_type: impl IntoField,
-        output_type: impl IntoField,
+        state_type: impl IntoField + Send,
+        output_type: impl IntoField + Send,
         mode: CallMode,
         code: &str,
+        is_async: bool,
     ) -> Result<()> {
-        let AggregateWrapper {
-            create_state,
-            accumulate,
-            retract,
-            finish,
-            merge,
-        } = async_with!(self.context => |ctx| {
+        let aggregate = async_with!(self.context => |ctx| {
             let (module, _) = Module::declare(ctx.clone(), name, code)
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to declare module")?
                 .eval()
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to evaluate module")?;
-            Ok(AggregateWrapper {
+            Ok(Aggregate {
+                state_field: state_type.into_field(name).into(),
+                output_field: output_type.into_field(name).into(),
+                mode,
                 create_state: Self::get_function(&ctx, &module, "create_state")?,
                 accumulate: Self::get_function(&ctx, &module, "accumulate")?,
                 retract: Self::get_function(&ctx, &module, "retract").ok(),
                 finish: Self::get_function(&ctx, &module, "finish").ok(),
                 merge: Self::get_function(&ctx, &module, "merge").ok(),
-            }) as Result<AggregateWrapper>
+                is_async,
+            }) as Result<Aggregate>
         })
         .await?;
 
-        let aggregate = Aggregate {
-            state_field: state_type.into_field(name).into(),
-            output_field: output_type.into_field(name).into(),
-            mode,
-            create_state,
-            accumulate,
-            retract,
-            finish,
-            merge,
-        };
         if aggregate.finish.is_none() && aggregate.state_field != aggregate.output_field {
             bail!("`output_type` must be the same as `state_type` when `finish` is not defined");
         }
@@ -472,7 +456,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), row.len());
                 args.push_args(row.drain(..))?;
                 let result = self
-                    .call_user_fn(&ctx, &js_function, args)
+                    .call_user_fn(&ctx, &js_function, args, function.is_async)
                     .await
                     .context("failed to call function")?;
                 results.push(result);
@@ -552,7 +536,7 @@ impl Runtime {
         let state = async_with!(self.context => |ctx| {
             let create_state = aggregate.create_state.clone().restore(&ctx)?;
             let state = self
-                .call_user_fn(&ctx, &create_state, Args::new(ctx.clone(), 0))
+                .call_user_fn(&ctx, &create_state, Args::new(ctx.clone(), 0), aggregate.is_async)
                 .await
                 .context("failed to call create_state")?;
             let state = self
@@ -608,7 +592,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), row.len());
                 args.push_args(row.drain(..))?;
                 state = self
-                    .call_user_fn(&ctx, &accumulate, args)
+                    .call_user_fn(&ctx, &accumulate, args, aggregate.is_async)
                     .await
                     .context("failed to call accumulate")?;
             }
@@ -681,7 +665,7 @@ impl Runtime {
             let mut args = Args::new(ctx.clone(), row.len());
             args.push_args(row.drain(..))?;
             state = self
-                .call_user_fn(&ctx, func, args)
+                .call_user_fn(&ctx, func, args, aggregate.is_async)
                 .await
                 .context("failed to call accumulate or retract")?;
         }
@@ -725,7 +709,8 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), 2);
                 args.push_args([state, state2])?;
                 state = self
-                    .call_user_fn(&ctx, &merge, args).await
+                    .call_user_fn(&ctx, &merge, args, aggregate.is_async)
+                    .await
                     .context("failed to call accumulate or retract")?;
             }
             let output = self
@@ -768,7 +753,8 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), 1);
                 args.push_args([state])?;
                 let result = self
-                    .call_user_fn(&ctx, &finish, args).await
+                    .call_user_fn(&ctx, &finish, args, aggregate.is_async)
+                    .await
                     .context("failed to call finish")?;
                 results.push(result);
             }
@@ -789,6 +775,20 @@ impl Runtime {
         ctx: &Ctx<'js>,
         f: &rquickjs::Function<'js>,
         args: Args<'js>,
+        is_async: bool,
+    ) -> Result<T> {
+        if is_async {
+            Self::call_user_fn_async(self, ctx, f, args).await
+        } else {
+            Self::call_user_fn_sync(self, ctx, f, args)
+        }
+    }
+
+    async fn call_user_fn_async<'js, T: FromJs<'js>>(
+        &self,
+        ctx: &Ctx<'js>,
+        f: &rquickjs::Function<'js>,
+        args: Args<'js>,
     ) -> Result<T> {
         let call_result = if let Some(timeout) = self.timeout {
             self.deadline
@@ -804,6 +804,24 @@ impl Runtime {
             .into_future::<T>()
             .await
             .map_err(|e| check_exception(e, ctx))
+    }
+
+    fn call_user_fn_sync<'js, T: FromJs<'js>>(
+        &self,
+        ctx: &Ctx<'js>,
+        f: &rquickjs::Function<'js>,
+        args: Args<'js>,
+    ) -> Result<T> {
+        let result = if let Some(timeout) = self.timeout {
+            self.deadline
+                .store(Some(Instant::now() + timeout), Ordering::Relaxed);
+            let result = f.call_arg(args);
+            self.deadline.store(None, Ordering::Relaxed);
+            result
+        } else {
+            f.call_arg(args)
+        };
+        result.map_err(|e| check_exception(e, ctx))
     }
 }
 
@@ -875,7 +893,7 @@ impl RecordBatchIter<'_> {
                     args.push_args(row.drain(..))?;
                     let gen: Object = self
                         .rt
-                        .call_user_fn(&ctx, &js_function, args).await
+                        .call_user_fn(&ctx, &js_function, args, self.function.is_async).await
                         .context("failed to call function")?;
                     let next: rquickjs::Function =
                         gen.get("next").context("failed to get 'next' method")?;
@@ -887,7 +905,7 @@ impl RecordBatchIter<'_> {
                 args.this(gen.clone())?;
                 let object: Object = self
                     .rt
-                    .call_user_fn(&ctx, next, args).await
+                    .call_user_fn(&ctx, next, args, self.function.is_async).await
                     .context("failed to call next")?;
                 let value: Value = object.get("value")?;
                 let done: bool = object.get("done")?;

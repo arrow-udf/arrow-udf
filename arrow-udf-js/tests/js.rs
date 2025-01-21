@@ -46,6 +46,7 @@ async fn test_gcd() {
             DataType::Int32,
             CallMode::ReturnNullOnNullInput,
             js_code,
+            false,
         )
         .await
         .unwrap();
@@ -90,6 +91,7 @@ async fn test_to_string() {
             DataType::Utf8,
             CallMode::CalledOnNullInput,
             js_code,
+            false,
         )
         .await
         .unwrap();
@@ -125,6 +127,7 @@ async fn test_concat() {
                 return a.concat(b);
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -164,6 +167,7 @@ async fn test_json_array_access() {
                 return array[i];
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -203,6 +207,7 @@ async fn test_json_stringify() {
                 return JSON.stringify(object);
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -238,6 +243,7 @@ async fn test_binary_json_stringify() {
                 return object;
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -271,6 +277,7 @@ async fn test_large_binary_json_stringify() {
                 return object;
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -303,6 +310,7 @@ async fn test_large_string_as_string() {
                 return "string length is " + s.length;
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -337,6 +345,7 @@ async fn test_decimal128() {
                 return a + b + BigDecimal('0.000001');
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -381,6 +390,7 @@ async fn test_decimal256() {
                 return a + b + BigDecimal('0.000001');
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -425,6 +435,7 @@ async fn test_decimal_add() {
                 return a + b;
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -462,6 +473,7 @@ async fn test_timestamp_second_array() {
                 return a;
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -502,6 +514,7 @@ async fn test_timestamp_millisecond_array() {
                 return a;
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -542,6 +555,7 @@ async fn test_timestamp_microsecond_array() {
                 return a;
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -582,6 +596,7 @@ async fn test_timestamp_nanosecond_array() {
                 return a;
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -622,6 +637,7 @@ async fn test_date32_array() {
                 return a;
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -658,6 +674,7 @@ async fn test_typed_array() {
                 return Object.prototype.toString.call(a);
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -717,6 +734,7 @@ async fn test_return_array() {
                 return [x];
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -756,6 +774,7 @@ async fn test_return_large_array() {
                 return [x, x+1, x+2];
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -799,6 +818,7 @@ async fn test_key_value() {
                 return {key, value};
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -833,6 +853,7 @@ async fn test_struct_to_json() {
                 return object;
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -889,6 +910,7 @@ async fn test_range() {
                 }
             }
             "#,
+            false,
         )
         .await
         .unwrap();
@@ -961,6 +983,7 @@ async fn test_weighted_avg() {
                 return state.sum / state.weight;
             }
 "#,
+            false,
         )
         .await
         .unwrap();
@@ -1043,6 +1066,7 @@ async fn test_timeout() {
             DataType::Int32,
             CallMode::ReturnNullOnNullInput,
             js_code,
+            false,
         )
         .await
         .unwrap();
@@ -1087,6 +1111,7 @@ async fn test_memory_limit() {
             DataType::Int32,
             CallMode::ReturnNullOnNullInput,
             js_code,
+            false,
         )
         .await
         .unwrap();
@@ -1127,6 +1152,7 @@ export function echo(x) {
     return x + "!"
 }
 "#,
+            false,
         )
         .await
         .unwrap();

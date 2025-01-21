@@ -25,11 +25,11 @@ use anyhow::{anyhow, bail, Context as _, Result};
 use arrow_array::{builder::Int32Builder, Array, ArrayRef, BooleanArray, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
 use futures_util::{FutureExt, Stream};
+use rquickjs::context::intrinsic::{All, Base};
 pub use rquickjs::runtime::MemoryUsage;
-use rquickjs::{async_with, Promise};
 use rquickjs::{
-    context::intrinsic::All, function::Args, module::Evaluated, AsyncContext, AsyncRuntime, Ctx,
-    FromJs, Module, Object, Persistent, Value,
+    async_with, function::Args, module::Evaluated, AsyncContext, AsyncRuntime, Ctx, FromJs, Module,
+    Object, Persistent, Promise, Value,
 };
 
 pub use self::into_field::IntoField;
@@ -138,7 +138,7 @@ impl Runtime {
     /// Create a new `Runtime`.
     pub async fn new() -> Result<Self> {
         let runtime = AsyncRuntime::new().context("failed to create quickjs runtime")?;
-        let context = AsyncContext::full(&runtime)
+        let context = AsyncContext::custom::<(Base, All)>(&runtime)
             .await
             .context("failed to create quickjs context")?;
 

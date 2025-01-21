@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Remove `Runtime::functions` and `Runtime::find_function_by_inlined_signature` methods. Please use the new `Runtime::add_function` instead.
+- Rename `Runtime::functions` to `Runtime::wasm_exported_functions`.
+- Remove `Runtime::find_function_by_inlined_signature` methods.
+- Change the semantic of `name` argument for `Runtime::call` and `Runtime::call_table_function` to the name registered with `Runtime::add_function`.
 
 ### Added
 

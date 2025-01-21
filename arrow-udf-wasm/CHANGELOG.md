@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Remove `Runtime::functions` and `Runtime::find_function_by_inlined_signature` methods. Please use the new `Runtime::add_function` instead.
+
+### Added
+
+- Add `Runtime::add_function` method to register UDFs. This method accepts function name, argument types and return types, and find the corresponding exported function in the WASM binary. This unifies the usage of WASM UDF runtime and Python/JS UDF runtime.
+
 ## [0.4.1] - 2024-12-23
 
 ### Changed

@@ -51,7 +51,7 @@ pub struct Runtime {
 }
 
 /// Configurations.
-#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct Config {
     /// Memory size limit in bytes.
@@ -64,12 +64,12 @@ impl Clone for Runtime {
     fn clone(&self) -> Self {
         Self {
             module: self.module.clone(), // this will share the immutable wasm binary
-            config: self.config.clone(),
+            config: self.config,
             wasm_exported_functions: self.wasm_exported_functions.clone(),
             types: self.types.clone(),
             functions: self.functions.clone(),
             instances: Default::default(), // just initialize a new instance pool
-            abi_version: self.abi_version.clone(),
+            abi_version: self.abi_version,
         }
     }
 }

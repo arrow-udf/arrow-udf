@@ -19,7 +19,7 @@ use arrow_array::RecordBatch;
 use ram_file::{RamFile, RamFileRef};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use wasi_common::{sync::WasiCtxBuilder, WasiCtx};
 use wasmtime::*;
 
@@ -35,9 +35,9 @@ pub struct Runtime {
     /// Configurations.
     config: Config,
     /// Function names.
-    wasm_exported_functions: HashSet<String>,
+    wasm_exported_functions: Arc<HashSet<String>>,
     /// User-defined types.
-    wasm_exported_types: HashMap<String, String>,
+    wasm_exported_types: Arc<HashMap<String, String>>,
     /// Instance pool.
     instances: Mutex<Vec<Instance>>,
     /// ABI version. (major, minor)
@@ -45,13 +45,26 @@ pub struct Runtime {
 }
 
 /// Configurations.
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 #[non_exhaustive]
 pub struct Config {
     /// Memory size limit in bytes.
     pub memory_size_limit: Option<usize>,
     /// File size limit in bytes.
     pub file_size_limit: Option<usize>,
+}
+
+impl Clone for Runtime {
+    fn clone(&self) -> Self {
+        Self {
+            module: self.module.clone(), // this will share the immutable wasm binary
+            config: self.config.clone(),
+            wasm_exported_functions: self.wasm_exported_functions.clone(),
+            wasm_exported_types: self.wasm_exported_types.clone(),
+            instances: Default::default(), // just initialize a new instance pool
+            abi_version: self.abi_version.clone(),
+        }
+    }
 }
 
 impl Debug for Runtime {
@@ -91,25 +104,25 @@ impl Runtime {
         let (major, minor) = (major.parse::<u8>()?, minor.parse::<u8>()?);
         ensure!(major <= 3, "unsupported abi version: {major}.{minor}");
 
-        let mut wasm_exported_functions = HashSet::new();
-        let mut wasm_exported_types = HashMap::new();
+        let mut functions = HashSet::new();
+        let mut types = HashMap::new();
         for export in module.exports() {
             if let Some(encoded) = export.name().strip_prefix("arrowudf_") {
                 let name = base64_decode(encoded).context("invalid symbol")?;
-                wasm_exported_functions.insert(name);
+                functions.insert(name);
             } else if let Some(encoded) = export.name().strip_prefix("arrowudt_") {
                 let meta = base64_decode(encoded).context("invalid symbol")?;
                 let (name, fields) = meta.split_once('=').context("invalid type string")?;
-                wasm_exported_types.insert(name.to_string(), fields.to_string());
+                types.insert(name.to_string(), fields.to_string());
             }
         }
 
         Ok(Self {
             module,
             config,
-            wasm_exported_functions,
-            wasm_exported_types,
-            instances: Mutex::new(vec![]),
+            wasm_exported_functions: functions.into(),
+            wasm_exported_types: types.into(),
+            instances: Default::default(),
             abi_version: (major, minor),
         })
     }

@@ -35,9 +35,9 @@ pub struct Runtime {
     /// Configurations.
     config: Config,
     /// Function names.
-    functions: HashSet<String>,
+    wasm_exported_functions: HashSet<String>,
     /// User-defined types.
-    types: HashMap<String, String>,
+    wasm_exported_types: HashMap<String, String>,
     /// Instance pool.
     instances: Mutex<Vec<Instance>>,
     /// ABI version. (major, minor)
@@ -75,8 +75,8 @@ impl Debug for Runtime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Runtime")
             .field("config", &self.config)
-            .field("functions", &self.functions)
-            .field("types", &self.types)
+            .field("wasm_exported_functions", &self.wasm_exported_functions)
+            .field("wasm_exported_types", &self.wasm_exported_types)
             .field("instances", &self.instances.lock().unwrap().len())
             .finish()
     }
@@ -108,37 +108,39 @@ impl Runtime {
         let (major, minor) = (major.parse::<u8>()?, minor.parse::<u8>()?);
         ensure!(major <= 3, "unsupported abi version: {major}.{minor}");
 
-        let mut functions = HashSet::new();
-        let mut types = HashMap::new();
+        let mut wasm_exported_functions = HashSet::new();
+        let mut wasm_exported_types = HashMap::new();
         for export in module.exports() {
             if let Some(encoded) = export.name().strip_prefix("arrowudf_") {
                 let name = base64_decode(encoded).context("invalid symbol")?;
-                functions.insert(name);
+                wasm_exported_functions.insert(name);
             } else if let Some(encoded) = export.name().strip_prefix("arrowudt_") {
                 let meta = base64_decode(encoded).context("invalid symbol")?;
                 let (name, fields) = meta.split_once('=').context("invalid type string")?;
-                types.insert(name.to_string(), fields.to_string());
+                wasm_exported_types.insert(name.to_string(), fields.to_string());
             }
         }
 
         Ok(Self {
             module,
             config,
-            functions,
-            types,
+            wasm_exported_functions,
+            wasm_exported_types,
             instances: Mutex::new(vec![]),
             abi_version: (major, minor),
         })
     }
 
-    /// Return available functions.
-    pub fn functions(&self) -> impl Iterator<Item = &str> {
-        self.functions.iter().map(|s| s.as_str())
+    /// Return available WASM functions.
+    pub fn wasm_exported_functions(&self) -> impl Iterator<Item = &str> {
+        self.wasm_exported_functions.iter().map(|s| s.as_str())
     }
 
-    /// Return available types.
-    pub fn types(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.types.iter().map(|(k, v)| (k.as_str(), v.as_str()))
+    /// Return available WASM types.
+    pub fn wasm_exported_types(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.wasm_exported_types
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
     }
 
     /// Return the ABI version.
@@ -146,7 +148,7 @@ impl Runtime {
         self.abi_version
     }
 
-    /// Given a function signature that inlines struct types, find the function name.
+    /// Given a function signature that inlines struct types, find the exported function name.
     ///
     /// # Example
     ///
@@ -156,7 +158,7 @@ impl Runtime {
     /// output = "keyvalue(string, string) -> struct KeyValue"
     /// ```
     pub fn find_function_by_inlined_signature(&self, s: &str) -> Option<&str> {
-        self.functions
+        self.wasm_exported_functions
             .iter()
             .find(|f| self.inline_types(f) == s)
             .map(|f| f.as_str())
@@ -175,7 +177,7 @@ impl Runtime {
         let mut inlined = s.to_string();
         loop {
             let replaced = inlined.clone();
-            for (k, v) in self.types.iter() {
+            for (k, v) in self.wasm_exported_types.iter() {
                 inlined = inlined.replace(&format!("struct {k}"), &format!("struct<{v}>"));
             }
             if replaced == inlined {
@@ -186,7 +188,7 @@ impl Runtime {
 
     /// Call a function.
     pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
-        if !self.functions.contains(name) {
+        if !self.wasm_exported_functions.contains(name) {
             bail!("function not found: {name}");
         }
 
@@ -215,7 +217,7 @@ impl Runtime {
         input: &'a RecordBatch,
     ) -> Result<impl Iterator<Item = Result<RecordBatch>> + 'a> {
         use genawaiter2::{sync::gen, yield_};
-        if !self.functions.contains(name) {
+        if !self.wasm_exported_functions.contains(name) {
             bail!("function not found: {name}");
         }
 

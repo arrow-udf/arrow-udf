@@ -106,9 +106,10 @@ struct Aggregate {
 }
 
 // This is required to pass `Function` and `Aggregate` from `async_with!` to outside.
+// SAFETY: We ensure the `JSRuntime` used in `async_with!` is same as the caller's.
+// The `parallel` feature of `rquickjs` is enabled, so itself can't ensure this.
 unsafe impl Send for Function {}
 unsafe impl Sync for Function {}
-
 unsafe impl Send for Aggregate {}
 unsafe impl Sync for Aggregate {}
 
@@ -137,7 +138,7 @@ impl Runtime {
     /// Create a new `Runtime`.
     pub async fn new() -> Result<Self> {
         let runtime = AsyncRuntime::new().context("failed to create quickjs runtime")?;
-        let context = AsyncContext::custom::<All>(&runtime)
+        let context = AsyncContext::full(&runtime)
             .await
             .context("failed to create quickjs context")?;
 

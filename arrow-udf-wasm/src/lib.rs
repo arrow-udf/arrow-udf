@@ -130,7 +130,6 @@ impl Runtime {
         })
     }
 
-    // TODO(): rename
     /// Return available functions.
     pub fn functions(&self) -> impl Iterator<Item = &str> {
         self.functions.iter().map(|s| s.as_str())
@@ -147,6 +146,7 @@ impl Runtime {
     }
 
     /// Find a function by name, argument types and return type.
+    /// The argument types and return type should be the arrow type names.
     /// The returned [`Function`] can be used to call the function.
     pub fn find_function(
         &self,
@@ -158,7 +158,7 @@ impl Runtime {
         // construct the function signature
         let sig = function_signature_of(name, arg_type_names, return_type_name, is_table_function);
         // now find the export name
-        if let Some(export_name) = self.find_function_by_inlined_signature(&sig) {
+        if let Some(export_name) = self.get_function_export_name_by_inlined_signature(&sig) {
             return Ok(Function {
                 export_name: export_name.to_owned(),
             });
@@ -171,7 +171,6 @@ impl Runtime {
         )
     }
 
-    // TODO(): unpub
     /// Given a function signature that inlines struct types, find the export function name.
     ///
     /// # Example
@@ -181,7 +180,7 @@ impl Runtime {
     /// input = "keyvalue(string, string) -> struct<key:string,value:string>"
     /// output = "keyvalue(string, string) -> struct KeyValue"
     /// ```
-    pub fn find_function_by_inlined_signature(&self, s: &str) -> Option<&str> {
+    fn get_function_export_name_by_inlined_signature(&self, s: &str) -> Option<&str> {
         self.functions
             .iter()
             .find(|f| self.inline_types(f) == s)

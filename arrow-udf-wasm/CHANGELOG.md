@@ -7,15 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.1] - 2024-12-23
+## [0.4.1] - 2024-12-24
 
 ### Changed
 
 - Replace unmaintained `genawaiter` with forked version `genawaiter2`.
 
-## [0.4.0] - 2024-11-15
+### Fixed
 
 - Rename target `wasm32-wasi` to `wasm32-wasip1`.
+
+## [0.4.0] - 2024-10-10
 
 ### Changed
 

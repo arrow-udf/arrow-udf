@@ -137,6 +137,16 @@ pub enum CallMode {
 
 impl Runtime {
     /// Create a new `Runtime`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use arrow_udf_js::Runtime;
+    /// # tokio_test::block_on(async {
+    /// let runtime = Runtime::new().await.unwrap();
+    /// runtime.set_memory_limit(Some(1 << 20)); // 1MB
+    /// # });
+    /// ```
     pub async fn new() -> Result<Self> {
         let runtime = AsyncRuntime::new().context("failed to create quickjs runtime")?;
         let context = AsyncContext::custom::<(Base, All)>(&runtime)
@@ -160,8 +170,10 @@ impl Runtime {
     ///
     /// ```
     /// # use arrow_udf_js::Runtime;
-    /// let runtime = Runtime::new().unwrap();
+    /// # tokio_test::block_on(async {
+    /// let runtime = Runtime::new().await.unwrap();
     /// runtime.set_memory_limit(Some(1 << 20)); // 1MB
+    /// # });
     /// ```
     pub async fn set_memory_limit(&self, limit: Option<usize>) {
         self.runtime.set_memory_limit(limit.unwrap_or(0)).await;
@@ -174,8 +186,10 @@ impl Runtime {
     /// ```
     /// # use arrow_udf_js::Runtime;
     /// # use std::time::Duration;
-    /// let mut runtime = Runtime::new().unwrap();
-    /// runtime.set_timeout(Some(Duration::from_secs(1)));
+    /// # tokio_test::block_on(async {
+    /// let mut runtime = Runtime::new().await.unwrap();
+    /// runtime.set_timeout(Some(Duration::from_secs(1))).await;
+    /// # });
     /// ```
     pub async fn set_timeout(&mut self, timeout: Option<Duration>) {
         self.timeout = timeout;
@@ -221,7 +235,8 @@ impl Runtime {
     /// ```
     /// # use arrow_udf_js::{Runtime, CallMode};
     /// # use arrow_schema::DataType;
-    /// let mut runtime = Runtime::new().unwrap();
+    /// # tokio_test::block_on(async {
+    /// let mut runtime = Runtime::new().await.unwrap();
     /// // add a scalar function
     /// runtime
     ///     .add_function(
@@ -240,6 +255,7 @@ impl Runtime {
     /// "#,
     ///         false,
     ///     )
+    ///     .await
     ///     .unwrap();
     /// // add a table function
     /// runtime
@@ -256,7 +272,9 @@ impl Runtime {
     /// "#,
     ///         false,
     ///     )
+    ///     .await
     ///     .unwrap();
+    /// # });
     /// ```
     pub async fn add_function(
         &mut self,
@@ -349,7 +367,8 @@ impl Runtime {
     /// ```
     /// # use arrow_udf_js::{Runtime, CallMode};
     /// # use arrow_schema::DataType;
-    /// let mut runtime = Runtime::new().unwrap();
+    /// # tokio_test::block_on(async {
+    /// let mut runtime = Runtime::new().await.unwrap();
     /// runtime
     ///     .add_aggregate(
     ///         "sum",
@@ -372,7 +391,9 @@ impl Runtime {
     ///         "#,
     ///         false,
     ///     )
+    ///     .await
     ///     .unwrap();
+    /// # });
     /// ```
     pub async fn add_aggregate(
         &mut self,
@@ -416,6 +437,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_function.txt")]
     /// // suppose we have created a scalar function `gcd`
     /// // see the example in `add_function`
@@ -428,8 +450,9 @@ impl Runtime {
     /// let arg1 = Int32Array::from(vec![Some(15), None]);
     /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
     ///
-    /// let output = runtime.call("gcd", &input).unwrap();
+    /// let output = runtime.call("gcd", &input).await.unwrap();
     /// assert_eq!(&**output.column(0), &Int32Array::from(vec![Some(5), None]));
+    /// # });
     /// ```
     pub async fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let function = self.functions.get(name).context("function not found")?;
@@ -479,6 +502,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_function.txt")]
     /// // suppose we have created a table function `series`
     /// // see the example in `add_function`
@@ -488,7 +512,7 @@ impl Runtime {
     /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
     ///
     /// let mut outputs = runtime.call_table_function("series", &input, 10).unwrap();
-    /// let output = outputs.next().unwrap().unwrap();
+    /// let output = outputs.next().await.unwrap().unwrap();
     /// let pretty = arrow_cast::pretty::pretty_format_batches(&[output]).unwrap().to_string();
     /// assert_eq!(pretty, r#"
     /// +-----+--------+
@@ -499,6 +523,7 @@ impl Runtime {
     /// | 2   | 1      |
     /// | 2   | 2      |
     /// +-----+--------+"#.trim());
+    /// # });
     /// ```
     pub fn call_table_function<'a>(
         &'a self,
@@ -529,9 +554,11 @@ impl Runtime {
     ///
     /// # Example
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_aggregate.txt")]
-    /// let state = runtime.create_state("sum").unwrap();
+    /// let state = runtime.create_state("sum").await.unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![0]));
+    /// # });
     /// ```
     pub async fn create_state(&self, name: &str) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
@@ -554,15 +581,17 @@ impl Runtime {
     ///
     /// # Example
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_aggregate.txt")]
-    /// let state = runtime.create_state("sum").unwrap();
+    /// let state = runtime.create_state("sum").await.unwrap();
     ///
     /// let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
     /// let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
     /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
     ///
-    /// let state = runtime.accumulate("sum", &state, &input).unwrap();
+    /// let state = runtime.accumulate("sum", &state, &input).await.unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![9]));
+    /// # });
     /// ```
     pub async fn accumulate(
         &self,
@@ -614,16 +643,18 @@ impl Runtime {
     ///
     /// # Example
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_aggregate.txt")]
-    /// let state = runtime.create_state("sum").unwrap();
+    /// let state = runtime.create_state("sum").await.unwrap();
     ///
     /// let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
     /// let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
     /// let ops = BooleanArray::from(vec![false, false, true, false]);
     /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
     ///
-    /// let state = runtime.accumulate_or_retract("sum", &state, &ops, &input).unwrap();
+    /// let state = runtime.accumulate_or_retract("sum", &state, &ops, &input).await.unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![3]));
+    /// # });
     /// ```
     pub async fn accumulate_or_retract(
         &self,
@@ -684,11 +715,13 @@ impl Runtime {
     ///
     /// # Example
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_aggregate.txt")]
     /// let states = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
     ///
-    /// let state = runtime.merge("sum", &states).unwrap();
+    /// let state = runtime.merge("sum", &states).await.unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![9]));
+    /// # });
     /// ```
     pub async fn merge(&self, name: &str, states: &dyn Array) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
@@ -730,11 +763,13 @@ impl Runtime {
     ///
     /// # Example
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_aggregate.txt")]
     /// let states: ArrayRef = Arc::new(Int32Array::from(vec![Some(1), None, Some(3), Some(5)]));
     ///
-    /// let outputs = runtime.finish("sum", &states).unwrap();
+    /// let outputs = runtime.finish("sum", &states).await.unwrap();
     /// assert_eq!(&outputs, &states);
+    /// # });
     /// ```
     pub async fn finish(&self, name: &str, states: &ArrayRef) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;

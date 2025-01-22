@@ -3,7 +3,7 @@
 # use arrow_schema::{DataType, Field, Schema};
 # use arrow_array::{RecordBatch, Int32Array};
 # use std::sync::Arc;
-# let mut runtime = Runtime::new().unwrap();
+# let mut runtime = Runtime::new().await.unwrap();
 # runtime
 #     .add_function(
 #         "gcd",
@@ -19,7 +19,9 @@
 #             return a;
 #         }
 # "#,
+#         false,
 #     )
+#     .await
 #     .unwrap();
 # runtime
 #     .add_function(
@@ -33,5 +35,7 @@
 #             }
 #         }
 # "#,
+#         false,
 #     )
+#     .await
 #     .unwrap();

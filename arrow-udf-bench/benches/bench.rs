@@ -238,23 +238,23 @@ def decimal_(a):
     let mut group = c.benchmark_group("decimal");
 
     group.bench_with_input("js", &input, |b, input| {
+        // Workaround for https://github.com/bheisler/criterion.rs/issues/751
+        let executor = FuturesExecutor;
+        let rt = executor.block_on(async {
+            let mut rt = JsRuntime::new().await.unwrap();
+            rt.add_function(
+                "decimal",
+                decimal_field("decimal"),
+                arrow_udf_js::CallMode::ReturnNullOnNullInput,
+                js_code,
+                false,
+            )
+            .await
+            .unwrap();
+            rt
+        });
         b.to_async(FuturesExecutor).iter_with_setup(
-            || {
-                let executor = FuturesExecutor;
-                executor.block_on(async {
-                    let mut rt = JsRuntime::new().await.unwrap();
-                    rt.add_function(
-                        "decimal",
-                        decimal_field("decimal"),
-                        arrow_udf_js::CallMode::ReturnNullOnNullInput,
-                        js_code,
-                        false,
-                    )
-                    .await
-                    .unwrap();
-                    rt
-                })
-            },
+            || &rt,
             |rt| async move { rt.call("decimal", input).await.unwrap() },
         )
     });
@@ -284,17 +284,16 @@ fn bench_eval_sum(c: &mut Criterion) {
     let mut group = c.benchmark_group("sum");
 
     group.bench_with_input("js", &input, |b, input| {
-        b.to_async(FuturesExecutor).iter_with_setup(
-            || {
-                let executor = FuturesExecutor;
-                executor.block_on(async {
-                    let mut rt = JsRuntime::new().await.unwrap();
-                    rt.add_aggregate(
-                        "sum",
-                        DataType::Int32,
-                        DataType::Int32,
-                        arrow_udf_js::CallMode::ReturnNullOnNullInput,
-                        r#"
+        // Workaround for https://github.com/bheisler/criterion.rs/issues/751
+        let executor = FuturesExecutor;
+        let (rt, state) = executor.block_on(async {
+            let mut rt = JsRuntime::new().await.unwrap();
+            rt.add_aggregate(
+                "sum",
+                DataType::Int32,
+                DataType::Int32,
+                arrow_udf_js::CallMode::ReturnNullOnNullInput,
+                r#"
                     export function create_state() {
                         return 0;
                     }
@@ -305,15 +304,16 @@ fn bench_eval_sum(c: &mut Criterion) {
                         return state - value;
                     }
 "#,
-                        false,
-                    )
-                    .await
-                    .unwrap();
-                    let state = rt.create_state("sum").await.unwrap();
-                    (rt, state)
-                })
-            },
-            |(rt, state)| async move { rt.accumulate("sum", &state, input).await.unwrap() },
+                false,
+            )
+            .await
+            .unwrap();
+            let state = rt.create_state("sum").await.unwrap();
+            (rt, state)
+        });
+        b.to_async(FuturesExecutor).iter_with_setup(
+            || (&rt, &state),
+            |(rt, state)| async move { rt.accumulate("sum", state, input).await.unwrap() },
         )
     });
 

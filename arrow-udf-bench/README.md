@@ -12,5 +12,9 @@ cargo build --release -p arrow-udf-example --target wasm32-wasip1
 2. Run the benchmarks:
 
 ```bash
+# Run all benchmarks
 cargo bench --bench bench
+
+# Run a specific benchmark
+cargo bench --bench bench js
 ```

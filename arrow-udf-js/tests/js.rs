@@ -1213,6 +1213,57 @@ export async function echo(x) {
     );
 }
 
+#[tokio::test]
+async fn test_async_range() {
+    let mut runtime = Runtime::new().await.unwrap();
+
+    runtime
+        .add_function(
+            "range",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export async function* range(n) {
+                for (let i = 0; i < n; i++) {
+                    yield i;
+                }
+            }
+            "#,
+            true,
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let mut outputs = runtime.call_table_function("range", &input, 2).unwrap();
+
+    assert_eq!(outputs.schema().field(0).name(), "row");
+    assert_eq!(outputs.schema().field(1).name(), "range");
+    assert_eq!(outputs.schema().field(1).data_type(), &DataType::Int32);
+
+    let o1 = outputs.next().await.unwrap().unwrap();
+    let o2 = outputs.next().await.unwrap().unwrap();
+    assert_eq!(o1.num_rows(), 2);
+    assert_eq!(o2.num_rows(), 2);
+    assert!(outputs.next().await.unwrap().is_none());
+
+    check(
+        &[o1, o2],
+        expect![[r#"
+        +-----+-------+
+        | row | range |
+        +-----+-------+
+        | 0   | 0     |
+        | 2   | 0     |
+        | 2   | 1     |
+        | 2   | 2     |
+        +-----+-------+"#]],
+    );
+}
+
 async fn delay_strlen(msg: String) -> usize {
     use tokio::time::*;
     sleep(Duration::from_millis(100)).await;

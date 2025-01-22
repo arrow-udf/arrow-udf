@@ -106,6 +106,7 @@ struct Aggregate {
 }
 
 // This is required to pass `Function` and `Aggregate` from `async_with!` to outside.
+// Otherwise, the compiler will complain that `*mut JSRuntime` cannot be sent between threads safely
 // SAFETY: We ensure the `JSRuntime` used in `async_with!` is same as the caller's.
 // The `parallel` feature of `rquickjs` is enabled, so itself can't ensure this.
 unsafe impl Send for Function {}
@@ -834,6 +835,7 @@ impl Runtime {
 pub struct RecordBatchIter<'a> {
     rt: &'a Runtime,
     input: &'a RecordBatch,
+    // The function to generate the generator
     function: &'a Function,
     schema: SchemaRef,
     chunk_size: usize,
@@ -896,9 +898,12 @@ impl RecordBatchIter<'_> {
                     }
                     let mut args = Args::new(ctx.clone(), row.len());
                     args.push_args(row.drain(..))?;
+                    // NOTE: A async generator function, defined by `async function*`, itself is NOT async.
+                    // That's why we call it with `is_async = false` here.
+                    // The result is a `AsyncGenerator`, which has a async `next` method.
                     let gen: Object = self
                         .rt
-                        .call_user_fn(&ctx, &js_function, args, self.function.is_async).await
+                        .call_user_fn(&ctx, &js_function, args, false).await
                         .context("failed to call function")?;
                     let next: rquickjs::Function =
                         gen.get("next").context("failed to get 'next' method")?;

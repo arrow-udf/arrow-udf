@@ -33,25 +33,34 @@ macro_rules! get_jsvalue {
 }
 
 macro_rules! get_date_ms_js_value {
-    ($array_type: ty, $ctx:expr, $array:expr, $i:expr) => {{
+    ($array_type: ty, $tz:expr, $ctx:expr, $array:expr, $i:expr) => {{
         let array = $array.as_any().downcast_ref::<$array_type>().unwrap();
         let date_constructor: Constructor = $ctx.globals().get("Date")?;
-        let date_ms = array
-            .value_as_datetime($i)
-            .expect("failed to get date as datetime")
-            .and_utc()
-            .timestamp_millis();
+        let date_ms = match $tz {
+            None => array
+                .value_as_datetime($i)
+                .expect("failed to get date as datetime")
+                .and_utc()
+                .timestamp_millis(),
+            Some(tz) => array
+                .value_as_datetime_with_tz($i, tz)
+                .expect("failed to get date as datetime")
+                .timestamp_millis(),
+        };
         date_constructor.construct((date_ms,))?
     }};
 }
 
 macro_rules! build_timestamp_array {
-    ($builder_type: ty, $date_primitive_type:ty, $ctx:expr, $values:expr, $op:tt, $coeff:expr) => {{
+    ($builder_type: ty $( : $tz:expr )? , $date_primitive_type:ty, $ctx:expr, $values:expr, $op:tt, $coeff:expr) => {{
         let date_to_ms_epoch: Function = $ctx
             .eval("(function(x) { return x.getTime() })")
             .context("failed to get date to ms epoch function")?;
 
         let mut builder = <$builder_type>::with_capacity($values.len());
+        $(
+            builder = builder.with_timezone_opt($tz.clone());
+        )?
 
         for val in $values {
             if val.is_null() || val.is_undefined() {
@@ -263,26 +272,31 @@ impl Converter {
 
                 self.call_bigdecimal(ctx, &decimal_str)
             }
-            // TODO: handle tz correctly. requires probably converting tz str into a Chrono Tz
-            DataType::Timestamp(unit, _tz) => {
+            DataType::Timestamp(unit, tz) => {
+                let parsed_tz: Option<arrow_array::timezone::Tz> =
+                    tz.as_ref().map(|tz| tz.parse()).transpose().map_err(
+                        |err: arrow_schema::ArrowError| {
+                            Error::new_into_js_message("Timestamp", "Date", err.to_string())
+                        },
+                    )?;
                 match unit {
                     // TODO: test this
                     arrow_schema::TimeUnit::Second => {
-                        get_date_ms_js_value!(TimestampSecondArray, ctx, array, i)
+                        get_date_ms_js_value!(TimestampSecondArray, parsed_tz, ctx, array, i)
                     }
                     arrow_schema::TimeUnit::Millisecond => {
-                        get_date_ms_js_value!(TimestampMillisecondArray, ctx, array, i)
+                        get_date_ms_js_value!(TimestampMillisecondArray, parsed_tz, ctx, array, i)
                     }
                     arrow_schema::TimeUnit::Microsecond => {
-                        get_date_ms_js_value!(TimestampMicrosecondArray, ctx, array, i)
+                        get_date_ms_js_value!(TimestampMicrosecondArray, parsed_tz, ctx, array, i)
                     }
                     arrow_schema::TimeUnit::Nanosecond => {
-                        get_date_ms_js_value!(TimestampNanosecondArray, ctx, array, i)
+                        get_date_ms_js_value!(TimestampNanosecondArray, parsed_tz, ctx, array, i)
                     }
                 }
             }
             DataType::Date32 => {
-                get_date_ms_js_value!(Date32Array, ctx, array, i)
+                get_date_ms_js_value!(Date32Array, None, ctx, array, i)
             }
             // list
             DataType::List(inner) => {
@@ -460,21 +474,21 @@ impl Converter {
                 }
                 Ok(Arc::new(builder.finish()))
             }
-            DataType::Timestamp(unit, _tz) => {
+            DataType::Timestamp(unit, tz) => {
                 match unit {
                     // TODO denomenator is not quite right because if the fundamental unit is in
                     // milliseconds, then to convert nanoseconds to milliseconds, you need to divide by 1_000_000
                     arrow_schema::TimeUnit::Second => {
-                        build_timestamp_array!(TimestampSecondBuilder, i64, ctx, values, /, 1000)
+                        build_timestamp_array!(TimestampSecondBuilder : tz, i64, ctx, values, /, 1000)
                     }
                     arrow_schema::TimeUnit::Millisecond => {
-                        build_timestamp_array!(TimestampMillisecondBuilder, i64, ctx, values, /, 1)
+                        build_timestamp_array!(TimestampMillisecondBuilder : tz, i64, ctx, values, /, 1)
                     }
                     arrow_schema::TimeUnit::Microsecond => {
-                        build_timestamp_array!(TimestampMicrosecondBuilder, i64, ctx, values, *, 1000)
+                        build_timestamp_array!(TimestampMicrosecondBuilder : tz, i64, ctx, values, *, 1000)
                     }
                     arrow_schema::TimeUnit::Nanosecond => {
-                        build_timestamp_array!(TimestampNanosecondBuilder, i64, ctx, values, *, 1_000_000)
+                        build_timestamp_array!(TimestampNanosecondBuilder : tz, i64, ctx, values, *, 1_000_000)
                     }
                 }
             }

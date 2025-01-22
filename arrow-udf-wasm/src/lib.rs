@@ -19,7 +19,7 @@ use arrow_array::RecordBatch;
 use ram_file::{RamFile, RamFileRef};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use wasi_common::{sync::WasiCtxBuilder, WasiCtx};
 use wasmtime::*;
 
@@ -35,9 +35,9 @@ pub struct Runtime {
     /// Configurations.
     config: Config,
     /// Function names.
-    functions: HashSet<String>,
+    functions: Arc<HashSet<String>>,
     /// User-defined types.
-    types: HashMap<String, String>,
+    types: Arc<HashMap<String, String>>,
     /// Instance pool.
     instances: Mutex<Vec<Instance>>,
     /// ABI version. (major, minor)
@@ -45,13 +45,28 @@ pub struct Runtime {
 }
 
 /// Configurations.
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct Config {
     /// Memory size limit in bytes.
     pub memory_size_limit: Option<usize>,
     /// File size limit in bytes.
     pub file_size_limit: Option<usize>,
+}
+
+/// Implement `Clone` for `Runtime` so that we can simply `clone` to create a new
+/// runtime for the same WASM binary.
+impl Clone for Runtime {
+    fn clone(&self) -> Self {
+        Self {
+            module: self.module.clone(), // this will share the immutable wasm binary
+            config: self.config,
+            functions: self.functions.clone(),
+            types: self.types.clone(),
+            instances: Default::default(), // just initialize a new instance pool
+            abi_version: self.abi_version,
+        }
+    }
 }
 
 impl Debug for Runtime {
@@ -107,8 +122,8 @@ impl Runtime {
         Ok(Self {
             module,
             config,
-            functions,
-            types,
+            functions: functions.into(),
+            types: types.into(),
             instances: Mutex::new(vec![]),
             abi_version: (major, minor),
         })

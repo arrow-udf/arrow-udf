@@ -54,23 +54,6 @@ pub struct Config {
     pub file_size_limit: Option<usize>,
 }
 
-struct Instance {
-    // extern "C" fn(len: usize, align: usize) -> *mut u8
-    alloc: TypedFunc<(u32, u32), u32>,
-    // extern "C" fn(ptr: *mut u8, len: usize, align: usize)
-    dealloc: TypedFunc<(u32, u32, u32), ()>,
-    // extern "C" fn(iter: *mut RecordBatchIter, out: *mut CSlice)
-    record_batch_iterator_next: TypedFunc<(u32, u32), ()>,
-    // extern "C" fn(iter: *mut RecordBatchIter)
-    record_batch_iterator_drop: TypedFunc<u32, ()>,
-    // extern "C" fn(ptr: *const u8, len: usize, out: *mut CSlice) -> i32
-    functions: HashMap<String, TypedFunc<(u32, u32, u32), i32>>,
-    memory: Memory,
-    store: Store<(WasiCtx, StoreLimits)>,
-    stdout: RamFileRef,
-    stderr: RamFileRef,
-}
-
 impl Debug for Runtime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Runtime")
@@ -244,6 +227,23 @@ impl Runtime {
         })
         .into_iter())
     }
+}
+
+struct Instance {
+    // extern "C" fn(len: usize, align: usize) -> *mut u8
+    alloc: TypedFunc<(u32, u32), u32>,
+    // extern "C" fn(ptr: *mut u8, len: usize, align: usize)
+    dealloc: TypedFunc<(u32, u32, u32), ()>,
+    // extern "C" fn(iter: *mut RecordBatchIter, out: *mut CSlice)
+    record_batch_iterator_next: TypedFunc<(u32, u32), ()>,
+    // extern "C" fn(iter: *mut RecordBatchIter)
+    record_batch_iterator_drop: TypedFunc<u32, ()>,
+    // extern "C" fn(ptr: *const u8, len: usize, out: *mut CSlice) -> i32
+    functions: HashMap<String, TypedFunc<(u32, u32, u32), i32>>,
+    memory: Memory,
+    store: Store<(WasiCtx, StoreLimits)>,
+    stdout: RamFileRef,
+    stderr: RamFileRef,
 }
 
 impl Instance {

@@ -22,6 +22,7 @@ arrow-udf-python = { path = "../arrow-udf-python" }
 arrow-udf-wasm = { path = "../arrow-udf-wasm" }
 criterion = { version = "0.5", features = ["async_tokio", "async_futures"] }
 tokio = { workspace = true, features = ["rt"] }
+futures-util = "0.3"
 
 [[bench]]
 name = "bench"

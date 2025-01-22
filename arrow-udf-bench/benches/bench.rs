@@ -21,7 +21,9 @@ use arrow_udf::function;
 use arrow_udf_js::Runtime as JsRuntime;
 use arrow_udf_python::Runtime as PythonRuntime;
 use arrow_udf_wasm::Runtime as WasmRuntime;
+use criterion::async_executor::{AsyncExecutor as _, FuturesExecutor};
 use criterion::{criterion_group, criterion_main, Criterion};
+use futures_util::stream::StreamExt;
 
 fn bench_eval_gcd(c: &mut Criterion) {
     #[function("gcd(int, int) -> int")]
@@ -62,7 +64,9 @@ def gcd(a: int, b: int) -> int:
     )
     .unwrap();
 
-    c.bench_function("gcd/native", |bencher| {
+    let mut group = c.benchmark_group("gcd");
+
+    group.bench_function("native", |bencher| {
         let a = Int32Array::from_iter(0..1024);
         let b = Int32Array::from_iter((0..2048).step_by(2));
         bencher.iter(|| {
@@ -70,30 +74,40 @@ def gcd(a: int, b: int) -> int:
         })
     });
 
-    c.bench_function("gcd/rust", |bencher| {
+    group.bench_function("rust", |bencher| {
         bencher.iter(|| gcd_int32_int32_int32_eval(&input).unwrap())
     });
 
-    c.bench_function("gcd/wasm", |bencher| {
+    group.bench_function("wasm", |bencher| {
         let filepath = "../target/wasm32-wasip1/release/arrow_udf_example.wasm";
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
         bencher.iter(|| rt.call("gcd(int32,int32)->int32", &input).unwrap())
     });
 
-    c.bench_function("gcd/js", |bencher| {
-        let mut rt = JsRuntime::new().unwrap();
-        rt.add_function(
-            "gcd",
-            DataType::Int32,
-            arrow_udf_js::CallMode::ReturnNullOnNullInput,
-            js_code,
+    group.bench_with_input("js", &input, |b, input| {
+        // Workaround for https://github.com/bheisler/criterion.rs/issues/751
+        let executor = FuturesExecutor;
+        let rt = executor.block_on(async {
+            let mut rt = JsRuntime::new().await.unwrap();
+            rt.add_function(
+                "gcd",
+                DataType::Int32,
+                arrow_udf_js::CallMode::ReturnNullOnNullInput,
+                js_code,
+                false,
+            )
+            .await
+            .unwrap();
+            rt
+        });
+        b.to_async(FuturesExecutor).iter_with_setup(
+            || &rt,
+            |rt| async move { rt.call("gcd", input).await.unwrap() },
         )
-        .unwrap();
-        bencher.iter(|| rt.call("gcd", &input).unwrap())
     });
 
-    c.bench_function("gcd/python", |bencher| {
+    group.bench_function("python", |bencher| {
         let mut rt = PythonRuntime::new().unwrap();
         rt.add_function(
             "gcd",
@@ -104,6 +118,8 @@ def gcd(a: int, b: int) -> int:
         .unwrap();
         bencher.iter(|| rt.call("gcd", &input).unwrap())
     });
+
+    group.finish();
 }
 
 fn bench_eval_range(c: &mut Criterion) {
@@ -137,7 +153,9 @@ def range1(n: int):
     )
     .unwrap();
 
-    c.bench_function("range/wasm", |bencher| {
+    let mut group = c.benchmark_group("range");
+
+    group.bench_function("wasm", |bencher| {
         let filepath = "../target/wasm32-wasip1/release/arrow_udf_example.wasm";
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
@@ -148,23 +166,34 @@ def range1(n: int):
         })
     });
 
-    c.bench_function("range/js", |bencher| {
-        let mut rt = JsRuntime::new().unwrap();
-        rt.add_function(
-            "range",
-            DataType::Int32,
-            arrow_udf_js::CallMode::ReturnNullOnNullInput,
-            js_code,
+    group.bench_with_input("js", &input, |b, input| {
+        // Workaround for https://github.com/bheisler/criterion.rs/issues/751
+        let executor = FuturesExecutor;
+        let rt = executor.block_on(async {
+            let mut rt = JsRuntime::new().await.unwrap();
+            rt.add_function(
+                "range",
+                DataType::Int32,
+                arrow_udf_js::CallMode::ReturnNullOnNullInput,
+                js_code,
+                false,
+            )
+            .await
+            .unwrap();
+            rt
+        });
+        b.to_async(FuturesExecutor).iter_with_setup(
+            || &rt,
+            |rt| async move {
+                rt.call_table_function("range", input, 1024)
+                    .unwrap()
+                    .for_each(|_| async {})
+                    .await;
+            },
         )
-        .unwrap();
-        bencher.iter(|| {
-            rt.call_table_function("range", &input, 1024)
-                .unwrap()
-                .for_each(|_| {})
-        })
     });
 
-    c.bench_function("range/python", |bencher| {
+    group.bench_function("python", |bencher| {
         let mut rt = PythonRuntime::new().unwrap();
         rt.add_function(
             "range1",
@@ -179,6 +208,8 @@ def range1(n: int):
                 .for_each(|_| {})
         })
     });
+
+    group.finish();
 }
 
 fn bench_eval_decimal(c: &mut Criterion) {
@@ -204,23 +235,31 @@ def decimal_(a):
     )
     .unwrap();
 
-    c.bench_function("decimal/rust", |bencher| {
-        bencher.iter(|| decimal_decimal_decimal_eval(&input).unwrap())
-    });
+    let mut group = c.benchmark_group("decimal");
 
-    c.bench_function("decimal/js", |bencher| {
-        let mut rt = JsRuntime::new().unwrap();
-        rt.add_function(
-            "decimal",
-            decimal_field("decimal"),
-            arrow_udf_js::CallMode::ReturnNullOnNullInput,
-            js_code,
+    group.bench_with_input("js", &input, |b, input| {
+        b.to_async(FuturesExecutor).iter_with_setup(
+            || {
+                let executor = FuturesExecutor;
+                executor.block_on(async {
+                    let mut rt = JsRuntime::new().await.unwrap();
+                    rt.add_function(
+                        "decimal",
+                        decimal_field("decimal"),
+                        arrow_udf_js::CallMode::ReturnNullOnNullInput,
+                        js_code,
+                        false,
+                    )
+                    .await
+                    .unwrap();
+                    rt
+                })
+            },
+            |rt| async move { rt.call("decimal", input).await.unwrap() },
         )
-        .unwrap();
-        bencher.iter(|| rt.call("decimal", &input).unwrap())
     });
 
-    c.bench_function("decimal/python", |bencher| {
+    group.bench_function("python", |bencher| {
         let mut rt = PythonRuntime::new().unwrap();
         rt.add_function(
             "decimal_",
@@ -231,6 +270,8 @@ def decimal_(a):
         .unwrap();
         bencher.iter(|| rt.call("decimal_", &input).unwrap())
     });
+
+    group.finish();
 }
 
 fn bench_eval_sum(c: &mut Criterion) {
@@ -240,31 +281,43 @@ fn bench_eval_sum(c: &mut Criterion) {
     )
     .unwrap();
 
-    c.bench_function("sum/js", |bencher| {
-        let mut rt = JsRuntime::new().unwrap();
-        rt.add_aggregate(
-            "sum",
-            DataType::Int32,
-            DataType::Int32,
-            arrow_udf_js::CallMode::ReturnNullOnNullInput,
-            r#"
-            export function create_state() {
-                return 0;
-            }
-            export function accumulate(state, value) {
-                return state + value;
-            }
-            export function retract(state, value) {
-                return state - value;
-            }
+    let mut group = c.benchmark_group("sum");
+
+    group.bench_with_input("js", &input, |b, input| {
+        b.to_async(FuturesExecutor).iter_with_setup(
+            || {
+                let executor = FuturesExecutor;
+                executor.block_on(async {
+                    let mut rt = JsRuntime::new().await.unwrap();
+                    rt.add_aggregate(
+                        "sum",
+                        DataType::Int32,
+                        DataType::Int32,
+                        arrow_udf_js::CallMode::ReturnNullOnNullInput,
+                        r#"
+                    export function create_state() {
+                        return 0;
+                    }
+                    export function accumulate(state, value) {
+                        return state + value;
+                    }
+                    export function retract(state, value) {
+                        return state - value;
+                    }
 "#,
+                        false,
+                    )
+                    .await
+                    .unwrap();
+                    let state = rt.create_state("sum").await.unwrap();
+                    (rt, state)
+                })
+            },
+            |(rt, state)| async move { rt.accumulate("sum", &state, input).await.unwrap() },
         )
-        .unwrap();
-        let state = rt.create_state("sum").unwrap();
-        bencher.iter(|| rt.accumulate("sum", &state, &input).unwrap())
     });
 
-    c.bench_function("sum/python", |bencher| {
+    group.bench_function("python", |bencher| {
         let mut rt = PythonRuntime::new().unwrap();
         rt.add_aggregate(
             "sum",
@@ -286,6 +339,8 @@ def retract(state, value):
         let state = rt.create_state("sum").unwrap();
         bencher.iter(|| rt.accumulate("sum", &state, &input).unwrap())
     });
+
+    group.finish();
 }
 
 criterion_group!(

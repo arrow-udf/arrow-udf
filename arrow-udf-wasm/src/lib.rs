@@ -181,6 +181,9 @@ impl Runtime {
     /// output = "keyvalue(string, string) -> struct KeyValue"
     /// ```
     fn get_function_export_name_by_inlined_signature(&self, s: &str) -> Option<&str> {
+        if self.functions.contains(s) {
+            return Some(s);
+        }
         self.functions
             .iter()
             .find(|f| self.inline_types(f) == s)

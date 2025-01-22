@@ -36,7 +36,10 @@ fn test_oom() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("oom()->null", &input);
+    let oom = RUNTIME
+        .find_function("oom", &[] as &[&str], "null", false)
+        .unwrap();
+    let output = RUNTIME.call(&oom, &input);
     // panic message should be contained in the error message
     assert!(output
         .unwrap_err()
@@ -53,7 +56,10 @@ fn test_sleep() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("sleep(int32)->int32", &input);
+    let sleep = RUNTIME
+        .find_function("sleep", &["int32"], "int32", false)
+        .unwrap();
+    let output = RUNTIME.call(&sleep, &input);
     output.unwrap_err();
 }
 
@@ -71,7 +77,10 @@ fn test_gcd() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("gcd(int32,int32)->int32", &input).unwrap();
+    let gcd = RUNTIME
+        .find_function("gcd", &["int32", "int32"], "int32", false)
+        .unwrap();
+    let output = RUNTIME.call(&gcd, &input).unwrap();
     check(
         &[output],
         expect![[r#"
@@ -99,7 +108,10 @@ fn test_division_by_zero() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("div(int32,int32)->int32", &input).unwrap();
+    let div = RUNTIME
+        .find_function("div", &["int32", "int32"], "int32", false)
+        .unwrap();
+    let output = RUNTIME.call(&div, &input).unwrap();
     check(
         &[output],
         expect![[r#"
@@ -121,7 +133,10 @@ fn test_length() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("length(string)->int32", &input).unwrap();
+    let length = RUNTIME
+        .find_function("length", &["string"], "int32", false)
+        .unwrap();
+    let output = RUNTIME.call(&length, &input).unwrap();
     check(
         &[output],
         expect![[r#"
@@ -142,9 +157,10 @@ fn test_key_value() {
     )
     .unwrap();
 
-    let output = RUNTIME
-        .call("key_value(string)->struct KeyValue", &input)
+    let key_value = RUNTIME
+        .find_function("key_value", &["string"], "struct KeyValue", false)
         .unwrap();
+    let output = RUNTIME.call(&key_value, &input).unwrap();
     check(
         &[output],
         expect![[r#"
@@ -165,9 +181,10 @@ fn test_range() {
     )
     .unwrap();
 
-    let mut iter = RUNTIME
-        .call_table_function("range(int32)->>int32", &input)
+    let range = RUNTIME
+        .find_function("range", &["int32"], "int32", true)
         .unwrap();
+    let mut iter = RUNTIME.call_table_function(&range, &input).unwrap();
     let output = iter.next().unwrap().unwrap();
     check(
         &[output],

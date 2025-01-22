@@ -78,7 +78,10 @@ def gcd(a: int, b: int) -> int:
         let filepath = "../target/wasm32-wasip1/release/arrow_udf_example.wasm";
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
-        bencher.iter(|| rt.call("gcd(int32,int32)->int32", &input).unwrap())
+        let gcd = rt
+            .find_function("gcd", &["int32", "int32"], "int32", false)
+            .unwrap();
+        bencher.iter(|| rt.call(&gcd, &input).unwrap())
     });
 
     c.bench_function("gcd/js", |bencher| {
@@ -141,8 +144,11 @@ def range1(n: int):
         let filepath = "../target/wasm32-wasip1/release/arrow_udf_example.wasm";
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
+        let range = rt
+            .find_function("range", &["int32"], "int32", true)
+            .unwrap();
         bencher.iter(|| {
-            rt.call_table_function("range(int32)->>int32", &input)
+            rt.call_table_function(&range, &input)
                 .unwrap()
                 .for_each(|_| {})
         })

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737601323744,
+  "lastUpdate": 1737644025585,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -12527,6 +12527,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 159862,
             "range": "± 5583",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "baishen2009@gmail.com",
+            "name": "baishen",
+            "username": "b41sh"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7d80de8d61789b7e75d651c3d6ff88302cd597d9",
+          "message": "feat: support convert map type (#92)",
+          "timestamp": "2025-01-23T22:43:56+08:00",
+          "tree_id": "978c2b0c811e8d2b75ca6ccf70bf4f4732982159",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/7d80de8d61789b7e75d651c3d6ff88302cd597d9"
+        },
+        "date": 1737644025076,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3927,
+            "range": "± 11",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4022,
+            "range": "± 109",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23070,
+            "range": "± 1271",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 208490,
+            "range": "± 4346",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 252648,
+            "range": "± 7944",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 73651,
+            "range": "± 2529",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 390816,
+            "range": "± 36452",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6180688,
+            "range": "± 409170",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 978948,
+            "range": "± 31956",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 681458,
+            "range": "± 2741",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12238349,
+            "range": "± 113070",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 136862,
+            "range": "± 1098",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 145010,
+            "range": "± 6779",
             "unit": "ns/iter"
           }
         ]

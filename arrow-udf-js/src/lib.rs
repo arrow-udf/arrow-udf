@@ -16,16 +16,20 @@
 
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::pin::Pin;
 use std::sync::{atomic::Ordering, Arc};
+use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Context as _, Result};
 use arrow_array::{builder::Int32Builder, Array, ArrayRef, BooleanArray, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
+use futures_util::{FutureExt, Stream};
+use rquickjs::context::intrinsic::{All, Base};
 pub use rquickjs::runtime::MemoryUsage;
 use rquickjs::{
-    context::intrinsic::All, function::Args, module::Evaluated, Context, Ctx, FromJs, Module,
-    Object, Persistent, Value,
+    async_with, function::Args, module::Evaluated, AsyncContext, AsyncRuntime, Ctx, FromJs, Module,
+    Object, Persistent, Promise, Value,
 };
 
 pub use self::into_field::IntoField;
@@ -62,8 +66,8 @@ pub struct Runtime {
     aggregates: HashMap<String, Aggregate>,
     // NOTE: `functions` and `aggregates` must be put before the `runtime` and `context` to be dropped first.
     converter: jsarrow::Converter,
-    runtime: rquickjs::Runtime,
-    context: Context,
+    runtime: AsyncRuntime,
+    context: AsyncContext,
     /// Timeout of each function call.
     timeout: Option<Duration>,
     /// Deadline of the current function call.
@@ -85,6 +89,7 @@ struct Function {
     function: JsFunction,
     return_field: FieldRef,
     mode: CallMode,
+    is_async: bool,
 }
 
 /// A user defined aggregate function.
@@ -97,9 +102,19 @@ struct Aggregate {
     retract: Option<JsFunction>,
     finish: Option<JsFunction>,
     merge: Option<JsFunction>,
+    is_async: bool,
 }
 
-/// A persistent function.
+// This is required to pass `Function` and `Aggregate` from `async_with!` to outside.
+// Otherwise, the compiler will complain that `*mut JSRuntime` cannot be sent between threads safely
+// SAFETY: We ensure the `JSRuntime` used in `async_with!` is same as the caller's.
+// The `parallel` feature of `rquickjs` is enabled, so itself can't ensure this.
+unsafe impl Send for Function {}
+unsafe impl Sync for Function {}
+unsafe impl Send for Aggregate {}
+unsafe impl Sync for Aggregate {}
+
+/// A persistent function, can be either sync or async.
 type JsFunction = Persistent<rquickjs::Function<'static>>;
 
 // SAFETY: `rquickjs::Runtime` is `Send` and `Sync`
@@ -122,9 +137,20 @@ pub enum CallMode {
 
 impl Runtime {
     /// Create a new `Runtime`.
-    pub fn new() -> Result<Self> {
-        let runtime = rquickjs::Runtime::new().context("failed to create quickjs runtime")?;
-        let context = rquickjs::Context::custom::<All>(&runtime)
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use arrow_udf_js::Runtime;
+    /// # tokio_test::block_on(async {
+    /// let runtime = Runtime::new().await.unwrap();
+    /// runtime.set_memory_limit(Some(1 << 20)); // 1MB
+    /// # });
+    /// ```
+    pub async fn new() -> Result<Self> {
+        let runtime = AsyncRuntime::new().context("failed to create quickjs runtime")?;
+        let context = AsyncContext::custom::<(Base, All)>(&runtime)
+            .await
             .context("failed to create quickjs context")?;
 
         Ok(Self {
@@ -144,11 +170,13 @@ impl Runtime {
     ///
     /// ```
     /// # use arrow_udf_js::Runtime;
-    /// let runtime = Runtime::new().unwrap();
+    /// # tokio_test::block_on(async {
+    /// let runtime = Runtime::new().await.unwrap();
     /// runtime.set_memory_limit(Some(1 << 20)); // 1MB
+    /// # });
     /// ```
-    pub fn set_memory_limit(&self, limit: Option<usize>) {
-        self.runtime.set_memory_limit(limit.unwrap_or(0));
+    pub async fn set_memory_limit(&self, limit: Option<usize>) {
+        self.runtime.set_memory_limit(limit.unwrap_or(0)).await;
     }
 
     /// Set the timeout of each function call.
@@ -158,35 +186,31 @@ impl Runtime {
     /// ```
     /// # use arrow_udf_js::Runtime;
     /// # use std::time::Duration;
-    /// let mut runtime = Runtime::new().unwrap();
-    /// runtime.set_timeout(Some(Duration::from_secs(1)));
+    /// # tokio_test::block_on(async {
+    /// let mut runtime = Runtime::new().await.unwrap();
+    /// runtime.set_timeout(Some(Duration::from_secs(1))).await;
+    /// # });
     /// ```
-    pub fn set_timeout(&mut self, timeout: Option<Duration>) {
+    pub async fn set_timeout(&mut self, timeout: Option<Duration>) {
         self.timeout = timeout;
         if timeout.is_some() {
             let deadline = self.deadline.clone();
-            self.runtime.set_interrupt_handler(Some(Box::new(move || {
-                if let Some(deadline) = deadline.load(Ordering::Relaxed) {
-                    return deadline <= Instant::now();
-                }
-                false
-            })));
+            self.runtime
+                .set_interrupt_handler(Some(Box::new(move || {
+                    if let Some(deadline) = deadline.load(Ordering::Relaxed) {
+                        return deadline <= Instant::now();
+                    }
+                    false
+                })))
+                .await;
         } else {
-            self.runtime.set_interrupt_handler(None);
+            self.runtime.set_interrupt_handler(None).await;
         }
     }
 
-    /// Get memory usage of the internal quickjs runtime.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use arrow_udf_js::Runtime;
-    /// let runtime = Runtime::new().unwrap();
-    /// let usage = runtime.memory_usage();
-    /// ```
-    pub fn memory_usage(&self) -> MemoryUsage {
-        self.runtime.memory_usage()
+    /// Return the inner quickjs runtime.
+    pub fn inner(&self) -> &AsyncRuntime {
+        &self.runtime
     }
 
     /// Return the converter where you can configure the extension metadata key and values.
@@ -211,7 +235,8 @@ impl Runtime {
     /// ```
     /// # use arrow_udf_js::{Runtime, CallMode};
     /// # use arrow_schema::DataType;
-    /// let mut runtime = Runtime::new().unwrap();
+    /// # tokio_test::block_on(async {
+    /// let mut runtime = Runtime::new().await.unwrap();
     /// // add a scalar function
     /// runtime
     ///     .add_function(
@@ -228,7 +253,9 @@ impl Runtime {
     ///             return a;
     ///         }
     /// "#,
+    ///         false,
     ///     )
+    ///     .await
     ///     .unwrap();
     /// // add a table function
     /// runtime
@@ -243,17 +270,22 @@ impl Runtime {
     ///             }
     ///         }
     /// "#,
+    ///         false,
     ///     )
+    ///     .await
     ///     .unwrap();
+    /// # });
     /// ```
-    pub fn add_function(
+    pub async fn add_function(
         &mut self,
         name: &str,
-        return_type: impl IntoField,
+        return_type: impl IntoField + Send,
         mode: CallMode,
         code: &str,
+        is_async: bool,
     ) -> Result<()> {
-        self.add_function_with_handler(name, return_type, mode, code, name)
+        self.add_function_with_handler(name, return_type, mode, code, is_async, name)
+            .await
     }
 
     /// Add a new scalar function or table function with custom handler name.
@@ -264,28 +296,31 @@ impl Runtime {
     /// - others: Same as [`add_function`].
     ///
     /// [`add_function`]: Runtime::add_function
-    pub fn add_function_with_handler(
+    pub async fn add_function_with_handler(
         &mut self,
         name: &str,
-        return_type: impl IntoField,
+        return_type: impl IntoField + Send,
         mode: CallMode,
         code: &str,
+        is_async: bool,
         handler: &str,
     ) -> Result<()> {
-        let function = self.context.with(|ctx| {
+        let function = async_with!(self.context => |ctx| {
             let (module, _) = Module::declare(ctx.clone(), name, code)
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to declare module")?
                 .eval()
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to evaluate module")?;
-            Self::get_function(&ctx, &module, handler)
-        })?;
-        let function = Function {
-            function,
-            return_field: return_type.into_field(name).into(),
-            mode,
-        };
+            let function = Self::get_function(&ctx, &module, handler)?;
+            Ok(Function {
+                function,
+                return_field: return_type.into_field(name).into(),
+                mode,
+                is_async,
+            }) as Result<Function>
+        })
+        .await?;
         self.functions.insert(name.to_string(), function);
         Ok(())
     }
@@ -332,7 +367,8 @@ impl Runtime {
     /// ```
     /// # use arrow_udf_js::{Runtime, CallMode};
     /// # use arrow_schema::DataType;
-    /// let mut runtime = Runtime::new().unwrap();
+    /// # tokio_test::block_on(async {
+    /// let mut runtime = Runtime::new().await.unwrap();
     /// runtime
     ///     .add_aggregate(
     ///         "sum",
@@ -353,18 +389,22 @@ impl Runtime {
     ///             return state1 + state2;
     ///         }
     ///         "#,
+    ///         false,
     ///     )
+    ///     .await
     ///     .unwrap();
+    /// # });
     /// ```
-    pub fn add_aggregate(
+    pub async fn add_aggregate(
         &mut self,
         name: &str,
-        state_type: impl IntoField,
-        output_type: impl IntoField,
+        state_type: impl IntoField + Send,
+        output_type: impl IntoField + Send,
         mode: CallMode,
         code: &str,
+        is_async: bool,
     ) -> Result<()> {
-        let aggregate = self.context.with(|ctx| {
+        let aggregate = async_with!(self.context => |ctx| {
             let (module, _) = Module::declare(ctx.clone(), name, code)
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to declare module")?
@@ -380,8 +420,11 @@ impl Runtime {
                 retract: Self::get_function(&ctx, &module, "retract").ok(),
                 finish: Self::get_function(&ctx, &module, "finish").ok(),
                 merge: Self::get_function(&ctx, &module, "merge").ok(),
+                is_async,
             }) as Result<Aggregate>
-        })?;
+        })
+        .await?;
+
         if aggregate.finish.is_none() && aggregate.state_field != aggregate.output_field {
             bail!("`output_type` must be the same as `state_type` when `finish` is not defined");
         }
@@ -394,6 +437,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_function.txt")]
     /// // suppose we have created a scalar function `gcd`
     /// // see the example in `add_function`
@@ -406,16 +450,18 @@ impl Runtime {
     /// let arg1 = Int32Array::from(vec![Some(15), None]);
     /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
     ///
-    /// let output = runtime.call("gcd", &input).unwrap();
+    /// let output = runtime.call("gcd", &input).await.unwrap();
     /// assert_eq!(&**output.column(0), &Int32Array::from(vec![Some(5), None]));
+    /// # });
     /// ```
-    pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
+    pub async fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
         let function = self.functions.get(name).context("function not found")?;
-        // convert each row to python objects and call the function
-        self.context.with(|ctx| {
+
+        async_with!(self.context => |ctx| {
             let js_function = function.function.clone().restore(&ctx)?;
             let mut results = Vec::with_capacity(input.num_rows());
             let mut row = Vec::with_capacity(input.num_columns());
+
             for i in 0..input.num_rows() {
                 row.clear();
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
@@ -435,7 +481,8 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), row.len());
                 args.push_args(row.drain(..))?;
                 let result = self
-                    .call_user_fn(&ctx, &js_function, args)
+                    .call_user_fn(&ctx, &js_function, args, function.is_async)
+                    .await
                     .context("failed to call function")?;
                 results.push(result);
             }
@@ -447,6 +494,7 @@ impl Runtime {
             let schema = Schema::new(vec![function.return_field.clone()]);
             Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
         })
+        .await
     }
 
     /// Call a table function.
@@ -454,6 +502,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_function.txt")]
     /// // suppose we have created a table function `series`
     /// // see the example in `add_function`
@@ -463,7 +512,7 @@ impl Runtime {
     /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
     ///
     /// let mut outputs = runtime.call_table_function("series", &input, 10).unwrap();
-    /// let output = outputs.next().unwrap().unwrap();
+    /// let output = outputs.next().await.unwrap().unwrap();
     /// let pretty = arrow_cast::pretty::pretty_format_batches(&[output]).unwrap().to_string();
     /// assert_eq!(pretty, r#"
     /// +-----+--------+
@@ -474,6 +523,7 @@ impl Runtime {
     /// | 2   | 1      |
     /// | 2   | 2      |
     /// +-----+--------+"#.trim());
+    /// # });
     /// ```
     pub fn call_table_function<'a>(
         &'a self,
@@ -504,22 +554,26 @@ impl Runtime {
     ///
     /// # Example
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_aggregate.txt")]
-    /// let state = runtime.create_state("sum").unwrap();
+    /// let state = runtime.create_state("sum").await.unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![0]));
+    /// # });
     /// ```
-    pub fn create_state(&self, name: &str) -> Result<ArrayRef> {
+    pub async fn create_state(&self, name: &str) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
-        let state = self.context.with(|ctx| {
+        let state = async_with!(self.context => |ctx| {
             let create_state = aggregate.create_state.clone().restore(&ctx)?;
             let state = self
-                .call_user_fn(&ctx, &create_state, Args::new(ctx.clone(), 0))
+                .call_user_fn(&ctx, &create_state, Args::new(ctx.clone(), 0), aggregate.is_async)
+                .await
                 .context("failed to call create_state")?;
             let state = self
                 .converter
                 .build_array(&aggregate.state_field, &ctx, vec![state])?;
             Ok(state) as Result<_>
-        })?;
+        })
+        .await?;
         Ok(state)
     }
 
@@ -527,17 +581,19 @@ impl Runtime {
     ///
     /// # Example
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_aggregate.txt")]
-    /// let state = runtime.create_state("sum").unwrap();
+    /// let state = runtime.create_state("sum").await.unwrap();
     ///
     /// let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
     /// let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
     /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
     ///
-    /// let state = runtime.accumulate("sum", &state, &input).unwrap();
+    /// let state = runtime.accumulate("sum", &state, &input).await.unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![9]));
+    /// # });
     /// ```
-    pub fn accumulate(
+    pub async fn accumulate(
         &self,
         name: &str,
         state: &dyn Array,
@@ -545,7 +601,7 @@ impl Runtime {
     ) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         // convert each row to python objects and call the accumulate function
-        let new_state = self.context.with(|ctx| {
+        let new_state = async_with!(self.context => |ctx| {
             let accumulate = aggregate.accumulate.clone().restore(&ctx)?;
             let mut state = self
                 .converter
@@ -567,14 +623,16 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), row.len());
                 args.push_args(row.drain(..))?;
                 state = self
-                    .call_user_fn(&ctx, &accumulate, args)
+                    .call_user_fn(&ctx, &accumulate, args, aggregate.is_async)
+                    .await
                     .context("failed to call accumulate")?;
             }
             let output = self
                 .converter
                 .build_array(&aggregate.state_field, &ctx, vec![state])?;
             Ok(output) as Result<_>
-        })?;
+        })
+        .await?;
         Ok(new_state)
     }
 
@@ -585,18 +643,20 @@ impl Runtime {
     ///
     /// # Example
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_aggregate.txt")]
-    /// let state = runtime.create_state("sum").unwrap();
+    /// let state = runtime.create_state("sum").await.unwrap();
     ///
     /// let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
     /// let arg0 = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
     /// let ops = BooleanArray::from(vec![false, false, true, false]);
     /// let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
     ///
-    /// let state = runtime.accumulate_or_retract("sum", &state, &ops, &input).unwrap();
+    /// let state = runtime.accumulate_or_retract("sum", &state, &ops, &input).await.unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![3]));
+    /// # });
     /// ```
-    pub fn accumulate_or_retract(
+    pub async fn accumulate_or_retract(
         &self,
         name: &str,
         state: &dyn Array,
@@ -605,47 +665,49 @@ impl Runtime {
     ) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
         // convert each row to python objects and call the accumulate function
-        let new_state = self.context.with(|ctx| {
-            let accumulate = aggregate.accumulate.clone().restore(&ctx)?;
-            let retract = aggregate
-                .retract
-                .clone()
-                .context("function does not support retraction")?
-                .restore(&ctx)?;
+        let new_state = async_with!(self.context => |ctx| {
+        let accumulate = aggregate.accumulate.clone().restore(&ctx)?;
+        let retract = aggregate
+            .retract
+            .clone()
+            .context("function does not support retraction")?
+            .restore(&ctx)?;
 
-            let mut state = self
-                .converter
-                .get_jsvalue(&ctx, &aggregate.state_field, state, 0)?;
+        let mut state = self
+            .converter
+            .get_jsvalue(&ctx, &aggregate.state_field, state, 0)?;
 
-            let mut row = Vec::with_capacity(1 + input.num_columns());
-            for i in 0..input.num_rows() {
-                if aggregate.mode == CallMode::ReturnNullOnNullInput
-                    && input.columns().iter().any(|column| column.is_null(i))
-                {
-                    continue;
-                }
-                row.clear();
-                row.push(state.clone());
-                for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                    let pyobj = self.converter.get_jsvalue(&ctx, field, column, i)?;
-                    row.push(pyobj);
-                }
-                let func = if ops.is_valid(i) && ops.value(i) {
-                    &retract
-                } else {
-                    &accumulate
-                };
-                let mut args = Args::new(ctx.clone(), row.len());
-                args.push_args(row.drain(..))?;
-                state = self
-                    .call_user_fn(&ctx, func, args)
-                    .context("failed to call accumulate or retract")?;
+        let mut row = Vec::with_capacity(1 + input.num_columns());
+        for i in 0..input.num_rows() {
+            if aggregate.mode == CallMode::ReturnNullOnNullInput
+                && input.columns().iter().any(|column| column.is_null(i))
+            {
+                continue;
             }
-            let output = self
-                .converter
-                .build_array(&aggregate.state_field, &ctx, vec![state])?;
-            Ok(output) as Result<_>
-        })?;
+            row.clear();
+            row.push(state.clone());
+            for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+                let pyobj = self.converter.get_jsvalue(&ctx, field, column, i)?;
+                row.push(pyobj);
+            }
+            let func = if ops.is_valid(i) && ops.value(i) {
+                &retract
+            } else {
+                &accumulate
+            };
+            let mut args = Args::new(ctx.clone(), row.len());
+            args.push_args(row.drain(..))?;
+            state = self
+                .call_user_fn(&ctx, func, args, aggregate.is_async)
+                .await
+                .context("failed to call accumulate or retract")?;
+        }
+        let output = self
+            .converter
+            .build_array(&aggregate.state_field, &ctx, vec![state])?;
+        Ok(output) as Result<_>
+            })
+        .await?;
         Ok(new_state)
     }
 
@@ -653,15 +715,17 @@ impl Runtime {
     ///
     /// # Example
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_aggregate.txt")]
     /// let states = Int32Array::from(vec![Some(1), None, Some(3), Some(5)]);
     ///
-    /// let state = runtime.merge("sum", &states).unwrap();
+    /// let state = runtime.merge("sum", &states).await.unwrap();
     /// assert_eq!(&*state, &Int32Array::from(vec![9]));
+    /// # });
     /// ```
-    pub fn merge(&self, name: &str, states: &dyn Array) -> Result<ArrayRef> {
+    pub async fn merge(&self, name: &str, states: &dyn Array) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
-        let output = self.context.with(|ctx| {
+        let output = async_with!(self.context => |ctx| {
             let merge = aggregate
                 .merge
                 .clone()
@@ -680,14 +744,16 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), 2);
                 args.push_args([state, state2])?;
                 state = self
-                    .call_user_fn(&ctx, &merge, args)
+                    .call_user_fn(&ctx, &merge, args, aggregate.is_async)
+                    .await
                     .context("failed to call accumulate or retract")?;
             }
             let output = self
                 .converter
                 .build_array(&aggregate.state_field, &ctx, vec![state])?;
             Ok(output) as Result<_>
-        })?;
+        })
+        .await?;
         Ok(output)
     }
 
@@ -697,32 +763,35 @@ impl Runtime {
     ///
     /// # Example
     /// ```
+    /// # tokio_test::block_on(async {
     #[doc = include_str!("doc_create_aggregate.txt")]
     /// let states: ArrayRef = Arc::new(Int32Array::from(vec![Some(1), None, Some(3), Some(5)]));
     ///
-    /// let outputs = runtime.finish("sum", &states).unwrap();
+    /// let outputs = runtime.finish("sum", &states).await.unwrap();
     /// assert_eq!(&outputs, &states);
+    /// # });
     /// ```
-    pub fn finish(&self, name: &str, states: &ArrayRef) -> Result<ArrayRef> {
+    pub async fn finish(&self, name: &str, states: &ArrayRef) -> Result<ArrayRef> {
         let aggregate = self.aggregates.get(name).context("function not found")?;
-        let Some(finish) = &aggregate.finish else {
+        if aggregate.finish.is_none() {
             return Ok(states.clone());
         };
-        let output = self.context.with(|ctx| {
-            let finish = finish.clone().restore(&ctx)?;
+        let output = async_with!(self.context => |ctx| {
+            let finish = aggregate.finish.clone().unwrap().restore(&ctx)?;
             let mut results = Vec::with_capacity(states.len());
             for i in 0..states.len() {
                 if aggregate.mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
                     results.push(Value::new_null(ctx.clone()));
                     continue;
                 }
-                let state = self
-                    .converter
-                    .get_jsvalue(&ctx, &aggregate.state_field, states, i)?;
+                let state =
+                    self.converter
+                        .get_jsvalue(&ctx, &aggregate.state_field, states, i)?;
                 let mut args = Args::new(ctx.clone(), 1);
                 args.push_args([state])?;
                 let result = self
-                    .call_user_fn(&ctx, &finish, args)
+                    .call_user_fn(&ctx, &finish, args, aggregate.is_async)
+                    .await
                     .context("failed to call finish")?;
                 results.push(result);
             }
@@ -730,14 +799,51 @@ impl Runtime {
                 .converter
                 .build_array(&aggregate.output_field, &ctx, results)?;
             Ok(output) as Result<_>
-        })?;
+        })
+        .await?;
         Ok(output)
     }
 
     /// Call a user function.
     ///
     /// If `timeout` is set, the function will be interrupted after the timeout.
-    fn call_user_fn<'js, T: FromJs<'js>>(
+    async fn call_user_fn<'js, T: FromJs<'js>>(
+        &self,
+        ctx: &Ctx<'js>,
+        f: &rquickjs::Function<'js>,
+        args: Args<'js>,
+        is_async: bool,
+    ) -> Result<T> {
+        if is_async {
+            Self::call_user_fn_async(self, ctx, f, args).await
+        } else {
+            Self::call_user_fn_sync(self, ctx, f, args)
+        }
+    }
+
+    async fn call_user_fn_async<'js, T: FromJs<'js>>(
+        &self,
+        ctx: &Ctx<'js>,
+        f: &rquickjs::Function<'js>,
+        args: Args<'js>,
+    ) -> Result<T> {
+        let call_result = if let Some(timeout) = self.timeout {
+            self.deadline
+                .store(Some(Instant::now() + timeout), Ordering::Relaxed);
+            let call_result = f.call_arg::<Promise>(args);
+            self.deadline.store(None, Ordering::Relaxed);
+            call_result
+        } else {
+            f.call_arg::<Promise>(args)
+        };
+        let promise = call_result.map_err(|e| check_exception(e, ctx))?;
+        promise
+            .into_future::<T>()
+            .await
+            .map_err(|e| check_exception(e, ctx))
+    }
+
+    fn call_user_fn_sync<'js, T: FromJs<'js>>(
         &self,
         ctx: &Ctx<'js>,
         f: &rquickjs::Function<'js>,
@@ -754,12 +860,17 @@ impl Runtime {
         };
         result.map_err(|e| check_exception(e, ctx))
     }
+
+    pub fn context(&self) -> &AsyncContext {
+        &self.context
+    }
 }
 
 /// An iterator over the result of a table function.
 pub struct RecordBatchIter<'a> {
     rt: &'a Runtime,
     input: &'a RecordBatch,
+    // The function to generate the generator
     function: &'a Function,
     schema: SchemaRef,
     chunk_size: usize,
@@ -780,11 +891,11 @@ impl RecordBatchIter<'_> {
         &self.schema
     }
 
-    fn next(&mut self) -> Result<Option<RecordBatch>> {
+    pub async fn next(&mut self) -> Result<Option<RecordBatch>> {
         if self.row == self.input.num_rows() {
             return Ok(None);
         }
-        self.rt.context.with(|ctx| {
+        async_with!(self.rt.context => |ctx| {
             let js_function = self.function.function.clone().restore(&ctx)?;
             let mut indexes = Int32Builder::with_capacity(self.chunk_size);
             let mut results = Vec::with_capacity(self.input.num_rows());
@@ -822,9 +933,12 @@ impl RecordBatchIter<'_> {
                     }
                     let mut args = Args::new(ctx.clone(), row.len());
                     args.push_args(row.drain(..))?;
+                    // NOTE: A async generator function, defined by `async function*`, itself is NOT async.
+                    // That's why we call it with `is_async = false` here.
+                    // The result is a `AsyncGenerator`, which has a async `next` method.
                     let gen: Object = self
                         .rt
-                        .call_user_fn(&ctx, &js_function, args)
+                        .call_user_fn(&ctx, &js_function, args, false).await
                         .context("failed to call function")?;
                     let next: rquickjs::Function =
                         gen.get("next").context("failed to get 'next' method")?;
@@ -836,7 +950,7 @@ impl RecordBatchIter<'_> {
                 args.this(gen.clone())?;
                 let object: Object = self
                     .rt
-                    .call_user_fn(&ctx, next, args)
+                    .call_user_fn(&ctx, next, args, self.function.is_async).await
                     .context("failed to call next")?;
                 let value: Value = object.get("value")?;
                 let done: bool = object.get("done")?;
@@ -863,13 +977,16 @@ impl RecordBatchIter<'_> {
                 vec![indexes, array],
             )?))
         })
+        .await
     }
 }
 
-impl Iterator for RecordBatchIter<'_> {
+impl Stream for RecordBatchIter<'_> {
     type Item = Result<RecordBatch>;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.next().transpose()
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Box::pin(self.next().map(|v| v.transpose()))
+            .as_mut()
+            .poll_unpin(cx)
     }
 }
 

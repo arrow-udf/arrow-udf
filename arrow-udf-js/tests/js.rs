@@ -25,10 +25,12 @@ use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js::{CallMode, Runtime};
 use expect_test::{expect, Expect};
+use rquickjs::prelude::Async;
+use rquickjs::{async_with, Function};
 
-#[test]
-fn test_gcd() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_gcd() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     let js_code = r#"
         export function gcd(a, b) {
@@ -46,7 +48,9 @@ fn test_gcd() {
             DataType::Int32,
             CallMode::ReturnNullOnNullInput,
             js_code,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![
@@ -58,7 +62,7 @@ fn test_gcd() {
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = runtime.call("gcd", &input).unwrap();
+    let output = runtime.call("gcd", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -71,9 +75,9 @@ fn test_gcd() {
     );
 }
 
-#[test]
-fn test_to_string() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_to_string() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     let js_code = r#"
         export function to_string(a) {
@@ -89,14 +93,16 @@ fn test_to_string() {
             DataType::Utf8,
             CallMode::CalledOnNullInput,
             js_code,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
     let arg0 = Int32Array::from(vec![Some(5), None]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("to_string", &input).unwrap();
+    let output = runtime.call("to_string", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -109,9 +115,9 @@ fn test_to_string() {
     );
 }
 
-#[test]
-fn test_concat() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_concat() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -123,7 +129,9 @@ fn test_concat() {
                 return a.concat(b);
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![
@@ -135,7 +143,7 @@ fn test_concat() {
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = runtime.call("concat", &input).unwrap();
+    let output = runtime.call("concat", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -147,9 +155,9 @@ fn test_concat() {
     );
 }
 
-#[test]
-fn test_json_array_access() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_json_array_access() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -161,7 +169,9 @@ fn test_json_array_access() {
                 return array[i];
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![
@@ -173,7 +183,7 @@ fn test_json_array_access() {
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = runtime.call("json_array_access", &input).unwrap();
+    let output = runtime.call("json_array_access", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -185,9 +195,9 @@ fn test_json_array_access() {
     );
 }
 
-#[test]
-fn test_json_stringify() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_json_stringify() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -199,14 +209,16 @@ fn test_json_stringify() {
                 return JSON.stringify(object);
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![json_field("json")]);
     let arg0 = StringArray::from(vec![r#"[1, null, ""]"#]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("json_stringify", &input).unwrap();
+    let output = runtime.call("json_stringify", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -218,9 +230,9 @@ fn test_json_stringify() {
     );
 }
 
-#[test]
-fn test_binary_json_stringify() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_binary_json_stringify() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -233,14 +245,16 @@ fn test_binary_json_stringify() {
                 return object;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![binary_json_field("json")]);
     let arg0 = BinaryArray::from(vec![(r#"[1, null, ""]"#).as_bytes()]);
     let input = RecordBatch::try_new(Arc::new(schema.clone()), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("add_element", &input).unwrap();
+    let output = runtime.call("add_element", &input).await.unwrap();
     let row = output
         .column(0)
         .as_any()
@@ -250,9 +264,9 @@ fn test_binary_json_stringify() {
     assert_eq!(std::str::from_utf8(row).unwrap(), r#"[1,null,"",10]"#);
 }
 
-#[test]
-fn test_large_binary_json_stringify() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_large_binary_json_stringify() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -265,14 +279,16 @@ fn test_large_binary_json_stringify() {
                 return object;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![large_binary_json_field("json")]);
     let arg0 = LargeBinaryArray::from(vec![(r#"[1, null, ""]"#).as_bytes()]);
     let input = RecordBatch::try_new(Arc::new(schema.clone()), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("add_element", &input).unwrap();
+    let output = runtime.call("add_element", &input).await.unwrap();
     let row = output
         .column(0)
         .as_any()
@@ -282,9 +298,9 @@ fn test_large_binary_json_stringify() {
     assert_eq!(std::str::from_utf8(row).unwrap(), r#"[1,null,"",10]"#);
 }
 
-#[test]
-fn test_large_string_as_string() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_large_string_as_string() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -296,14 +312,16 @@ fn test_large_string_as_string() {
                 return "string length is " + s.length;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new("s", DataType::LargeUtf8, true)]);
     let arg0 = LargeStringArray::from(vec![r#"hello"#]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("string_length", &input).unwrap();
+    let output = runtime.call("string_length", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -315,9 +333,9 @@ fn test_large_string_as_string() {
     );
 }
 
-#[test]
-fn test_decimal128() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_decimal128() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -329,7 +347,9 @@ fn test_decimal128() {
                 return a + b + BigDecimal('0.000001');
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![
@@ -345,7 +365,7 @@ fn test_decimal128() {
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = runtime.call("decimal128_add", &input).unwrap();
+    let output = runtime.call("decimal128_add", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -358,9 +378,9 @@ fn test_decimal128() {
     );
 }
 
-#[test]
-fn test_decimal256() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_decimal256() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -372,7 +392,9 @@ fn test_decimal256() {
                 return a + b + BigDecimal('0.000001');
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![
@@ -388,7 +410,7 @@ fn test_decimal256() {
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = runtime.call("decimal256_add", &input).unwrap();
+    let output = runtime.call("decimal256_add", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -401,9 +423,9 @@ fn test_decimal256() {
     );
 }
 
-#[test]
-fn test_decimal_add() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_decimal_add() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -415,7 +437,9 @@ fn test_decimal_add() {
                 return a + b;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![decimal_field("a"), decimal_field("b")]);
@@ -424,7 +448,7 @@ fn test_decimal_add() {
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = runtime.call("decimal_add", &input).unwrap();
+    let output = runtime.call("decimal_add", &input).await.unwrap();
     assert_eq!(output.schema().field(0), &decimal_field("add"));
     check(
         &[output],
@@ -437,9 +461,9 @@ fn test_decimal_add() {
     );
 }
 
-#[test]
-fn test_timestamp_second_array() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_timestamp_second_array() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -451,7 +475,9 @@ fn test_timestamp_second_array() {
                 return a;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new(
@@ -462,7 +488,7 @@ fn test_timestamp_second_array() {
     let arg0 = TimestampSecondArray::from(vec![Some(1), None, Some(3)]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("timestamp_array", &input).unwrap();
+    let output = runtime.call("timestamp_array", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -476,9 +502,9 @@ fn test_timestamp_second_array() {
     );
 }
 
-#[test]
-fn test_timestamp_millisecond_array() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_timestamp_millisecond_array() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -490,7 +516,9 @@ fn test_timestamp_millisecond_array() {
                 return a;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new(
@@ -501,7 +529,7 @@ fn test_timestamp_millisecond_array() {
     let arg0 = TimestampMillisecondArray::from(vec![Some(1000), None, Some(3000)]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("timestamp_array", &input).unwrap();
+    let output = runtime.call("timestamp_array", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -515,9 +543,9 @@ fn test_timestamp_millisecond_array() {
     );
 }
 
-#[test]
-fn test_timestamp_microsecond_array() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_timestamp_microsecond_array() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -529,7 +557,9 @@ fn test_timestamp_microsecond_array() {
                 return a;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new(
@@ -540,7 +570,7 @@ fn test_timestamp_microsecond_array() {
     let arg0 = TimestampMicrosecondArray::from(vec![Some(1000000), None, Some(3000000)]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("timestamp_array", &input).unwrap();
+    let output = runtime.call("timestamp_array", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -554,9 +584,9 @@ fn test_timestamp_microsecond_array() {
     );
 }
 
-#[test]
-fn test_timestamp_nanosecond_array() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_timestamp_nanosecond_array() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -568,7 +598,9 @@ fn test_timestamp_nanosecond_array() {
                 return a;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new(
@@ -579,7 +611,7 @@ fn test_timestamp_nanosecond_array() {
     let arg0 = TimestampNanosecondArray::from(vec![Some(1000000), None, Some(3000000)]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("timestamp_array", &input).unwrap();
+    let output = runtime.call("timestamp_array", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -593,9 +625,9 @@ fn test_timestamp_nanosecond_array() {
     );
 }
 
-#[test]
-fn test_date32_array() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_date32_array() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -607,14 +639,16 @@ fn test_date32_array() {
                 return a;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new("x", DataType::Date32, true)]);
     let arg0 = Date32Array::from(vec![Some(1), None, Some(3)]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("date_array", &input).unwrap();
+    let output = runtime.call("date_array", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -628,9 +662,9 @@ fn test_date32_array() {
     );
 }
 
-#[test]
-fn test_typed_array() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_typed_array() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -642,7 +676,9 @@ fn test_typed_array() {
                 return Object.prototype.toString.call(a);
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     /// Generate a record batch with a single column of type `List<T>`.
@@ -672,7 +708,7 @@ fn test_typed_array() {
     ];
 
     for (input, expected) in cases.iter() {
-        let output = runtime.call("object_type", input).unwrap();
+        let output = runtime.call("object_type", input).await.unwrap();
         let object_type = output
             .column(0)
             .as_any()
@@ -683,9 +719,9 @@ fn test_typed_array() {
     }
 }
 
-#[test]
-fn test_return_array() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_return_array() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -700,14 +736,16 @@ fn test_return_array() {
                 return [x];
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
     let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("to_array", &input).unwrap();
+    let output = runtime.call("to_array", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -721,9 +759,9 @@ fn test_return_array() {
     );
 }
 
-#[test]
-fn test_return_large_array() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_return_large_array() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -738,14 +776,16 @@ fn test_return_large_array() {
                 return [x, x+1, x+2];
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
     let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("to_large_array", &input).unwrap();
+    let output = runtime.call("to_large_array", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -759,9 +799,9 @@ fn test_return_large_array() {
     );
 }
 
-#[test]
-fn test_key_value() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_key_value() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -780,14 +820,16 @@ fn test_key_value() {
                 return {key, value};
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new("x", DataType::Utf8, true)]);
     let arg0 = StringArray::from(vec!["a=b"]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("key_value", &input).unwrap();
+    let output = runtime.call("key_value", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -799,9 +841,9 @@ fn test_key_value() {
     );
 }
 
-#[test]
-fn test_struct_to_json() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_struct_to_json() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -813,7 +855,9 @@ fn test_struct_to_json() {
                 return object;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new(
@@ -839,7 +883,7 @@ fn test_struct_to_json() {
     ]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("to_json", &input).unwrap();
+    let output = runtime.call("to_json", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -852,9 +896,9 @@ fn test_struct_to_json() {
     );
 }
 
-#[test]
-fn test_range() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_range() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -868,7 +912,9 @@ fn test_range() {
                 }
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
@@ -881,11 +927,11 @@ fn test_range() {
     assert_eq!(outputs.schema().field(1).name(), "range");
     assert_eq!(outputs.schema().field(1).data_type(), &DataType::Int32);
 
-    let o1 = outputs.next().unwrap().unwrap();
-    let o2 = outputs.next().unwrap().unwrap();
+    let o1 = outputs.next().await.unwrap().unwrap();
+    let o2 = outputs.next().await.unwrap().unwrap();
     assert_eq!(o1.num_rows(), 2);
     assert_eq!(o2.num_rows(), 2);
-    assert!(outputs.next().is_none());
+    assert!(outputs.next().await.unwrap().is_none());
 
     check(
         &[o1, o2],
@@ -901,9 +947,9 @@ fn test_range() {
     );
 }
 
-#[test]
-fn test_weighted_avg() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_weighted_avg() {
+    let mut runtime = Runtime::new().await.unwrap();
     runtime
         .add_aggregate(
             "weighted_avg",
@@ -939,7 +985,9 @@ fn test_weighted_avg() {
                 return state.sum / state.weight;
             }
 "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![
@@ -951,7 +999,7 @@ fn test_weighted_avg() {
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let state = runtime.create_state("weighted_avg").unwrap();
+    let state = runtime.create_state("weighted_avg").await.unwrap();
     check_array(
         std::slice::from_ref(&state),
         expect![[r#"
@@ -962,7 +1010,10 @@ fn test_weighted_avg() {
             +---------------------+"#]],
     );
 
-    let state = runtime.accumulate("weighted_avg", &state, &input).unwrap();
+    let state = runtime
+        .accumulate("weighted_avg", &state, &input)
+        .await
+        .unwrap();
     check_array(
         std::slice::from_ref(&state),
         expect![[r#"
@@ -974,7 +1025,7 @@ fn test_weighted_avg() {
     );
 
     let states = arrow_select::concat::concat(&[&state, &state]).unwrap();
-    let state = runtime.merge("weighted_avg", &states).unwrap();
+    let state = runtime.merge("weighted_avg", &states).await.unwrap();
     check_array(
         std::slice::from_ref(&state),
         expect![[r#"
@@ -985,7 +1036,7 @@ fn test_weighted_avg() {
             +-----------------------+"#]],
     );
 
-    let output = runtime.finish("weighted_avg", &state).unwrap();
+    let output = runtime.finish("weighted_avg", &state).await.unwrap();
     check_array(
         &[output],
         expect![[r#"
@@ -997,10 +1048,10 @@ fn test_weighted_avg() {
     );
 }
 
-#[test]
-fn test_timeout() {
-    let mut runtime = Runtime::new().unwrap();
-    runtime.set_timeout(Some(Duration::from_millis(1)));
+#[tokio::test]
+async fn test_timeout() {
+    let mut runtime = Runtime::new().await.unwrap();
+    runtime.set_timeout(Some(Duration::from_millis(1))).await;
 
     let js_code = r#"
         export function square(x) {
@@ -1017,14 +1068,16 @@ fn test_timeout() {
             DataType::Int32,
             CallMode::ReturnNullOnNullInput,
             js_code,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
     let arg0 = Int32Array::from(vec![100]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("square", &input).unwrap();
+    let output = runtime.call("square", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -1039,14 +1092,14 @@ fn test_timeout() {
     let arg0 = Int32Array::from(vec![i32::MAX]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let err = runtime.call("square", &input).unwrap_err();
+    let err = runtime.call("square", &input).await.unwrap_err();
     assert!(format!("{err:?}").contains("interrupted"))
 }
 
-#[test]
-fn test_memory_limit() {
-    let mut runtime = Runtime::new().unwrap();
-    runtime.set_memory_limit(Some(1 << 20)); // 1MB
+#[tokio::test]
+async fn test_memory_limit() {
+    let mut runtime = Runtime::new().await.unwrap();
+    runtime.set_memory_limit(Some(1 << 20)).await; // 1MB
 
     let js_code = r#"
         export function alloc(x) {
@@ -1060,14 +1113,16 @@ fn test_memory_limit() {
             DataType::Int32,
             CallMode::ReturnNullOnNullInput,
             js_code,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
     let arg0 = Int32Array::from(vec![100]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("alloc", &input).unwrap();
+    let output = runtime.call("alloc", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -1082,13 +1137,13 @@ fn test_memory_limit() {
     let arg0 = Int32Array::from(vec![1 << 20]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let err = runtime.call("alloc", &input).unwrap_err();
+    let err = runtime.call("alloc", &input).await.unwrap_err();
     assert!(format!("{err:?}").contains("out of memory"))
 }
 
-#[test]
-fn test_view_array() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_view_array() {
+    let mut runtime = Runtime::new().await.unwrap();
     runtime
         .add_function(
             "echo",
@@ -1099,14 +1154,16 @@ export function echo(x) {
     return x + "!"
 }
 "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new("x", DataType::Utf8View, true)]);
     let arg0 = StringViewArray::from(vec!["hello", "world"]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("echo", &input).unwrap();
+    let output = runtime.call("echo", &input).await.unwrap();
 
     check(
         &[output],
@@ -1120,9 +1177,151 @@ export function echo(x) {
     );
 }
 
+#[tokio::test]
+async fn test_async_echo() {
+    let mut runtime = Runtime::new().await.unwrap();
+    runtime
+        .add_function(
+            "echo",
+            DataType::Utf8View,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+export async function echo(x) {
+    return x + "!"
+}
+"#,
+            true,
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8View, true)]);
+    let arg0 = StringViewArray::from(vec!["hello", "world"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("echo", &input).await.unwrap();
+
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | echo   |
+        +--------+
+        | hello! |
+        | world! |
+        +--------+"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_async_range() {
+    let mut runtime = Runtime::new().await.unwrap();
+
+    runtime
+        .add_function(
+            "range",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+            export async function* range(n) {
+                for (let i = 0; i < n; i++) {
+                    yield i;
+                }
+            }
+            "#,
+            true,
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Int32, true)]);
+    let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let mut outputs = runtime.call_table_function("range", &input, 2).unwrap();
+
+    assert_eq!(outputs.schema().field(0).name(), "row");
+    assert_eq!(outputs.schema().field(1).name(), "range");
+    assert_eq!(outputs.schema().field(1).data_type(), &DataType::Int32);
+
+    let o1 = outputs.next().await.unwrap().unwrap();
+    let o2 = outputs.next().await.unwrap().unwrap();
+    assert_eq!(o1.num_rows(), 2);
+    assert_eq!(o2.num_rows(), 2);
+    assert!(outputs.next().await.unwrap().is_none());
+
+    check(
+        &[o1, o2],
+        expect![[r#"
+        +-----+-------+
+        | row | range |
+        +-----+-------+
+        | 0   | 0     |
+        | 2   | 0     |
+        | 2   | 1     |
+        | 2   | 2     |
+        +-----+-------+"#]],
+    );
+}
+
+async fn delay_strlen(msg: String) -> usize {
+    use tokio::time::*;
+    sleep(Duration::from_millis(100)).await;
+    msg.len()
+}
+
+#[tokio::test]
+async fn test_async_rust_fn() {
+    let mut runtime = Runtime::new().await.unwrap();
+
+    async_with!(runtime.context() => |ctx| {
+        let global = ctx.globals();
+        global.set(
+            "native_delay_strlen",
+            Function::new(ctx.clone(), Async(delay_strlen))
+                .unwrap()
+                .with_name("native_delay_strlen")
+                .unwrap(),
+        )
+        .unwrap();
+    })
+    .await;
+
+    runtime
+        .add_function(
+            "delayStrlen",
+            DataType::Int32,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+export async function delayStrlen(s) {
+    return await native_delay_strlen(s);
+}
+"#,
+            true,
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("s", DataType::Utf8View, true)]);
+    let arg0 = StringViewArray::from(vec!["hello", "world"]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("delayStrlen", &input).await.unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +-------------+
+        | delayStrlen |
+        +-------------+
+        | 5           |
+        | 5           |
+        +-------------+"#]],
+    );
+}
+
 /// assert Runtime is Send and Sync
-#[test]
-fn test_send_sync() {
+#[tokio::test]
+async fn test_send_sync() {
     fn assert_send_sync<T: Send + Sync>() {}
     assert_send_sync::<Runtime>();
 }

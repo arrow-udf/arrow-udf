@@ -74,7 +74,7 @@ We have benchmarked the performance of function calls in different environments.
 You can run the benchmarks with the following command:
 
 ```sh
-cargo bench --bench wasm
+cargo bench --bench bench
 ```
 
 Performance comparison of calling `gcd` on a chunk of 1024 rows:

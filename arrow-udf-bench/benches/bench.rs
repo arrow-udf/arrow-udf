@@ -79,7 +79,7 @@ def gcd(a: int, b: int) -> int:
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
         let gcd = rt
-            .find_function("gcd", &["int32", "int32"], "int32", false)
+            .find_function("gcd", &["int32", "int32"], "int32")
             .unwrap();
         bencher.iter(|| rt.call(&gcd, &input).unwrap())
     });
@@ -145,7 +145,7 @@ def range1(n: int):
         let binary = std::fs::read(filepath).unwrap();
         let rt = WasmRuntime::new(&binary).unwrap();
         let range = rt
-            .find_function("range", &["int32"], "int32", true)
+            .find_table_function("range", &["int32"], "int32")
             .unwrap();
         bencher.iter(|| {
             rt.call_table_function(&range, &input)

@@ -147,24 +147,48 @@ impl Runtime {
 
     /// Find a function by name, argument types and return type.
     /// The argument types and return type should be the arrow type names.
-    /// The returned [`Function`] can be used to call the function.
+    /// The returned [`FunctionHandle`] can be used to call the function.
     pub fn find_function(
         &self,
         name: &str,
         arg_type_names: &[impl AsRef<str>],
         return_type_name: &str,
-        is_table_function: bool,
-    ) -> Result<Function> {
+    ) -> Result<FunctionHandle> {
         // construct the function signature
-        let sig = function_signature_of(name, arg_type_names, return_type_name, is_table_function);
+        let sig = function_signature_of(name, arg_type_names, return_type_name, false);
         // now find the export name
         if let Some(export_name) = self.get_function_export_name_by_inlined_signature(&sig) {
-            return Ok(Function {
+            return Ok(FunctionHandle {
                 export_name: export_name.to_owned(),
             });
         }
         bail!(
             "function not found in wasm binary: \"{}\"\nHINT: available functions:\n  {}\navailable types:\n  {}",
+            sig,
+            self.functions.iter().join("\n  "),
+            self.types.iter().map(|(k, v)| format!("{k}: {v}")).join("\n  "),
+        )
+    }
+
+    /// Find a table function by name, argument types and return type.
+    /// The argument types and return type should be the arrow type names.
+    /// The returned [`TableFunctionHandle`] can be used to call the table function.
+    pub fn find_table_function(
+        &self,
+        name: &str,
+        arg_type_names: &[impl AsRef<str>],
+        return_type_name: &str,
+    ) -> Result<TableFunctionHandle> {
+        // construct the function signature
+        let sig = function_signature_of(name, arg_type_names, return_type_name, true);
+        // now find the export name
+        if let Some(export_name) = self.get_function_export_name_by_inlined_signature(&sig) {
+            return Ok(TableFunctionHandle {
+                export_name: export_name.to_owned(),
+            });
+        }
+        bail!(
+            "table function not found in wasm binary: \"{}\"\nHINT: available functions:\n  {}\navailable types:\n  {}",
             sig,
             self.functions.iter().join("\n  "),
             self.types.iter().map(|(k, v)| format!("{k}: {v}")).join("\n  "),
@@ -213,7 +237,7 @@ impl Runtime {
     }
 
     /// Call a function.
-    pub fn call(&self, func: &Function, input: &RecordBatch) -> Result<RecordBatch> {
+    pub fn call(&self, func: &FunctionHandle, input: &RecordBatch) -> Result<RecordBatch> {
         let export_name = &func.export_name;
         if !self.functions.contains(export_name) {
             bail!("function not found: {export_name}");
@@ -240,7 +264,7 @@ impl Runtime {
     /// Call a table function.
     pub fn call_table_function<'a>(
         &'a self,
-        func: &'a Function,
+        func: &'a TableFunctionHandle,
         input: &'a RecordBatch,
     ) -> Result<impl Iterator<Item = Result<RecordBatch>> + 'a> {
         use genawaiter2::{sync::gen, yield_};
@@ -277,7 +301,11 @@ impl Runtime {
     }
 }
 
-pub struct Function {
+pub struct FunctionHandle {
+    export_name: String,
+}
+
+pub struct TableFunctionHandle {
     export_name: String,
 }
 

@@ -39,7 +39,7 @@ fn main() {
     .unwrap();
 
     let gcd = runtime
-        .find_function("gcd", &["int32", "int32"], "int32", false)
+        .find_function("gcd", &["int32", "int32"], "int32")
         .unwrap();
     let output = runtime.call(&gcd, &input).unwrap();
     print(&input, &output);
@@ -53,7 +53,7 @@ fn main() {
     .unwrap();
 
     let range = runtime
-        .find_function("range", &["int32"], "int32", true)
+        .find_table_function("range", &["int32"], "int32")
         .unwrap();
     let iter = runtime.call_table_function(&range, &input).unwrap();
     for output in iter {

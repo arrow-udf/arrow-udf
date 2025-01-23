@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737517261447,
+  "lastUpdate": 1737601323744,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -12425,6 +12425,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 149587,
             "range": "± 2217",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fuyufjh@gmail.com",
+            "name": "Eric Fu",
+            "username": "fuyufjh"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7f06f54f7d6beb36876d3fb8169736c3966c0898",
+          "message": "feat: Async JavaScript UDF (#97)\n\nSee background at #95\n\n- As a result of switching to `rquickjs::AsyncRuntime`, all functions\nbecome `async` now.\n- A new parameter `is_async: bool` is added into `add_function()` and\n`add_aggregate()` to distinguish async JS functions and normal ones.\n- Added 2 test cases `test_async_rust_fn` and `test_async_echo` to show\nthe usage.\n\n\n## Benchmark\n\nThe performance loss is neglectable.\n\neric/async_js (4264b225989)\n\n```\ngcd/js                  time:   [97.258 µs 99.587 µs 102.82 µs]\nrange/js                time:   [3.8619 ms 3.8910 ms 3.9419 ms]\ndecimal/js              time:   [424.89 µs 429.35 µs 435.53 µs]\nsum/js                  time:   [64.918 µs 66.507 µs 68.625 µs]\n```\n\nmain (b0f755f463e)\n \n```\ngcd/js                  time:   [96.832 µs 99.487 µs 102.99 µs]\nrange/js                time:   [3.8789 ms 3.9929 ms 4.1527 ms]\ndecimal/js              time:   [422.98 µs 435.11 µs 450.86 µs]\nsum/js                  time:   [61.390 µs 61.493 µs 61.619 µs]\n```",
+          "timestamp": "2025-01-23T10:52:16+08:00",
+          "tree_id": "5a2680f8ee702179221ad384288db8a909f59232",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/7f06f54f7d6beb36876d3fb8169736c3966c0898"
+        },
+        "date": 1737601323365,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3933,
+            "range": "± 31",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4012,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23249,
+            "range": "± 1324",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 204738,
+            "range": "± 1279",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 254553,
+            "range": "± 4705",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 72349,
+            "range": "± 1128",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 385524,
+            "range": "± 18445",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6375702,
+            "range": "± 140626",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 994639,
+            "range": "± 16745",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 679946,
+            "range": "± 2579",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11748045,
+            "range": "± 274732",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 134209,
+            "range": "± 827",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 159862,
+            "range": "± 5583",
             "unit": "ns/iter"
           }
         ]

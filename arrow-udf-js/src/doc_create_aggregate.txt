@@ -5,7 +5,7 @@
 # use arrow_array::{ArrayRef, BooleanArray, Int32Array, RecordBatch};
 # use std::sync::Arc;
 #
-# let mut runtime = Runtime::new().unwrap();
+# let mut runtime = Runtime::new().await.unwrap();
 # runtime.add_aggregate(
 #     "sum",
 #     DataType::Int32,
@@ -25,7 +25,9 @@
 #         return state1 + state2;
 #     }
 # "#,
+#     false,
 # )
+# .await
 # .unwrap();
 // suppose we have created a sum aggregate function
 // see the example in `add_aggregate`

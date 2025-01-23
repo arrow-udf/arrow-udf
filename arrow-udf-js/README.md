@@ -15,10 +15,10 @@ arrow-udf-js = "0.3"
 Create a `Runtime` and define your JS functions in string form.
 Note that the function must be exported and its name must match the one you pass to `add_function`.
 
-```rust
+```rust,ignore
 use arrow_udf_js::{Runtime, CallMode};
 
-let mut runtime = Runtime::new().unwrap();
+let mut runtime = Runtime::new().await?;
 runtime
     .add_function(
         "gcd",
@@ -34,15 +34,16 @@ runtime
             return a;
         }
         "#,
+        false,
     )
-    .unwrap();
+    .await?;
 ```
 
 You can then call the JS function on a `RecordBatch`:
 
 ```rust,ignore
 let input: RecordBatch = ...;
-let output: RecordBatch = runtime.call("gcd", &input).unwrap();
+let output: RecordBatch = runtime.call("gcd", &input).await?;
 ```
 
 If you print the input and output batch, it will be like this:
@@ -59,10 +60,10 @@ If you print the input and output batch, it will be like this:
 
 For set-returning functions (or so-called table functions), define the function as a generator:
 
-```rust
+```rust,ignore
 use arrow_udf_js::{Runtime, CallMode};
 
-let mut runtime = Runtime::new().unwrap();
+let mut runtime = Runtime::new().await?;
 runtime
     .add_function(
         "range",
@@ -75,8 +76,9 @@ runtime
             }
         }
         "#,
+        false,
     )
-    .unwrap();
+    .await?;
 ```
 
 You can then call the table function via `call_table_function`:
@@ -84,9 +86,8 @@ You can then call the table function via `call_table_function`:
 ```rust,ignore
 let chunk_size = 1024;
 let input: RecordBatch = ...;
-let outputs = runtime.call_table_function("range", &input, chunk_size).unwrap();
-for result in outputs {
-    let output: RecordBatch = result?;
+let outputs = runtime.call_table_function("range", &input, chunk_size)?;
+while let Some(output) = outputs.next().await {
     // do something with the output
 }
 ```

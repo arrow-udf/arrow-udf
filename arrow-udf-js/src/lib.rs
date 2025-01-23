@@ -870,10 +870,10 @@ impl Runtime {
     #[cfg(feature = "fetch")]
     pub async fn enable_fetch(&mut self) -> Result<()> {
         async_with!(self.context => |ctx| {
-            Module::declare_def::<fetch::js_fetch, _>(ctx.clone(), "naive_fetch_mod")?;
-            Module::evaluate(ctx.clone(), "naive_fetch_mod", r"
-             import { fetch } from 'naive_fetch_mod';
-             globalThis.fetch = fetch;
+            Module::declare_def::<fetch::js_fetch, _>(ctx.clone(), "native_fetch")?;
+            Module::evaluate(ctx.clone(), "native_fetch", r"
+             import { fetch } from 'native_fetch';
+             globalThis._fetch = fetch;
              ")?;
             Ok(())
         })

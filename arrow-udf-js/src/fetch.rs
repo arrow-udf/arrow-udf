@@ -20,7 +20,7 @@ impl Response {
             .ok_or_else(|| {
                 rquickjs::Error::new_from_js_message(
                     "Response",
-                    "status",
+                    "Response",
                     "Response already consumed",
                 )
             })
@@ -33,7 +33,11 @@ impl Response {
             .as_ref()
             .map(|r| r.status().is_success())
             .ok_or_else(|| {
-                rquickjs::Error::new_from_js_message("Response", "ok", "Response already consumed")
+                rquickjs::Error::new_from_js_message(
+                    "Response",
+                    "Response",
+                    "Response already consumed",
+                )
             })
     }
 
@@ -41,13 +45,16 @@ impl Response {
     #[qjs(rename = "text")]
     pub async fn text(&mut self) -> Result<String> {
         let response = self.response.take().ok_or_else(|| {
-            rquickjs::Error::new_from_js_message("Response", "text", "Response already consumed")
+            rquickjs::Error::new_from_js_message(
+                "Response",
+                "Response",
+                "Response already consumed",
+            )
         })?;
 
-        response
-            .text()
-            .await
-            .map_err(|e| rquickjs::Error::new_from_js_message("Response", "text", e.to_string()))
+        response.text().await.map_err(|e| {
+            rquickjs::Error::new_from_js_message("Response", "Response", e.to_string())
+        })
     }
 
     /// Read and convert response body to JSON
@@ -62,13 +69,39 @@ impl Response {
 pub mod fetch {
     use super::*;
 
+    use std::collections::HashMap;
+    use std::str::FromStr;
+    use std::time::Duration;
+
     #[rquickjs::function]
-    pub async fn fetch(ctx: Ctx<'_>, url: String) -> Result<Class<Response>> {
+    pub async fn fetch<'js>(
+        ctx: Ctx<'js>,
+        method: String,
+        url: String,
+        headers: Option<HashMap<String, String>>,
+        body: Option<String>,
+        timeout_ns: Option<u64>,
+    ) -> Result<Class<'js, Response>> {
+        // TODO: reuse client
         let client = reqwest::Client::new();
-        let response =
-            client.get(&url).send().await.map_err(|e| {
-                rquickjs::Error::new_from_js_message("Fetch", "fetch", e.to_string())
-            })?;
+        let method = reqwest::Method::from_str(&method)
+            .map_err(|e| rquickjs::Error::new_from_js_message("fetch", "fetch", e.to_string()))?;
+        let mut request = client.request(method, url);
+        if let Some(headers) = headers {
+            for (key, value) in headers {
+                request = request.header(key, value);
+            }
+        }
+        if let Some(body) = body {
+            request = request.body(body);
+        }
+        if let Some(timeout_ns) = timeout_ns {
+            request = request.timeout(Duration::from_nanos(timeout_ns));
+        }
+        let response = request
+            .send()
+            .await
+            .map_err(|e| rquickjs::Error::new_from_js_message("fetch", "fetch", e.to_string()))?;
 
         let response = Response {
             response: Some(response),

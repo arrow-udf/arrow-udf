@@ -739,7 +739,9 @@ async fn test_arg_array() {
                 return null;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new(
@@ -755,7 +757,7 @@ async fn test_arg_array() {
     ]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("from_array", &input).unwrap();
+    let output = runtime.call("from_array", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -771,7 +773,7 @@ async fn test_arg_array() {
 }
 
 #[tokio::test]
-fn test_return_array() {
+async fn test_return_array() {
     let mut runtime = Runtime::new().await.unwrap();
 
     runtime
@@ -830,7 +832,9 @@ async fn test_arg_large_array() {
                 return null;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![Field::new(
@@ -846,7 +850,7 @@ async fn test_arg_large_array() {
     ]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("from_large_array", &input).unwrap();
+    let output = runtime.call("from_large_array", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -921,7 +925,9 @@ async fn test_arg_map() {
                 return null;
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let fields = Fields::from(vec![
@@ -954,7 +960,7 @@ async fn test_arg_map() {
     );
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = runtime.call("from_map", &input).unwrap();
+    let output = runtime.call("from_map", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"
@@ -968,9 +974,9 @@ async fn test_arg_map() {
     );
 }
 
-#[test]
-fn test_return_map() {
-    let mut runtime = Runtime::new().unwrap();
+#[tokio::test]
+async fn test_return_map() {
+    let mut runtime = Runtime::new().await.unwrap();
 
     runtime
         .add_function(
@@ -995,7 +1001,9 @@ fn test_return_map() {
                 return {k1:x,k2:y};
             }
             "#,
+            false,
         )
+        .await
         .unwrap();
 
     let schema = Schema::new(vec![
@@ -1007,7 +1015,7 @@ fn test_return_map() {
     let input =
         RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
 
-    let output = runtime.call("to_map", &input).unwrap();
+    let output = runtime.call("to_map", &input).await.unwrap();
     check(
         &[output],
         expect![[r#"

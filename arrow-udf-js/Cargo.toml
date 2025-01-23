@@ -8,15 +8,21 @@ keywords = ["arrow", "udf", "javascript"]
 license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["fetch"] # TODO(eric): remove `fetch` from default
+fetch = ["dep:reqwest", "dep:serde_json"]
+
 [dependencies]
 anyhow = "1"
 arrow-array.workspace = true
 arrow-buffer.workspace = true
 arrow-schema.workspace = true
 atomic-time = "0.1"
-rquickjs = { version = "0.6", features = ["array-buffer", "parallel", "futures"] }
+rquickjs = { version = "0.6", features = ["array-buffer", "parallel", "futures", "macro"] }
 futures-util = "0.3"
 tokio = { version = "1", features = ["time", "test-util", "macros"] }
+reqwest = { version = "0.12", features = ["json"], optional = true }
+serde_json = { version = "1", optional = true }
 
 [dev-dependencies]
 arrow-cast = { workspace = true, features = ["prettyprint"] }

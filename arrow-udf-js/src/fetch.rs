@@ -11,6 +11,12 @@ pub struct Response {
 
 #[rquickjs::methods]
 impl Response {
+    // A constructor is required to export to JavaScript. Idk why :)
+    #[qjs(constructor)]
+    pub fn new() -> Self {
+        Self { response: None }
+    }
+
     /// Return response status
     #[qjs(get)]
     pub fn status(&self) -> Result<u16> {
@@ -65,7 +71,7 @@ impl Response {
     }
 }
 
-#[rquickjs::module(rename_vars = "camelCase")]
+#[rquickjs::module]
 pub mod fetch {
     use super::*;
 
@@ -73,8 +79,14 @@ pub mod fetch {
     use std::str::FromStr;
     use std::time::Duration;
 
+    pub use super::Response;
+
+    /// Native implementation for `async function do_fetch(method, url, headers, body, timeout_ns)`
+    ///
+    /// This function is used to send an HTTP request to the given URL with the specified method, headers, body, and timeout.
+    /// We use JavaScript to wrap it into a standard Fetch API later.
     #[rquickjs::function]
-    pub async fn fetch<'js>(
+    pub async fn do_fetch<'js>(
         ctx: Ctx<'js>,
         method: String,
         url: String,
@@ -84,6 +96,7 @@ pub mod fetch {
     ) -> Result<Class<'js, Response>> {
         // TODO: reuse client
         let client = reqwest::Client::new();
+        // TODO: better error handling
         let method = reqwest::Method::from_str(&method)
             .map_err(|e| rquickjs::Error::new_from_js_message("fetch", "fetch", e.to_string()))?;
         let mut request = client.request(method, url);

@@ -1,3 +1,6 @@
+import { Headers } from 'headers.js';
+import { do_fetch, Response } from 'native_fetch';
+
 /**
  * Implementation of the Fetch API that wraps the Rust fetch implementation
  */
@@ -44,7 +47,7 @@ async function fetch(input, init = {}) {
 
     // Call Rust implementation
     try {
-        return await _fetch(method, url, headers, body, timeout_ns);
+        return await do_fetch(method, url, headers, body, timeout_ns);
     } catch (error) {
         // Convert Rust errors to standard fetch errors
         if (error.message.includes('timeout')) {
@@ -106,5 +109,4 @@ class Request {
     }
 }
 
-// Export the fetch function and Request class
-export { fetch, Request };
+export { fetch, Request, Headers, Response };

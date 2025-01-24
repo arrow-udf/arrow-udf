@@ -869,12 +869,18 @@ impl Runtime {
 
     #[cfg(feature = "fetch")]
     pub async fn enable_fetch(&mut self) -> Result<()> {
+        const FETCH_JS: &str = include_str!("fetch.js");
+        const HEADERS_JS: &str = include_str!("headers.js");
         async_with!(self.context => |ctx| {
             Module::declare_def::<fetch::js_fetch, _>(ctx.clone(), "native_fetch")?;
-            Module::evaluate(ctx.clone(), "native_fetch", r"
-             import { fetch } from 'native_fetch';
-             globalThis._fetch = fetch;
-             ")?;
+            Module::declare(ctx.clone(), "headers.js", HEADERS_JS)?;
+            Module::declare(ctx.clone(), "fetch.js", FETCH_JS)?;
+            Module::evaluate(ctx.clone(), "enable_fetch", r"
+            import { fetch, Headers, Request, Response } from 'fetch.js';
+            globalThis.fetch = fetch;
+            globalThis.Headers = Headers;
+            globalThis.Request = Request;
+            globalThis.Response = Response;")?;
             Ok(())
         })
         .await

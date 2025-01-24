@@ -13,7 +13,7 @@ async fn test_fetch_get() {
 
     let js_code = r#"
         export async function test_fetch(id) {
-            const response = await _fetch('GET', "https://dummyjson.com/todos/" + id, {}, null, null);
+            const response = await fetch("https://dummyjson.com/todos/" + id);
             const data = await response.json();
             return data.todo;
         }
@@ -57,13 +57,9 @@ async fn test_fetch_get_with_headers() {
                 'Authorization': 'Bearer dummy-token',
                 'Content-Type': 'application/json'
             };
-            const response = await _fetch(
-                'GET', 
-                "https://dummyjson.com/auth/todos/" + id, 
-                headers, 
-                null, 
-                null
-            );
+            const response = await fetch("https://dummyjson.com/auth/todos/" + id, {
+                headers
+            });
             const data = await response.json();
             return data.message || data.todo;
         }
@@ -102,21 +98,18 @@ async fn test_fetch_post_with_body() {
 
     let js_code = r#"
         export async function test_fetch(username) {
-            const headers = {
-                'Content-Type': 'application/json'
-            };
             const body = JSON.stringify({
                 username: username,
                 password: 'emilyspass',
                 expiresInMins: 30
             });
-            const response = await _fetch(
-                'POST', 
-                "https://dummyjson.com/auth/login", 
-                headers, 
-                body, 
-                null
-            );
+            const response = await fetch("https://dummyjson.com/auth/login", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body
+            });
             const data = await response.json();
             return data.message || data.firstName;
         }

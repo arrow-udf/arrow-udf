@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737688418713,
+  "lastUpdate": 1737701353556,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -12731,6 +12731,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 148101,
             "range": "± 5712",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "baishen2009@gmail.com",
+            "name": "baishen",
+            "username": "b41sh"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "08fb043d9c5ad3d39f9ffdef2ee3a02f30524143",
+          "message": "chore: making the construction of map functions test more readable (#101)",
+          "timestamp": "2025-01-24T14:39:42+08:00",
+          "tree_id": "d5a4a542fced08c3d9792361881e34ebd60bcdb6",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/08fb043d9c5ad3d39f9ffdef2ee3a02f30524143"
+        },
+        "date": 1737701353232,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3927,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4008,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22350,
+            "range": "± 1232",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 199864,
+            "range": "± 3460",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 254432,
+            "range": "± 2808",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 75227,
+            "range": "± 1711",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 383797,
+            "range": "± 20655",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6117472,
+            "range": "± 203807",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 981384,
+            "range": "± 19956",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 676026,
+            "range": "± 11984",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11676621,
+            "range": "± 95807",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 134530,
+            "range": "± 1794",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 147751,
+            "range": "± 3140",
             "unit": "ns/iter"
           }
         ]

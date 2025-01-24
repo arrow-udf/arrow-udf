@@ -1,5 +1,4 @@
 import { Headers } from 'headers.js';
-import { do_fetch, Response } from 'native_fetch';
 
 /**
  * Implementation of the Fetch API that wraps the Rust fetch implementation
@@ -109,4 +108,4 @@ class Request {
     }
 }
 
-export { fetch, Request, Headers, Response };
+export { fetch, Request, Headers };

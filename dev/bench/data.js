@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737701353556,
+  "lastUpdate": 1737709113806,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -12833,6 +12833,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 147751,
             "range": "± 3140",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "stdrc@outlook.com",
+            "name": "Richard Chien",
+            "username": "stdrc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "09f1276cb6dad537e787a7d6ff5139c21216b531",
+          "message": "feat: introduce `find_function` method to WASM Runtime (#99)\n\nThis PR adds the `arrow_udf_wasm::Runtime::find_function` method to\nsimplify the usage. This method accepts function name, argument types\nand return types, and finds the corresponding exported function in the\nWASM binary. The returned value is an opaque handle that wraps the\nfunction export name, leaving space for future optimization when\nnecessary.\n\nSince users no longer need to construct function signatures(identifiers)\non their own, `Runtime::find_function_by_inlined_signature` is unpub-ed.\n\nThis is also a preparation for WASM UDAF support.\n\n---------\n\nSigned-off-by: Richard Chien <stdrc@outlook.com>",
+          "timestamp": "2025-01-24T16:48:49+08:00",
+          "tree_id": "ddbcb874d0946c8b59dfbd24d7b53272edf5c0da",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/09f1276cb6dad537e787a7d6ff5139c21216b531"
+        },
+        "date": 1737709113407,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3930,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4050,
+            "range": "± 33",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23066,
+            "range": "± 1235",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 200715,
+            "range": "± 1474",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 249872,
+            "range": "± 3062",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74318,
+            "range": "± 509",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 399019,
+            "range": "± 24051",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5915258,
+            "range": "± 70229",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 961251,
+            "range": "± 12453",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 671717,
+            "range": "± 29661",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11904536,
+            "range": "± 125889",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 138656,
+            "range": "± 1152",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 159790,
+            "range": "± 6189",
             "unit": "ns/iter"
           }
         ]

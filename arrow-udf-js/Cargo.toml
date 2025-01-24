@@ -9,7 +9,7 @@ license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["fetch"] # TODO(eric): remove `fetch` from default
+default = ["fetch"] # You may want to disable this feature if you don't need the fetch API.
 fetch = ["dep:reqwest", "dep:serde_json"]
 
 [dependencies]

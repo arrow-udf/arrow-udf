@@ -2,49 +2,40 @@ use reqwest;
 use rquickjs::prelude::*;
 use rquickjs::{Class, Result};
 
-#[derive(rquickjs::class::Trace)]
-#[rquickjs::class]
+/// The Response interface of the Fetch API represents the response to a request.
+///
+/// See also https://developer.mozilla.org/en-US/docs/Web/API/Response
+#[derive(rquickjs::class::Trace, Default, Debug)]
+#[rquickjs::class(rename_all = "camelCase")]
 pub struct Response {
+    /// The status code of the response. (This will be 200 for a success).
+    #[qjs(get)]
+    status: u16,
+
+    /// The status message corresponding to the status code. (e.g., OK for 200).
+    #[qjs(get)]
+    status_text: String,
+
+    /// A boolean indicating whether the response was successful (status in the range 200 – 299) or not.
+    #[qjs(get)]
+    ok: bool,
+
     #[qjs(skip_trace)]
     response: Option<reqwest::Response>,
 }
 
-#[rquickjs::methods]
+#[rquickjs::methods(rename_all = "camelCase")]
 impl Response {
     // A constructor is required to export to JavaScript. Idk why :)
     #[qjs(constructor)]
     pub fn new() -> Self {
-        Self { response: None }
+        Self::default()
     }
 
-    /// Return response status
+    /// Stores a boolean value that declares whether the body has been used in a response yet.
     #[qjs(get)]
-    pub fn status(&self) -> Result<u16> {
-        self.response
-            .as_ref()
-            .map(|r| r.status().as_u16())
-            .ok_or_else(|| {
-                rquickjs::Error::new_from_js_message(
-                    "Response",
-                    "Response",
-                    "Response already consumed",
-                )
-            })
-    }
-
-    /// Return if response was successful (status in 200-299 range)
-    #[qjs(get)]
-    pub fn ok(&self) -> Result<bool> {
-        self.response
-            .as_ref()
-            .map(|r| r.status().is_success())
-            .ok_or_else(|| {
-                rquickjs::Error::new_from_js_message(
-                    "Response",
-                    "Response",
-                    "Response already consumed",
-                )
-            })
+    pub fn body_used(&self) -> bool {
+        self.response.is_none()
     }
 
     /// Read and convert response body to text
@@ -111,13 +102,16 @@ pub mod fetch {
         if let Some(timeout_ns) = timeout_ns {
             request = request.timeout(Duration::from_nanos(timeout_ns));
         }
-        let response = request
+        let res = request
             .send()
             .await
             .map_err(|e| rquickjs::Error::new_from_js_message("fetch", "fetch", e.to_string()))?;
 
         let response = Response {
-            response: Some(response),
+            status: res.status().as_u16(),
+            status_text: res.status().canonical_reason().unwrap_or("").to_string(),
+            ok: res.status().is_success(),
+            response: Some(res),
         };
         Class::instance(ctx, response)
     }

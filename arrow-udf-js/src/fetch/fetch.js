@@ -44,9 +44,9 @@ async function fetch(input, init = {}) {
     const body = init.body ? String(init.body) : null;
     const timeout_ns = init.timeout ? BigInt(init.timeout) * 1000000n : null; // Convert ms to ns
 
-    // Call Rust implementation
     try {
-        return await do_fetch(method, url, headers, body, timeout_ns);
+        // Call Rust implementation
+        return await sendHttpRequest(method, url, headers, body, timeout_ns);
     } catch (error) {
         // Convert Rust errors to standard fetch errors
         if (error.message.includes('timeout')) {

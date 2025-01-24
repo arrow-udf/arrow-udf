@@ -1,5 +1,6 @@
 use reqwest;
 use rquickjs::prelude::*;
+use rquickjs::Exception;
 use rquickjs::Result;
 
 /// The Response interface of the Fetch API represents the response to a request.
@@ -49,24 +50,22 @@ impl Response {
 
     /// Read and convert response body to text
     #[qjs(rename = "text")]
-    pub async fn text(&mut self) -> Result<String> {
-        let response = self.response.take().ok_or_else(|| {
-            rquickjs::Error::new_from_js_message(
-                "Response",
-                "Response",
-                "Response already consumed",
-            )
-        })?;
+    pub async fn text<'js>(&mut self, ctx: Ctx<'js>) -> Result<String> {
+        let response = self
+            .response
+            .take()
+            .ok_or_else(|| Exception::throw_type(&ctx, "Body is unusable"))?;
 
-        response.text().await.map_err(|e| {
-            rquickjs::Error::new_from_js_message("Response", "Response", e.to_string())
-        })
+        response
+            .text()
+            .await
+            .map_err(|e| Exception::throw_message(&ctx, &e.to_string()))
     }
 
     /// Read and convert response body to JSON
     #[qjs(rename = "json")]
     pub async fn json<'js>(&mut self, ctx: Ctx<'js>) -> Result<rquickjs::Value<'js>> {
-        let text = self.text().await?;
+        let text = self.text(ctx.clone()).await?;
         ctx.json_parse(text)
     }
 }

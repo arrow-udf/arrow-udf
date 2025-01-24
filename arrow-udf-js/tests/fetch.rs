@@ -9,20 +9,27 @@ mod tests {
     use arrow_udf_js::{CallMode, Runtime};
     use expect_test::{expect, Expect};
     use mockito::Server;
-    use rquickjs::async_with;
+    use rquickjs::{async_with, Ctx};
 
     #[tokio::test]
     async fn run_javascript_tests() {
         let runtime = Runtime::new().await.unwrap();
         runtime.enable_fetch().await.unwrap();
 
+        async fn run<'js>(ctx: &Ctx<'js>, path: &str) {
+            let js_code = std::fs::read_to_string(path).unwrap();
+            ctx.eval_promise::<_>(js_code)
+                .inspect_err(|e| inspect_error(e, &ctx))
+                .unwrap()
+                .into_future::<()>()
+                .await
+                .inspect_err(|e| inspect_error(e, &ctx))
+                .unwrap();
+        }
+
         async_with!(runtime.context() => |ctx| {
-            ctx.eval_file::<(), _>("src/fetch/headers.test.js")
-                .inspect_err(|e| inspect_error(e, &ctx))
-                .unwrap();
-            ctx.eval_file::<(), _>("src/fetch/fetch.test.js")
-                .inspect_err(|e| inspect_error(e, &ctx))
-                .unwrap();
+            run(&ctx, "src/fetch/fetch.test.js").await;
+            run(&ctx, "src/fetch/headers.test.js").await;
         })
         .await;
     }

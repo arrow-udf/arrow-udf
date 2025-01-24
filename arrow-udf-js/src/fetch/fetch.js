@@ -9,7 +9,7 @@ import { Headers } from 'headers.js';
  * @property {string} [method='GET'] - HTTP method
  * @property {Object} [headers] - Request headers
  * @property {string} [body] - Request body
- * @property {number} [timeout] - Request timeout in milliseconds
+ * @property {number} [timeout_ms] - Request timeout in milliseconds
  */
 
 /**
@@ -42,20 +42,13 @@ async function fetch(input, init = {}) {
         Object.entries(init.headers).map(([k, v]) => [k.toLowerCase(), String(v)])
     ) : null;
     const body = init.body ? String(init.body) : null;
-    const timeout_ns = init.timeout ? BigInt(init.timeout) * 1000000n : null; // Convert ms to ns
+    const timeout_ms = init.timeout_ms ? Math.floor(init.timeout_ms) : null;
 
     try {
         // Call Rust implementation
-        return await sendHttpRequest(method, url, headers, body, timeout_ns);
+        return await sendHttpRequest(method, url, headers, body, timeout_ms);
     } catch (error) {
-        // Convert Rust errors to standard fetch errors
-        if (error.message.includes('timeout')) {
-            throw new TypeError('Network request failed: timeout');
-        }
-        if (error.message.includes('dns')) {
-            throw new TypeError('Network request failed: DNS error');
-        }
-        throw new TypeError('Network request failed: ' + error.message);
+        throw new Error('fetch error: ' + error.message);
     }
 }
 

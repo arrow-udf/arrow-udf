@@ -73,15 +73,15 @@ function assertObjectEquals(actual, expected, message) {
 }
 
 // Test fetch function
-(async function test_fetch() {
-    // Mock do_fetch for testing
+{
+    // Mock `sendHttpRequest` for testing
     let lastFetchCall = null;
-    globalThis.do_fetch = async (method, url, headers, body, timeout_ns) => {
-        lastFetchCall = { method, url, headers, body, timeout_ns };
-        return new Response('{"ok":true}', {
+    globalThis.sendHttpRequest = async (method, url, headers, body, timeout_ms) => {
+        lastFetchCall = { method, url, headers, body, timeout_ms };
+        return {
             status: 200,
             headers: { 'content-type': 'application/json' }
-        });
+        };
     };
 
     // Test fetch with string URL
@@ -91,7 +91,7 @@ function assertObjectEquals(actual, expected, message) {
         url: 'https://example.com/api',
         headers: null,
         body: null,
-        timeout_ns: null
+        timeout_ms: null
     });
 
     // Test fetch with Request object
@@ -106,7 +106,7 @@ function assertObjectEquals(actual, expected, message) {
         url: 'https://example.com/api',
         headers: { 'content-type': 'application/json' },
         body: '{"test":true}',
-        timeout_ns: null
+        timeout_ms: null
     });
 
     // Test fetch with init options
@@ -114,37 +114,26 @@ function assertObjectEquals(actual, expected, message) {
         method: 'PUT',
         headers: { 'Authorization': 'Bearer token' },
         body: 'test data',
-        timeout: 5000
+        timeout_ms: 5000
     });
     assertObjectEquals(lastFetchCall, {
         method: 'PUT',
         url: 'https://example.com/api',
         headers: { 'authorization': 'Bearer token' },
         body: 'test data',
-        timeout_ns: 5000000000n
+        timeout_ms: 5000
     });
 
     // Test fetch error handling
-    globalThis.do_fetch = async () => {
+    globalThis.sendHttpRequest = async () => {
         throw new Error('timeout');
     };
     try {
         await fetch('https://example.com/api');
         assert(false, 'Should throw on timeout');
     } catch (e) {
-        assert(e instanceof TypeError);
+        assert(e instanceof Error);
         assert(e.message.includes('timeout'));
-    }
-
-    globalThis.do_fetch = async () => {
-        throw new Error('dns');
-    };
-    try {
-        await fetch('https://example.com/api');
-        assert(false, 'Should throw on DNS error');
-    } catch (e) {
-        assert(e instanceof TypeError);
-        assert(e.message.includes('DNS error'));
     }
 
     // Test invalid input
@@ -154,4 +143,4 @@ function assertObjectEquals(actual, expected, message) {
     } catch (e) {
         assert(e instanceof TypeError);
     }
-})();
+}

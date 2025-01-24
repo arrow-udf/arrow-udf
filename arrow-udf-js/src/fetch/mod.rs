@@ -1,6 +1,6 @@
 use response::Response;
 use rquickjs::prelude::Async;
-use rquickjs::{Class, Ctx, Module, Result};
+use rquickjs::{Class, Ctx, Exception, Module, Result};
 
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -15,9 +15,9 @@ const HEADERS_JS: &str = include_str!("headers.js");
 #[derive(Clone)]
 pub struct SendHttpRequest;
 
-/// Native implementation for `async function send_http_request(method, url, headers, body, timeout_ns)`
+/// Native implementation for `async function send_http_request(method, url, headers, body, timeout_ms)`
 ///
-/// We use JavaScript to wrap it into a standard Fetch API later.
+/// This is not supposed to be used directly, but rather wrapped into a standard Fetch API by JS code later.
 async fn send_http_request<'js>(
     client: Arc<reqwest::Client>,
     ctx: Ctx<'js>,
@@ -25,11 +25,10 @@ async fn send_http_request<'js>(
     url: String,
     headers: Option<HashMap<String, String>>,
     body: Option<String>,
-    timeout_ns: Option<u64>,
+    timeout_ms: Option<u64>,
 ) -> Result<Class<'js, Response>> {
-    // TODO: better error handling
     let method = reqwest::Method::from_str(&method)
-        .map_err(|e| rquickjs::Error::new_from_js_message("fetch", "fetch", e.to_string()))?;
+        .map_err(|e| Exception::throw_syntax(&ctx, &e.to_string()))?;
     let mut request = client.request(method, url);
     if let Some(headers) = headers {
         for (key, value) in headers {
@@ -39,13 +38,13 @@ async fn send_http_request<'js>(
     if let Some(body) = body {
         request = request.body(body);
     }
-    if let Some(timeout_ns) = timeout_ns {
-        request = request.timeout(Duration::from_nanos(timeout_ns));
+    if let Some(timeout_ms) = timeout_ms {
+        request = request.timeout(Duration::from_millis(timeout_ms));
     }
     let res = request
         .send()
         .await
-        .map_err(|e| rquickjs::Error::new_from_js_message("fetch", "fetch", e.to_string()))?;
+        .map_err(|e| Exception::throw_message(&ctx, &e.to_string()))?;
 
     let response = Response::new(res);
     Class::instance(ctx, response)
@@ -62,10 +61,10 @@ impl<'js> rquickjs::IntoJs<'js> for SendHttpRequest {
                       url: String,
                       headers: Option<HashMap<String, String>>,
                       body: Option<String>,
-                      timeout_ns: Option<u64>| {
+                      timeout_ms: Option<u64>| {
                     // NOTE(eric): It seems better to pass a reference instead of `Arc`, but
                     // the borrow checker just doesn't like it :/
-                    send_http_request(client.clone(), ctx, method, url, headers, body, timeout_ns)
+                    send_http_request(client.clone(), ctx, method, url, headers, body, timeout_ms)
                 },
             ),
         )?

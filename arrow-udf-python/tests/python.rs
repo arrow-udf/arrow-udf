@@ -14,9 +14,10 @@
 
 use std::sync::Arc;
 
+use arrow_array::builder::{MapBuilder, StringBuilder};
 use arrow_array::types::Int32Type;
+use arrow_array::Array;
 use arrow_array::*;
-use arrow_buffer::{NullBuffer, OffsetBuffer};
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Fields, Schema};
 use arrow_udf_python::{CallMode, Runtime};
@@ -398,34 +399,21 @@ def from_map(x):
         )
         .unwrap();
 
-    let fields = Fields::from(vec![
-        Field::new("key", DataType::Utf8, false),
-        Field::new("value", DataType::Utf8, false),
-    ]);
-    let field = Arc::new(Field::new(
-        "entries",
-        DataType::Struct(fields.clone()),
-        false,
-    ));
-    let schema = Schema::new(vec![Field::new(
-        "x",
-        DataType::Map(field.clone(), false),
-        true,
-    )]);
-    let offsets = OffsetBuffer::new(vec![0, 1, 3, 3].into());
-    let columns = vec![
-        Arc::new(StringArray::from(vec!["k", "k1", "k2"])) as _,
-        Arc::new(StringArray::from(vec!["v", "v1", "v2"])) as _,
-    ];
-    let entries = StructArray::new(fields.clone(), columns, None);
-    let nulls = NullBuffer::from(vec![true, true, false]);
-    let arg0 = MapArray::new(
-        field.clone(),
-        offsets.clone(),
-        entries.clone(),
-        Some(nulls),
-        false,
-    );
+    let mut builder =
+        MapBuilder::with_capacity(None, StringBuilder::new(), StringBuilder::new(), 3);
+    builder.keys().append_value("k");
+    builder.values().append_value("v");
+    builder.append(true).unwrap();
+    builder.keys().append_value("k1");
+    builder.values().append_value("v1");
+    builder.keys().append_value("k2");
+    builder.values().append_value("v2");
+    builder.append(true).unwrap();
+    builder.append(false).unwrap();
+    let arg0 = builder.finish();
+
+    let data_type = arg0.data_type().clone();
+    let schema = Schema::new(vec![Field::new("x", data_type, true)]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("from_map", &input).unwrap();

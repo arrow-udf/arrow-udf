@@ -5,25 +5,36 @@ use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_js::{CallMode, Runtime};
 use expect_test::{expect, Expect};
+use mockito::Server;
 
 #[tokio::test]
 async fn test_fetch_get() {
+    let mut server = Server::new_async().await;
+    let mock = server
+        .mock("GET", "/todos/1")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(r#"{"todo": "Have fun!"}"#)
+        .create();
+
     let mut runtime = Runtime::new().await.unwrap();
     runtime.enable_fetch().await.unwrap();
 
     let js_code = r#"
         export async function test_fetch(id) {
-            const response = await fetch("https://dummyjson.com/todos/" + id);
+            const response = await fetch("$URL/todos/" + id);
             const data = await response.json();
             return data.todo;
         }
-    "#;
+    "#
+    .replace("$URL", &server.url());
+
     runtime
         .add_function(
             "test_fetch",
             DataType::Utf8,
             CallMode::ReturnNullOnNullInput,
-            js_code,
+            &js_code,
             true,
         )
         .await
@@ -37,17 +48,28 @@ async fn test_fetch_get() {
     check(
         &[output],
         expect![[r#"
-        +----------------------------------------------+
-        | test_fetch                                   |
-        +----------------------------------------------+
-        | Do something nice for someone you care about |
-        |                                              |
-        +----------------------------------------------+"#]],
+        +------------+
+        | test_fetch |
+        +------------+
+        | Have fun!  |
+        |            |
+        +------------+"#]],
     );
+
+    mock.assert();
 }
 
 #[tokio::test]
 async fn test_fetch_get_with_headers() {
+    let mut server = Server::new_async().await;
+    let mock = server
+        .mock("GET", "/todos/1")
+        .match_header("authorization", "Bearer dummy-token")
+        .with_status(401)
+        .with_header("content-type", "application/json")
+        .with_body(r#"{"todo": "Have fun!"}"#)
+        .create();
+
     let mut runtime = Runtime::new().await.unwrap();
     runtime.enable_fetch().await.unwrap();
 
@@ -55,21 +77,22 @@ async fn test_fetch_get_with_headers() {
         export async function test_fetch(id) {
             const headers = {
                 'Authorization': 'Bearer dummy-token',
-                'Content-Type': 'application/json'
             };
-            const response = await fetch("https://dummyjson.com/auth/todos/" + id, {
+            const response = await fetch("$URL/todos/" + id, {
                 headers
             });
             const data = await response.json();
-            return data.message || data.todo;
+            return data.todo;
         }
-    "#;
+    "#
+    .replace("$URL", &server.url());
+
     runtime
         .add_function(
             "test_fetch",
             DataType::Utf8,
             CallMode::ReturnNullOnNullInput,
-            js_code,
+            &js_code,
             true,
         )
         .await
@@ -83,50 +106,71 @@ async fn test_fetch_get_with_headers() {
     check(
         &[output],
         expect![[r#"
-        +------------------------+
-        | test_fetch             |
-        +------------------------+
-        | Invalid/Expired Token! |
-        +------------------------+"#]],
+        +------------+
+        | test_fetch |
+        +------------+
+        | Have fun!  |
+        +------------+"#]],
     );
+
+    mock.assert();
 }
 
 #[tokio::test]
 async fn test_fetch_post_with_body() {
+    let mut server = Server::new_async().await;
+
+    let mock_hello = server
+        .mock("POST", "/echo")
+        .match_header("authorization", "Bearer dummy-token")
+        .match_body(r#"{"input":"hello"}"#)
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(r#"{"output":"hello"}"#)
+        .create();
+    let mock_buddy = server
+        .mock("POST", "/echo")
+        .match_header("authorization", "Bearer dummy-token")
+        .match_body(r#"{"input":"buddy"}"#)
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(r#"{"output":"buddy"}"#)
+        .create();
+
     let mut runtime = Runtime::new().await.unwrap();
     runtime.enable_fetch().await.unwrap();
 
     let js_code = r#"
-        export async function test_fetch(username) {
+        export async function test_fetch(input) {
             const body = JSON.stringify({
-                username: username,
-                password: 'emilyspass',
-                expiresInMins: 30
+                input: input
             });
-            const response = await fetch("https://dummyjson.com/auth/login", {
+            const response = await fetch("$URL/echo", {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Authorization': 'Bearer dummy-token'
                 },
                 body
             });
             const data = await response.json();
-            return data.message || data.firstName;
+            return data.output;
         }
-    "#;
+    "#
+    .replace("$URL", &server.url());
+
     runtime
         .add_function(
             "test_fetch",
             DataType::Utf8,
             CallMode::ReturnNullOnNullInput,
-            js_code,
+            &js_code,
             true,
         )
         .await
         .unwrap();
 
-    let schema = Schema::new(vec![Field::new("username", DataType::Utf8, true)]);
-    let arg0 = arrow_array::StringArray::from(vec![Some("emilys")]);
+    let schema = Schema::new(vec![Field::new("input", DataType::Utf8, true)]);
+    let arg0 = arrow_array::StringArray::from(vec![Some("hello"), Some("buddy")]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
     let output = runtime.call("test_fetch", &input).await.unwrap();
@@ -136,9 +180,13 @@ async fn test_fetch_post_with_body() {
         +------------+
         | test_fetch |
         +------------+
-        | Emily      |
+        | hello      |
+        | buddy      |
         +------------+"#]],
     );
+
+    mock_hello.assert();
+    mock_buddy.assert();
 }
 
 /// Compare the actual output with the expected output.

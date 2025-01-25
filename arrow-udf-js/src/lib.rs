@@ -867,6 +867,9 @@ impl Runtime {
         &self.context
     }
 
+    /// Enable the `fetch` API in the `Runtime`.
+    ///
+    /// See module [`fetch`] for more details.
     #[cfg(feature = "fetch")]
     pub async fn enable_fetch(&self) -> Result<()> {
         fetch::enable_fetch(&self.runtime, &self.context).await

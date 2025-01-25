@@ -1,6 +1,5 @@
 #[cfg(feature = "fetch")]
 mod tests {
-
     use std::sync::Arc;
 
     use arrow_array::{ArrayRef, Int32Array, RecordBatch};
@@ -513,6 +512,22 @@ mod tests {
         .await;
 
         mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_fetch_timeout() {
+        test(
+            "",
+            r#"
+                try {
+                    const response = await fetch("https://httpbin.org/delay/1", { timeout_ms: 500 });
+                    assert(false); // should not reach here
+                } catch (e) {
+                    assert(e.message.includes("operation timed out"));
+                }
+            "#,
+        )
+        .await;
     }
 
     /// Compare the actual output with the expected output.

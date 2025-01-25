@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use response::Response;
 use rquickjs::loader::Bundle;
 use rquickjs::prelude::*;
@@ -48,10 +49,10 @@ async fn send_http_request<'js>(
     if let Some(timeout_ms) = timeout_ms {
         request = request.timeout(Duration::from_millis(timeout_ms));
     }
-    let res = request
-        .send()
-        .await
-        .map_err(|e| Exception::throw_message(&ctx, &e.to_string()))?;
+    let res = request.send().await.map_err(|e| {
+        let message = format!("{:#}", anyhow!(e)); // Use anyhow to get the full error chain
+        Exception::throw_message(&ctx, &message)
+    })?;
 
     let response = Response::new(res);
     Class::instance(ctx, response)

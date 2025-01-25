@@ -3,8 +3,8 @@ mod tests {
 
     use std::sync::Arc;
 
-    use arrow_array::RecordBatch;
-    use arrow_cast::pretty::pretty_format_batches;
+    use arrow_array::{ArrayRef, Int32Array, RecordBatch};
+    use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
     use arrow_schema::{DataType, Field, Schema};
     use arrow_udf_js::{CallMode, Runtime};
     use expect_test::{expect, Expect};
@@ -132,6 +132,165 @@ mod tests {
         mock_hello.assert();
         mock_buddy.assert();
         mock_bad_request.assert();
+    }
+
+    #[tokio::test]
+    async fn test_fetch_in_udaf() {
+        let mut server = Server::new_async().await;
+
+        // Mock endpoints for each UDAF operation
+        let mock_init = server
+            .mock("POST", "/init")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"state": 0}"#)
+            .create();
+
+        let mock_acc = server
+            .mock("POST", "/acc")
+            .match_header("content-type", "application/json")
+            .match_body(r#"{"state":0,"value":1}"#)
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"state": 1}"#)
+            .create();
+
+        let mock_merge = server
+            .mock("POST", "/merge")
+            .match_header("content-type", "application/json")
+            .match_body(r#"{"state1":1,"state2":1}"#)
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"state": 2}"#)
+            .create();
+
+        let mock_finish = server
+            .mock("POST", "/finish")
+            .match_header("content-type", "application/json")
+            .match_body(r#"{"state":2}"#)
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"result": 2}"#)
+            .create();
+
+        let mut runtime = Runtime::new().await.unwrap();
+        runtime.enable_fetch().await.unwrap();
+
+        let js_code = r#"
+            export async function create_state() {
+                const response = await fetch("$URL/init", {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                return data.state;
+            }
+
+            export async function accumulate(state, value) {
+                const response = await fetch("$URL/acc", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ state, value })
+                });
+                const data = await response.json();
+                return data.state;
+            }
+
+            export async function merge(state1, state2) {
+                const response = await fetch("$URL/merge", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ state1, state2 })
+                });
+                const data = await response.json();
+                return data.state;
+            }
+
+            export async function finish(state) {
+                const response = await fetch("$URL/finish", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ state })
+                });
+                const data = await response.json();
+                return data.result;
+            }
+        "#
+        .replace("$URL", &server.url());
+
+        // Add the aggregate function
+        runtime
+            .add_aggregate(
+                "fetch_agg",
+                DataType::Int32, // state type
+                DataType::Int32, // output type
+                CallMode::ReturnNullOnNullInput,
+                &js_code,
+                true, // is_async
+            )
+            .await
+            .unwrap();
+
+        // Create initial state
+        let state = runtime.create_state("fetch_agg").await.unwrap();
+        check_array(
+            std::slice::from_ref(&state),
+            expect![[r#"
+                +-------+
+                | array |
+                +-------+
+                | 0     |
+                +-------+"#]],
+        );
+
+        // Test accumulate
+        let schema = Schema::new(vec![Field::new("value", DataType::Int32, true)]);
+        let arg0 = Int32Array::from(vec![Some(1)]);
+        let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+        let state = runtime
+            .accumulate("fetch_agg", &state, &input)
+            .await
+            .unwrap();
+        check_array(
+            std::slice::from_ref(&state),
+            expect![[r#"
+                +-------+
+                | array |
+                +-------+
+                | 1     |
+                +-------+"#]],
+        );
+
+        // Test merge
+        let states = arrow_select::concat::concat(&[&state, &state]).unwrap();
+        let state = runtime.merge("fetch_agg", &states).await.unwrap();
+        check_array(
+            std::slice::from_ref(&state),
+            expect![[r#"
+                +-------+
+                | array |
+                +-------+
+                | 2     |
+                +-------+"#]],
+        );
+
+        // Test finish
+        let output = runtime.finish("fetch_agg", &state).await.unwrap();
+        check_array(
+            &[output],
+            expect![[r#"
+                +-------+
+                | array |
+                +-------+
+                | 2     |
+                +-------+"#]],
+        );
+
+        // Verify all mocks were called
+        mock_init.assert();
+        mock_acc.assert();
+        mock_merge.assert();
+        mock_finish.assert();
     }
 
     /// Auxiliary function to run a test with a given js code and server url
@@ -277,8 +436,15 @@ mod tests {
     }
 
     /// Compare the actual output with the expected output.
+    #[track_caller]
     fn check(actual: &[RecordBatch], expect: Expect) {
         expect.assert_eq(&pretty_format_batches(actual).unwrap().to_string());
+    }
+
+    /// Compare the actual output with the expected output.
+    #[track_caller]
+    fn check_array(actual: &[ArrayRef], expect: Expect) {
+        expect.assert_eq(&pretty_format_columns("array", actual).unwrap().to_string());
     }
 
     fn inspect_error(err: &rquickjs::Error, ctx: &rquickjs::Ctx) {

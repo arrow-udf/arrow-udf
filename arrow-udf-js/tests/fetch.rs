@@ -397,10 +397,10 @@ mod tests {
                     throw new Error("Assertion failed");
                 }
             }"#;
-        run_async_js_code(&runtime.context(), JS_ASSERT).await;
+        run_async_js_code(runtime.context(), JS_ASSERT).await;
 
         let js_code = js_code.replace("$URL", server_url);
-        run_async_js_code(&runtime.context(), &js_code).await;
+        run_async_js_code(runtime.context(), &js_code).await;
     }
 
     #[tokio::test]

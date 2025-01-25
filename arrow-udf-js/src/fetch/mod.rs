@@ -42,15 +42,15 @@ pub struct SendHttpRequest;
 /// Native implementation for `async function send_http_request(method, url, headers, body, timeout_ms)`
 ///
 /// This is not supposed to be used directly, but rather wrapped into a standard Fetch API by JS code later.
-async fn send_http_request<'js>(
+async fn send_http_request(
     client: Arc<reqwest::Client>,
-    ctx: Ctx<'js>,
+    ctx: Ctx<'_>,
     method: String,
     url: String,
     headers: Option<HashMap<String, String>>,
     body: Option<String>,
     timeout_ms: Option<u64>,
-) -> Result<Class<'js, Response>> {
+) -> Result<Class<'_, Response>> {
     let method = reqwest::Method::from_str(&method)
         .map_err(|e| Exception::throw_syntax(&ctx, &e.to_string()))?;
     let mut request = client.request(method, url);
@@ -98,7 +98,7 @@ impl<'js> rquickjs::IntoJs<'js> for SendHttpRequest {
 }
 
 /// Enable fetch API in the given `AsyncContext`.
-pub async fn enable_fetch<'js>(rt: &AsyncRuntime, ctx: &AsyncContext) -> anyhow::Result<()> {
+pub async fn enable_fetch(rt: &AsyncRuntime, ctx: &AsyncContext) -> anyhow::Result<()> {
     rt.set_loader(BUNDLE, BUNDLE).await;
     async_with!(ctx => |ctx| {
         ctx.globals()

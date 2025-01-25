@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use reqwest;
 use rquickjs::prelude::*;
 use rquickjs::Exception;
 use rquickjs::Result;
@@ -64,7 +63,7 @@ impl Response {
 
     /// Read and convert response body to text
     #[qjs(rename = "text")]
-    pub async fn text<'js>(&mut self, ctx: Ctx<'js>) -> Result<String> {
+    pub async fn text(&mut self, ctx: Ctx<'_>) -> Result<String> {
         let response = self
             .response
             .take()

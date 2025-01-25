@@ -20,7 +20,7 @@ arrow-schema.workspace = true
 atomic-time = "0.1"
 rquickjs = { version = "0.6", features = ["array-buffer", "parallel", "futures", "macro", "loader"] }
 futures-util = "0.3"
-tokio = { version = "1", features = ["time", "test-util", "macros"] }
+tokio = { workspace = true, features = ["time", "test-util", "macros"] }
 reqwest = { version = "0.12", features = ["json"], optional = true }
 serde_json = { version = "1", optional = true }
 

@@ -15,7 +15,7 @@ arrow-schema.workspace = true
 arrow-select.workspace = true
 futures-util = "0.3"
 thiserror = "1"
-tokio = { version = "1", features = ["time"] }
+tokio = { workspace = true, features = ["time"] }
 tonic = "0.12"
 tracing = "0.1"
 

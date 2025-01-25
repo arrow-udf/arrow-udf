@@ -286,11 +286,91 @@ mod tests {
                 +-------+"#]],
         );
 
-        // Verify all mocks were called
         mock_init.assert();
         mock_acc.assert();
         mock_merge.assert();
         mock_finish.assert();
+    }
+
+    #[tokio::test]
+    async fn test_fetch_in_udtf() {
+        let mut server = Server::new_async().await;
+        let mock_page1 = server
+            .mock("GET", "/items/page/1")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(
+                r#"{"items": [
+                {"id": 1, "name": "item1"},
+                {"id": 2, "name": "item2"}
+            ]}"#,
+            )
+            .create();
+        let mock_page2 = server
+            .mock("GET", "/items/page/2")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(
+                r#"{"items": [
+                {"id": 3, "name": "item3"},
+                {"id": 4, "name": "item4"}
+            ]}"#,
+            )
+            .create();
+
+        let mut runtime = Runtime::new().await.unwrap();
+        runtime.enable_fetch().await.unwrap();
+
+        let js_code = r#"
+            export async function* fetch_items(page_count) {
+                for (let page = 1; page <= page_count; page++) {
+                    const response = await fetch("$URL/items/page/" + page);
+                    const data = await response.json();
+                    for (const item of data.items) {
+                        yield item.name;
+                    }
+                }
+            }
+        "#
+        .replace("$URL", &server.url());
+
+        // Add a table function that fetches and merges pages
+        runtime
+            .add_function(
+                "fetch_items",
+                DataType::Utf8,
+                CallMode::ReturnNullOnNullInput,
+                &js_code,
+                true, // is_async
+            )
+            .await
+            .unwrap();
+
+        let schema = Schema::new(vec![Field::new("page_count", DataType::Int32, true)]);
+        let arg0 = Int32Array::from(vec![Some(2)]);
+        let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+        let mut outputs = runtime
+            .call_table_function("fetch_items", &input, 10)
+            .unwrap();
+        let output = outputs.next().await.unwrap().unwrap();
+        assert!(outputs.next().await.unwrap().is_none());
+
+        check(
+            &[output],
+            expect![[r#"
+                +-----+-------------+
+                | row | fetch_items |
+                +-----+-------------+
+                | 0   | item1       |
+                | 0   | item2       |
+                | 0   | item3       |
+                | 0   | item4       |
+                +-----+-------------+"#]],
+        );
+
+        mock_page1.assert();
+        mock_page2.assert();
     }
 
     /// Auxiliary function to run a test with a given js code and server url

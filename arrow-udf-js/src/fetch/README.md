@@ -6,7 +6,7 @@ A lightweight implementation of the [Web Fetch API](https://developer.mozilla.or
 
 Before using this module, you need to enable `fetch` in the `Runtime`.
 
-```rust,async
+```rust,ignore
 let runtime = Runtime::new().await.unwrap();
 runtime.enable_fetch();
 ```

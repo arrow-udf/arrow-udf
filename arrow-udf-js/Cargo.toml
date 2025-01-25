@@ -18,7 +18,7 @@ arrow-array.workspace = true
 arrow-buffer.workspace = true
 arrow-schema.workspace = true
 atomic-time = "0.1"
-rquickjs = { version = "0.6", features = ["array-buffer", "parallel", "futures", "macro"] }
+rquickjs = { version = "0.6", features = ["array-buffer", "parallel", "futures", "macro", "loader"] }
 futures-util = "0.3"
 tokio = { version = "1", features = ["time", "test-util", "macros"] }
 reqwest = { version = "0.12", features = ["json"], optional = true }

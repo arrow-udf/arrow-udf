@@ -1,18 +1,25 @@
 use response::Response;
-use rquickjs::prelude::Async;
-use rquickjs::{Class, Ctx, Exception, Module, Result};
+use rquickjs::loader::Bundle;
+use rquickjs::prelude::*;
+use rquickjs::{
+    async_with, embed, AsyncContext, AsyncRuntime, Class, Ctx, Exception, Module, Result,
+};
 
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::check_exception;
+
 mod response;
 
-const FETCH_JS: &str = include_str!("fetch.js");
-const HEADERS_JS: &str = include_str!("headers.js");
+/// The bundled JS modules for the Fetch API. They will be compiled into bytecode at build time.
+static BUNDLE: Bundle = embed! {
+    "headers.js": "src/fetch/headers.js",
+    "fetch.js": "src/fetch/fetch.js",
+};
 
-#[derive(Clone)]
 pub struct SendHttpRequest;
 
 /// Native implementation for `async function send_http_request(method, url, headers, body, timeout_ms)`
@@ -52,6 +59,7 @@ async fn send_http_request<'js>(
 
 impl<'js> rquickjs::IntoJs<'js> for SendHttpRequest {
     fn into_js(self, ctx: &Ctx<'js>) -> Result<rquickjs::Value<'js>> {
+        // Shared client for all requests in this `quickjs` instance.
         let client = Arc::new(reqwest::Client::new());
         rquickjs::Function::new(
             ctx.clone(),
@@ -73,18 +81,22 @@ impl<'js> rquickjs::IntoJs<'js> for SendHttpRequest {
 }
 
 /// Enable fetch API in the given `AsyncContext`.
-pub fn enable_fetch<'js>(ctx: &Ctx<'js>) -> Result<()> {
-    ctx.globals().set("sendHttpRequest", SendHttpRequest)?;
-    Module::declare(ctx.clone(), "headers.js", HEADERS_JS)?;
-    Module::declare(ctx.clone(), "fetch.js", FETCH_JS)?;
-    Module::evaluate(
-        ctx.clone(),
-        "enable_fetch",
-        r"
-        import { fetch, Headers, Request } from 'fetch.js';
-        globalThis.fetch = fetch;
-        globalThis.Headers = Headers;
-        globalThis.Request = Request;",
-    )?;
-    Ok(())
+pub async fn enable_fetch<'js>(rt: &AsyncRuntime, ctx: &AsyncContext) -> anyhow::Result<()> {
+    rt.set_loader(BUNDLE, BUNDLE).await;
+    async_with!(ctx => |ctx| {
+        ctx.globals()
+            .set("sendHttpRequest", SendHttpRequest)
+            .map_err(|e| check_exception(e, &ctx))?;
+        Module::evaluate(
+            ctx.clone(),
+            "enable_fetch",
+            r"
+            import { fetch, Headers, Request } from 'fetch.js';
+            globalThis.fetch = fetch;
+            globalThis.Headers = Headers;
+            globalThis.Request = Request;",
+        ).map_err(|e| check_exception(e, &ctx))?;
+        Ok(())
+    })
+    .await
 }

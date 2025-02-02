@@ -154,3 +154,23 @@ This crate also supports the following [Arrow extension types](https://arrow.apa
 | -------------- | --------------------------- | ---------------------- | ------------- |
 | JSON           | String, Binary, LargeBinary | `arrowudf.json`        | any (parsed by `JSON.parse(string)`) |
 | Decimal        | String                      | `arrowudf.decimal`     | BigDecimal    |
+
+## Fetch API
+
+We provide a [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to allow making HTTP requests from JavaScript UDFs. To use it, you need to enable it in the `Runtime`:
+
+```rust,ignore
+runtime.enable_fetch();
+```
+
+Then you can use the async `fetch()` function in your JavaScript code.
+
+```js
+export async function my_fetch_udf(id) {
+    const response = await fetch("https://api.example.com/" + id);
+    const data = await response.json();
+    return data.value;
+}
+```
+
+See the [README](src/fetch/README.md) of the `fetch` module for more details.

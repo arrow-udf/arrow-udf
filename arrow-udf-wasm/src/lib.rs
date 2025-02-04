@@ -16,15 +16,19 @@
 
 use anyhow::{anyhow, bail, ensure, Context};
 use arrow_array::RecordBatch;
+use arrow_schema::{DataType, Field, IntervalUnit, TimeUnit};
+use into_field::IntoField;
+use itertools::Itertools;
 use ram_file::{RamFile, RamFileRef};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use wasi_common::{sync::WasiCtxBuilder, WasiCtx};
 use wasmtime::*;
 
 #[cfg(feature = "build")]
 pub mod build;
+mod into_field;
 mod ram_file;
 
 /// The WASM UDF runtime.
@@ -34,10 +38,10 @@ pub struct Runtime {
     module: Module,
     /// Configurations.
     config: Config,
-    /// Function names.
-    functions: HashSet<String>,
+    /// Export names of user-defined functions.
+    functions: Arc<HashSet<String>>,
     /// User-defined types.
-    types: HashMap<String, String>,
+    types: Arc<HashMap<String, String>>,
     /// Instance pool.
     instances: Mutex<Vec<Instance>>,
     /// ABI version. (major, minor)
@@ -45,7 +49,7 @@ pub struct Runtime {
 }
 
 /// Configurations.
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct Config {
     /// Memory size limit in bytes.
@@ -54,21 +58,19 @@ pub struct Config {
     pub file_size_limit: Option<usize>,
 }
 
-struct Instance {
-    // extern "C" fn(len: usize, align: usize) -> *mut u8
-    alloc: TypedFunc<(u32, u32), u32>,
-    // extern "C" fn(ptr: *mut u8, len: usize, align: usize)
-    dealloc: TypedFunc<(u32, u32, u32), ()>,
-    // extern "C" fn(iter: *mut RecordBatchIter, out: *mut CSlice)
-    record_batch_iterator_next: TypedFunc<(u32, u32), ()>,
-    // extern "C" fn(iter: *mut RecordBatchIter)
-    record_batch_iterator_drop: TypedFunc<u32, ()>,
-    // extern "C" fn(ptr: *const u8, len: usize, out: *mut CSlice) -> i32
-    functions: HashMap<String, TypedFunc<(u32, u32, u32), i32>>,
-    memory: Memory,
-    store: Store<(WasiCtx, StoreLimits)>,
-    stdout: RamFileRef,
-    stderr: RamFileRef,
+/// Implement `Clone` for `Runtime` so that we can simply `clone` to create a new
+/// runtime for the same WASM binary.
+impl Clone for Runtime {
+    fn clone(&self) -> Self {
+        Self {
+            module: self.module.clone(), // this will share the immutable wasm binary
+            config: self.config,
+            functions: self.functions.clone(),
+            types: self.types.clone(),
+            instances: Default::default(), // just initialize a new instance pool
+            abi_version: self.abi_version,
+        }
+    }
 }
 
 impl Debug for Runtime {
@@ -124,8 +126,8 @@ impl Runtime {
         Ok(Self {
             module,
             config,
-            functions,
-            types,
+            functions: functions.into(),
+            types: types.into(),
             instances: Mutex::new(vec![]),
             abi_version: (major, minor),
         })
@@ -146,7 +148,65 @@ impl Runtime {
         self.abi_version
     }
 
-    /// Given a function signature that inlines struct types, find the function name.
+    /// Find a function by name, argument types and return type.
+    /// The returned [`FunctionHandle`] can be used to call the function.
+    pub fn find_function(
+        &self,
+        name: &str,
+        arg_types: Vec<impl IntoField>,
+        return_type: impl IntoField,
+    ) -> Result<FunctionHandle> {
+        // construct the function signature
+        let args = arg_types
+            .into_iter()
+            .map(|x| x.into_field(""))
+            .collect::<Vec<_>>();
+        let ret = return_type.into_field("");
+        let sig = function_signature_of(name, &args, &ret, false)?;
+        // now find the export name
+        if let Some(export_name) = self.get_function_export_name_by_inlined_signature(&sig) {
+            return Ok(FunctionHandle {
+                export_name: export_name.to_owned(),
+            });
+        }
+        bail!(
+            "function not found in wasm binary: \"{}\"\nHINT: available functions:\n  {}\navailable types:\n  {}",
+            sig,
+            self.functions.iter().join("\n  "),
+            self.types.iter().map(|(k, v)| format!("{k}: {v}")).join("\n  "),
+        )
+    }
+
+    /// Find a table function by name, argument types and return type.
+    /// The returned [`TableFunctionHandle`] can be used to call the table function.
+    pub fn find_table_function(
+        &self,
+        name: &str,
+        arg_types: Vec<impl IntoField>,
+        return_type: impl IntoField,
+    ) -> Result<TableFunctionHandle> {
+        // construct the function signature
+        let args = arg_types
+            .into_iter()
+            .map(|x| x.into_field(""))
+            .collect::<Vec<_>>();
+        let ret = return_type.into_field("");
+        let sig = function_signature_of(name, &args, &ret, true)?;
+        // now find the export name
+        if let Some(export_name) = self.get_function_export_name_by_inlined_signature(&sig) {
+            return Ok(TableFunctionHandle {
+                export_name: export_name.to_owned(),
+            });
+        }
+        bail!(
+            "table function not found in wasm binary: \"{}\"\nHINT: available functions:\n  {}\navailable types:\n  {}",
+            sig,
+            self.functions.iter().join("\n  "),
+            self.types.iter().map(|(k, v)| format!("{k}: {v}")).join("\n  "),
+        )
+    }
+
+    /// Given a function signature that inlines struct types, find the export function name.
     ///
     /// # Example
     ///
@@ -155,7 +215,10 @@ impl Runtime {
     /// input = "keyvalue(string, string) -> struct<key:string,value:string>"
     /// output = "keyvalue(string, string) -> struct KeyValue"
     /// ```
-    pub fn find_function_by_inlined_signature(&self, s: &str) -> Option<&str> {
+    fn get_function_export_name_by_inlined_signature(&self, s: &str) -> Option<&str> {
+        if let Some(f) = self.functions.get(s) {
+            return Some(f);
+        }
         self.functions
             .iter()
             .find(|f| self.inline_types(f) == s)
@@ -185,9 +248,10 @@ impl Runtime {
     }
 
     /// Call a function.
-    pub fn call(&self, name: &str, input: &RecordBatch) -> Result<RecordBatch> {
-        if !self.functions.contains(name) {
-            bail!("function not found: {name}");
+    pub fn call(&self, func: &FunctionHandle, input: &RecordBatch) -> Result<RecordBatch> {
+        let export_name = &func.export_name;
+        if !self.functions.contains(export_name) {
+            bail!("function not found: {export_name}");
         }
 
         // get an instance from the pool, or create a new one if the pool is empty
@@ -198,7 +262,7 @@ impl Runtime {
         };
 
         // call the function
-        let output = instance.call_scalar_function(name, input);
+        let output = instance.call_scalar_function(export_name, input);
 
         // put the instance back to the pool
         if output.is_ok() {
@@ -211,12 +275,14 @@ impl Runtime {
     /// Call a table function.
     pub fn call_table_function<'a>(
         &'a self,
-        name: &'a str,
+        func: &'a TableFunctionHandle,
         input: &'a RecordBatch,
     ) -> Result<impl Iterator<Item = Result<RecordBatch>> + 'a> {
         use genawaiter2::{sync::gen, yield_};
-        if !self.functions.contains(name) {
-            bail!("function not found: {name}");
+
+        let export_name = &func.export_name;
+        if !self.functions.contains(export_name) {
+            bail!("function not found: {export_name}");
         }
 
         // get an instance from the pool, or create a new one if the pool is empty
@@ -228,7 +294,7 @@ impl Runtime {
 
         Ok(gen!({
             // call the function
-            let iter = match instance.call_table_function(name, input) {
+            let iter = match instance.call_table_function(export_name, input) {
                 Ok(iter) => iter,
                 Err(e) => {
                     yield_!(Err(e));
@@ -244,6 +310,31 @@ impl Runtime {
         })
         .into_iter())
     }
+}
+
+pub struct FunctionHandle {
+    export_name: String,
+}
+
+pub struct TableFunctionHandle {
+    export_name: String,
+}
+
+struct Instance {
+    // extern "C" fn(len: usize, align: usize) -> *mut u8
+    alloc: TypedFunc<(u32, u32), u32>,
+    // extern "C" fn(ptr: *mut u8, len: usize, align: usize)
+    dealloc: TypedFunc<(u32, u32, u32), ()>,
+    // extern "C" fn(iter: *mut RecordBatchIter, out: *mut CSlice)
+    record_batch_iterator_next: TypedFunc<(u32, u32), ()>,
+    // extern "C" fn(iter: *mut RecordBatchIter)
+    record_batch_iterator_drop: TypedFunc<u32, ()>,
+    // extern "C" fn(ptr: *const u8, len: usize, out: *mut CSlice) -> i32
+    functions: HashMap<String, TypedFunc<(u32, u32, u32), i32>>,
+    memory: Memory,
+    store: Store<(WasiCtx, StoreLimits)>,
+    stdout: RamFileRef,
+    stderr: RamFileRef,
 }
 
 impl Instance {
@@ -543,4 +634,73 @@ fn decode_record_batch(bytes: &[u8]) -> Result<RecordBatch> {
     let mut reader = arrow_ipc::reader::FileReader::try_new(std::io::Cursor::new(bytes), None)?;
     let batch = reader.next().unwrap()?;
     Ok(batch)
+}
+
+/// Construct the function signature generated by `function` macro.
+fn function_signature_of(
+    name: &str,
+    args: &[Field],
+    ret: &Field,
+    is_table_function: bool,
+) -> Result<String> {
+    let args: Vec<_> = args.iter().map(field_to_typename).try_collect()?;
+    let ret = field_to_typename(ret)?;
+    Ok(format!(
+        "{}({}){}{}",
+        name,
+        args.iter().join(","),
+        if is_table_function { "->>" } else { "->" },
+        ret
+    ))
+}
+
+fn field_to_typename(field: &Field) -> Result<String> {
+    if let Some(ext_typename) = field.metadata().get("ARROW:extension:name") {
+        if let Some(typename) = ext_typename.strip_prefix("arrowudf.") {
+            // cases like "arrowudf.decimal" and "arrowudf.json"
+            return Ok(typename.to_owned());
+        }
+    }
+    let ty = field.data_type();
+    // Convert arrow types to type names in `arrow-udf-macros` according
+    // to `arrow_udf_macros::types::TYPE_MATRIX`.
+    Ok(match ty {
+        DataType::Null => "null".to_owned(),
+        DataType::Boolean => "boolean".to_owned(),
+        DataType::Int8 => "int8".to_owned(),
+        DataType::Int16 => "int16".to_owned(),
+        DataType::Int32 => "int32".to_owned(),
+        DataType::Int64 => "int64".to_owned(),
+        DataType::UInt8 => "uint8".to_owned(),
+        DataType::UInt16 => "uint16".to_owned(),
+        DataType::UInt32 => "uint32".to_owned(),
+        DataType::UInt64 => "uint64".to_owned(),
+        DataType::Float32 => "float32".to_owned(),
+        DataType::Float64 => "float64".to_owned(),
+        DataType::Date32 => "date32".to_owned(),
+        DataType::Time64(TimeUnit::Microsecond) => "time64".to_owned(),
+        DataType::Timestamp(TimeUnit::Microsecond, None) => "timestamp".to_owned(),
+        DataType::Interval(IntervalUnit::MonthDayNano) => "interval".to_owned(),
+        DataType::Utf8 => "string".to_owned(),
+        DataType::Binary => "binary".to_owned(),
+        DataType::LargeUtf8 => "largestring".to_owned(),
+        DataType::LargeBinary => "largebinary".to_owned(),
+        DataType::List(elem) => format!("{}[]", field_to_typename(elem)?),
+        DataType::Struct(fields) => {
+            let fields: Vec<_> = fields
+                .iter()
+                .map(|x| Ok::<_, anyhow::Error>((x.name(), field_to_typename(x)?)))
+                .try_collect()?;
+            format!(
+                "struct<{}>",
+                fields
+                    .iter()
+                    .map(|(name, typename)| format!("{}:{}", name, typename))
+                    .join(",")
+            )
+        }
+        _ => {
+            bail!("unsupported data type: {ty}");
+        }
+    })
 }

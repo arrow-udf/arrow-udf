@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Remove `Runtime::find_function_by_inlined_signature` method.
+- Change the first argument of `Runtime::call` and `Runtime::call_table_function` to the function handle returned by `Runtime::find_function`.
+
+### Added
+
+- Add `Runtime::find_function` method to find UDF function handle by name, argument types and return type.
+
 ## [0.4.1] - 2024-12-24
 
 ### Changed

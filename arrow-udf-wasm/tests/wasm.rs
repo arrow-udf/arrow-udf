@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch, RecordBatchOptions, StringArray};
 use arrow_cast::pretty::pretty_format_batches;
-use arrow_schema::{DataType, Field, Schema};
+use arrow_schema::{DataType, Field, Fields, Schema};
 use arrow_udf_wasm::Runtime;
 use expect_test::{expect, Expect};
 
@@ -36,7 +36,10 @@ fn test_oom() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("oom()->null", &input);
+    let oom = RUNTIME
+        .find_function("oom", Vec::<Field>::new(), DataType::Null)
+        .unwrap();
+    let output = RUNTIME.call(&oom, &input);
     // panic message should be contained in the error message
     assert!(output
         .unwrap_err()
@@ -53,7 +56,10 @@ fn test_sleep() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("sleep(int32)->int32", &input);
+    let sleep = RUNTIME
+        .find_function("sleep", vec![DataType::Int32], DataType::Int32)
+        .unwrap();
+    let output = RUNTIME.call(&sleep, &input);
     output.unwrap_err();
 }
 
@@ -71,7 +77,14 @@ fn test_gcd() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("gcd(int32,int32)->int32", &input).unwrap();
+    let gcd = RUNTIME
+        .find_function(
+            "gcd",
+            vec![DataType::Int32, DataType::Int32],
+            DataType::Int32,
+        )
+        .unwrap();
+    let output = RUNTIME.call(&gcd, &input).unwrap();
     check(
         &[output],
         expect![[r#"
@@ -99,7 +112,14 @@ fn test_division_by_zero() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("div(int32,int32)->int32", &input).unwrap();
+    let div = RUNTIME
+        .find_function(
+            "div",
+            vec![DataType::Int32, DataType::Int32],
+            DataType::Int32,
+        )
+        .unwrap();
+    let output = RUNTIME.call(&div, &input).unwrap();
     check(
         &[output],
         expect![[r#"
@@ -121,7 +141,10 @@ fn test_length() {
     )
     .unwrap();
 
-    let output = RUNTIME.call("length(string)->int32", &input).unwrap();
+    let length = RUNTIME
+        .find_function("length", vec![DataType::Utf8], DataType::Int32)
+        .unwrap();
+    let output = RUNTIME.call(&length, &input).unwrap();
     check(
         &[output],
         expect![[r#"
@@ -142,9 +165,17 @@ fn test_key_value() {
     )
     .unwrap();
 
-    let output = RUNTIME
-        .call("key_value(string)->struct KeyValue", &input)
+    let key_value = RUNTIME
+        .find_function(
+            "key_value",
+            vec![DataType::Utf8],
+            DataType::Struct(Fields::from(vec![
+                Field::new("key", DataType::Utf8, true),
+                Field::new("value", DataType::Utf8, true),
+            ])),
+        )
         .unwrap();
+    let output = RUNTIME.call(&key_value, &input).unwrap();
     check(
         &[output],
         expect![[r#"
@@ -165,9 +196,10 @@ fn test_range() {
     )
     .unwrap();
 
-    let mut iter = RUNTIME
-        .call_table_function("range(int32)->>int32", &input)
+    let range = RUNTIME
+        .find_table_function("range", vec![DataType::Int32], DataType::Int32)
         .unwrap();
+    let mut iter = RUNTIME.call_table_function(&range, &input).unwrap();
     let output = iter.next().unwrap().unwrap();
     check(
         &[output],

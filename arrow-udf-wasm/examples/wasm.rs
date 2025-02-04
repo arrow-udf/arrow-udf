@@ -38,7 +38,14 @@ fn main() {
     )
     .unwrap();
 
-    let output = runtime.call("gcd(int32,int32)->int32", &input).unwrap();
+    let gcd = runtime
+        .find_function(
+            "gcd",
+            vec![DataType::Int32, DataType::Int32],
+            DataType::Int32,
+        )
+        .unwrap();
+    let output = runtime.call(&gcd, &input).unwrap();
     print(&input, &output);
 
     println!("\ncall range");
@@ -49,9 +56,10 @@ fn main() {
     )
     .unwrap();
 
-    let iter = runtime
-        .call_table_function("range(int32)->>int32", &input)
+    let range = runtime
+        .find_table_function("range", vec![DataType::Int32], DataType::Int32)
         .unwrap();
+    let iter = runtime.call_table_function(&range, &input).unwrap();
     for output in iter {
         let output = output.unwrap();
         arrow_cast::pretty::print_batches(std::slice::from_ref(&output)).unwrap();

@@ -14,15 +14,17 @@
 
 use std::{sync::Arc, time::Duration};
 
+use arrow_array::builder::{MapBuilder, StringBuilder};
+use arrow_array::Array;
 use arrow_array::{
     types::*, ArrayRef, BinaryArray, Date32Array, Decimal128Array, Decimal256Array, Int32Array,
-    LargeBinaryArray, LargeStringArray, ListArray, RecordBatch, StringArray, StringViewArray,
-    StructArray, TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
-    TimestampSecondArray,
+    LargeBinaryArray, LargeListArray, LargeStringArray, ListArray, RecordBatch, StringArray,
+    StringViewArray, StructArray, TimestampMicrosecondArray, TimestampMillisecondArray,
+    TimestampNanosecondArray, TimestampSecondArray,
 };
 use arrow_buffer::i256;
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
-use arrow_schema::{DataType, Field, Schema};
+use arrow_schema::{DataType, Field, Fields, Schema};
 use arrow_udf_js::{CallMode, Runtime};
 use expect_test::{expect, Expect};
 use rquickjs::prelude::Async;
@@ -720,6 +722,59 @@ async fn test_typed_array() {
 }
 
 #[tokio::test]
+async fn test_arg_array() {
+    let mut runtime = Runtime::new().await.unwrap();
+
+    runtime
+        .add_function(
+            "from_array",
+            DataType::Int32,
+            CallMode::CalledOnNullInput,
+            r#"
+            export function from_array(x) {
+                if(x == null) {
+                    return null;
+                }
+                if(x.length > 0) {
+                    return x[0];
+                }
+                return null;
+            }
+            "#,
+            false,
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new(
+        "x",
+        DataType::new_list(DataType::Int32, true),
+        true,
+    )]);
+    let arg0 = ListArray::from_iter_primitive::<Int32Type, _, _>([
+        Some([Some(1), Some(2)]),
+        Some([None, Some(3)]),
+        Some([Some(4), Some(5)]),
+        None,
+    ]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("from_array", &input).await.unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +------------+
+        | from_array |
+        +------------+
+        | 1          |
+        |            |
+        | 4          |
+        |            |
+        +------------+"#]],
+    );
+}
+
+#[tokio::test]
 async fn test_return_array() {
     let mut runtime = Runtime::new().await.unwrap();
 
@@ -760,6 +815,59 @@ async fn test_return_array() {
 }
 
 #[tokio::test]
+async fn test_arg_large_array() {
+    let mut runtime = Runtime::new().await.unwrap();
+
+    runtime
+        .add_function(
+            "from_large_array",
+            DataType::Int32,
+            CallMode::CalledOnNullInput,
+            r#"
+            export function from_large_array(x) {
+                if(x == null) {
+                    return null;
+                }
+                if(x.length > 0) {
+                    return x[0];
+                }
+                return null;
+            }
+            "#,
+            false,
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new(
+        "x",
+        DataType::new_large_list(DataType::Int32, true),
+        true,
+    )]);
+    let arg0 = LargeListArray::from_iter_primitive::<Int32Type, _, _>([
+        Some([Some(1), Some(2)]),
+        Some([None, Some(3)]),
+        Some([Some(4), Some(5)]),
+        None,
+    ]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("from_large_array", &input).await.unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +------------------+
+        | from_large_array |
+        +------------------+
+        | 1                |
+        |                  |
+        | 4                |
+        |                  |
+        +------------------+"#]],
+    );
+}
+
+#[tokio::test]
 async fn test_return_large_array() {
     let mut runtime = Runtime::new().await.unwrap();
 
@@ -796,6 +904,117 @@ async fn test_return_large_array() {
         |                |
         | [3, 4, 5]      |
         +----------------+"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_arg_map() {
+    let mut runtime = Runtime::new().await.unwrap();
+
+    runtime
+        .add_function(
+            "from_map",
+            DataType::Utf8,
+            CallMode::CalledOnNullInput,
+            r#"
+            export function from_map(x) {
+                if(x == null) {
+                    return null;
+                }
+                if(x.hasOwnProperty('k')) {
+                    return x['k'];
+                }
+                return null;
+            }
+            "#,
+            false,
+        )
+        .await
+        .unwrap();
+
+    let mut builder =
+        MapBuilder::with_capacity(None, StringBuilder::new(), StringBuilder::new(), 3);
+    builder.keys().append_value("k");
+    builder.values().append_value("v");
+    builder.append(true).unwrap();
+    builder.keys().append_value("k1");
+    builder.values().append_value("v1");
+    builder.keys().append_value("k2");
+    builder.values().append_value("v2");
+    builder.append(true).unwrap();
+    builder.append(false).unwrap();
+    let arg0 = builder.finish();
+
+    let data_type = arg0.data_type().clone();
+    let schema = Schema::new(vec![Field::new("x", data_type, true)]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("from_map", &input).await.unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +----------+
+        | from_map |
+        +----------+
+        | v        |
+        |          |
+        |          |
+        +----------+"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_return_map() {
+    let mut runtime = Runtime::new().await.unwrap();
+
+    runtime
+        .add_function(
+            "to_map",
+            DataType::Map(
+                Arc::new(Field::new(
+                    "entries",
+                    DataType::Struct(Fields::from(vec![
+                        Field::new("keys", DataType::Utf8, true),
+                        Field::new("values", DataType::Utf8, true),
+                    ])),
+                    false,
+                )),
+                false,
+            ),
+            CallMode::CalledOnNullInput,
+            r#"
+            export function to_map(x, y) {
+                if(x == null || y == null) {
+                    return null;
+                }
+                return {k1:x,k2:y};
+            }
+            "#,
+            false,
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![
+        Field::new("x", DataType::Utf8, true),
+        Field::new("y", DataType::Utf8, true),
+    ]);
+    let arg0 = StringArray::from(vec![Some("ab"), None, Some("c")]);
+    let arg1 = StringArray::from(vec![Some("xy"), None, Some("z")]);
+    let input =
+        RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0), Arc::new(arg1)]).unwrap();
+
+    let output = runtime.call("to_map", &input).await.unwrap();
+    check(
+        &[output],
+        expect![[r#"
+        +------------------+
+        | to_map           |
+        +------------------+
+        | {k1: ab, k2: xy} |
+        |                  |
+        | {k1: c, k2: z}   |
+        +------------------+"#]],
     );
 }
 

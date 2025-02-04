@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import *
+from typing import Any, Callable, Dict, Iterator, List, Optional, Union
 import pyarrow as pa
 import pyarrow.flight
 import pyarrow.parquet
@@ -20,7 +20,6 @@ import inspect
 import traceback
 import json
 from concurrent.futures import ThreadPoolExecutor
-import concurrent
 from decimal import Decimal
 import signal
 
@@ -281,7 +280,7 @@ def udf(
     result_type: Union[str, pa.DataType],
     name: Optional[str] = None,
     io_threads: Optional[int] = None,
-) -> Callable:
+) -> Callable[[Callable], UserDefinedScalarFunctionWrapper]:
     """
     Annotation for creating a user-defined scalar function.
 
@@ -323,7 +322,7 @@ def udtf(
     input_types: Union[List[Union[str, pa.DataType]], Union[str, pa.DataType]],
     result_types: Union[List[Union[str, pa.DataType]], Union[str, pa.DataType]],
     name: Optional[str] = None,
-) -> Callable:
+) -> Callable[[Callable], UserDefinedTableFunctionWrapper]:
     """
     Annotation for creating a user-defined table function.
 
@@ -344,7 +343,7 @@ def udtf(
     return lambda f: UserDefinedTableFunctionWrapper(f, input_types, result_types, name)
 
 
-class UdfServer(pa.flight.FlightServerBase):
+class UdfServer(pyarrow.flight.FlightServerBase):
     """
     A server that provides user-defined functions to clients.
 
@@ -372,14 +371,14 @@ class UdfServer(pa.flight.FlightServerBase):
         udf = self._functions[descriptor.path[0].decode("utf-8")]
         return self._make_flight_info(udf)
 
-    def _make_flight_info(self, udf: UserDefinedFunction) -> pa.flight.FlightInfo:
+    def _make_flight_info(self, udf: UserDefinedFunction) -> pyarrow.flight.FlightInfo:
         """Return the flight info of a function."""
         # return the concatenation of input and output schema
         full_schema = pa.schema(list(udf._input_schema) + list(udf._result_schema))
         # we use `total_records` to indicate the number of input arguments
-        return pa.flight.FlightInfo(
+        return pyarrow.flight.FlightInfo(
             schema=full_schema,
-            descriptor=pa.flight.FlightDescriptor.for_path(udf._name),
+            descriptor=pyarrow.flight.FlightDescriptor.for_path(udf._name),
             endpoints=[],
             total_records=len(udf._input_schema),
             total_bytes=0,
@@ -442,7 +441,7 @@ class JsonType(pa.ExtensionType):
         return b""
 
     @classmethod
-    def __arrow_ext_deserialize__(self, storage_type, serialized):
+    def __arrow_ext_deserialize__(cls, storage_type, serialized):
         # return an instance of this subclass given the serialized
         # metadata.
         return JsonType()
@@ -466,7 +465,7 @@ class DecimalType(pa.ExtensionType):
         return b""
 
     @classmethod
-    def __arrow_ext_deserialize__(self, storage_type, serialized):
+    def __arrow_ext_deserialize__(cls, storage_type, serialized):
         # return an instance of this subclass given the serialized
         # metadata.
         return DecimalType()

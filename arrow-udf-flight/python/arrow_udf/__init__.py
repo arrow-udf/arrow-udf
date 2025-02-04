@@ -1,4 +1,4 @@
-# Copyright 2024 RisingWave Labs
+# Copyright 2025 RisingWave Labs
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ class ScalarFunction(UserDefinedFunction):
         yield pa.RecordBatch.from_arrays([array], schema=self._result_schema)
 
 
-def _to_arrow_array(column: List, type: pa.DataType) -> pa.Array:
+def _to_arrow_array(column: List[Any], type: pa.DataType) -> pa.Array:
     """Return a function to convert a list of python objects to an arrow array."""
     if pa.types.is_list(type):
         # flatten the list of lists
@@ -488,7 +488,7 @@ def _to_data_type(t: Union[str, pa.DataType]) -> pa.DataType:
         return t
 
 
-def _string_to_data_type(type: str):
+def _string_to_data_type(type: str) -> pa.DataType:
     """
     Convert a SQL data type string to `pyarrow.DataType`.
     """

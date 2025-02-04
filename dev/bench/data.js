@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1738462091271,
+  "lastUpdate": 1738649831720,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -13037,6 +13037,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 159697,
             "range": "± 1191",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fuyufjh@gmail.com",
+            "name": "Eric Fu",
+            "username": "fuyufjh"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4562678944210da2b3a094a6383f7b9ebe6cc54c",
+          "message": "feat: Fetch API for JavaScript UDF (#102)\n\nSee details in the\r\n[README.md](https://github.com/arrow-udf/arrow-udf/blob/eric/async_js_fetch/arrow-udf-js/src/fetch/README.md).\r\n\r\n\r\nCloses #95.\r\n\r\n> Note that the Fetch API can be implemented on either this project or\r\nRisingWave repo. *I slightly tend to the RisingWave repo because it's\r\nlike a custom extension to JS UDF.*\r\n\r\nI changed my mind because the implementation is tightly coupled with\r\n`rquickjs`, which is supposed to be hidden under the `arrow-udf-js` from\r\nusers. However, I make it both compile-time and runtime feature, so that\r\nthe users don't like can easily opt it out.",
+          "timestamp": "2025-02-04T06:06:46Z",
+          "tree_id": "988b6d2404684779e5abfb00471ced384ee7ca9a",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/4562678944210da2b3a094a6383f7b9ebe6cc54c"
+        },
+        "date": 1738649831229,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3931,
+            "range": "± 20",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4039,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22905,
+            "range": "± 1461",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 213577,
+            "range": "± 2908",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 267195,
+            "range": "± 3042",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 77550,
+            "range": "± 1133",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 383277,
+            "range": "± 19391",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6222285,
+            "range": "± 111545",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1045283,
+            "range": "± 21883",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 703907,
+            "range": "± 10975",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11875244,
+            "range": "± 503186",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 136041,
+            "range": "± 1210",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 159036,
+            "range": "± 23972",
             "unit": "ns/iter"
           }
         ]

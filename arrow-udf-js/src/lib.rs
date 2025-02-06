@@ -28,8 +28,8 @@ use futures_util::{FutureExt, Stream};
 use rquickjs::context::intrinsic::{All, Base};
 pub use rquickjs::runtime::MemoryUsage;
 use rquickjs::{
-    async_with, function::Args, module::Evaluated, AsyncContext, AsyncRuntime, Ctx, FromJs, Module,
-    Object, Persistent, Promise, Value,
+    async_with, function::Args, module::Evaluated, Array as JsArray, AsyncContext, AsyncRuntime,
+    Ctx, FromJs, IteratorJs as _, Module, Object, Persistent, Promise, Value,
 };
 
 pub use self::into_field::IntoField;
@@ -91,7 +91,10 @@ struct Function {
     function: JsFunction,
     return_field: FieldRef,
     mode: CallMode,
+    /// Whether the function is async. An async function would return a Promise.
     is_async: bool,
+    /// Whether the function accepts a batch of records as input.
+    is_batched: bool,
 }
 
 /// A user defined aggregate function.
@@ -104,6 +107,7 @@ struct Aggregate {
     retract: Option<JsFunction>,
     finish: Option<JsFunction>,
     merge: Option<JsFunction>,
+    /// Whether the function is async. An async function would return a Promise.
     is_async: bool,
 }
 
@@ -285,8 +289,9 @@ impl Runtime {
         mode: CallMode,
         code: &str,
         is_async: bool,
+        is_batched: bool,
     ) -> Result<()> {
-        self.add_function_with_handler(name, return_type, mode, code, is_async, name)
+        self.add_function_with_handler(name, return_type, mode, code, is_async, is_batched, name)
             .await
     }
 
@@ -305,6 +310,7 @@ impl Runtime {
         mode: CallMode,
         code: &str,
         is_async: bool,
+        is_batched: bool,
         handler: &str,
     ) -> Result<()> {
         let function = async_with!(self.context => |ctx| {
@@ -320,6 +326,7 @@ impl Runtime {
                 return_field: return_type.into_field(name).into(),
                 mode,
                 is_async,
+                is_batched,
             }) as Result<Function>
         })
         .await?;
@@ -461,40 +468,66 @@ impl Runtime {
 
         async_with!(self.context => |ctx| {
             let js_function = function.function.clone().restore(&ctx)?;
-            let mut results = Vec::with_capacity(input.num_rows());
-            let mut row = Vec::with_capacity(input.num_columns());
 
-            for i in 0..input.num_rows() {
-                row.clear();
+            if !function.is_batched {
+                let mut results = Vec::with_capacity(input.num_rows());
+                let mut row = Vec::with_capacity(input.num_columns());
+                for i in 0..input.num_rows() {
+                    row.clear();
+                    for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+                        let val = self
+                            .converter
+                            .get_jsvalue(&ctx, field, column, i)
+                            .context("failed to get jsvalue from arrow array")?;
+
+                        row.push(val);
+                    }
+                    if function.mode == CallMode::ReturnNullOnNullInput
+                        && row.iter().any(|v| v.is_null())
+                    {
+                        results.push(Value::new_null(ctx.clone()));
+                        continue;
+                    }
+                    let mut args = Args::new(ctx.clone(), row.len());
+                    args.push_args(row.drain(..))?;
+                    let result = self
+                        .call_user_fn(&ctx, &js_function, args, function.is_async)
+                        .await
+                        .context("failed to call function")?;
+                    results.push(result);
+                }
+
+                let array = self
+                    .converter
+                    .build_array(&function.return_field, &ctx, results)
+                    .context("failed to build arrow array from return values")?;
+                let schema = Schema::new(vec![function.return_field.clone()]);
+                Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
+            } else {
+                let mut args = Args::new(ctx.clone(), input.num_columns());
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                    let val = self
-                        .converter
-                        .get_jsvalue(&ctx, field, column, i)
-                        .context("failed to get jsvalue from arrow array")?;
+                    let mut js_values = Vec::with_capacity(input.num_rows());
+                    for i in 0..input.num_rows() {
+                        let val = self
+                            .converter
+                            .get_jsvalue(&ctx, field, column, i)
+                            .context("failed to get jsvalue from arrow array")?;
+                        js_values.push(val);
+                    }
+                    let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
+                    args.push_args(js_array)?;
+                }
 
-                    row.push(val);
-                }
-                if function.mode == CallMode::ReturnNullOnNullInput
-                    && row.iter().any(|v| v.is_null())
-                {
-                    results.push(Value::new_null(ctx.clone()));
-                    continue;
-                }
-                let mut args = Args::new(ctx.clone(), row.len());
-                args.push_args(row.drain(..))?;
                 let result = self
                     .call_user_fn(&ctx, &js_function, args, function.is_async)
                     .await
                     .context("failed to call function")?;
-                results.push(result);
+                let array = self
+                    .converter
+                    .build_array(&function.return_field, &ctx, result)?;
+                let schema = Schema::new(vec![function.return_field.clone()]);
+                Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
             }
-
-            let array = self
-                .converter
-                .build_array(&function.return_field, &ctx, results)
-                .context("failed to build arrow array from return values")?;
-            let schema = Schema::new(vec![function.return_field.clone()]);
-            Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
         })
         .await
     }

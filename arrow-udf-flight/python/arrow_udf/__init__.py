@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, Dict, Iterator, List, Optional, Union
+import datetime
+import decimal
+from functools import partial
+from typing import Any, Callable, Dict, Iterator, List, Optional, TypedDict, Union, cast
 import pyarrow as pa
 import pyarrow.flight
 import pyarrow.parquet
@@ -215,10 +218,10 @@ class UserDefinedScalarFunctionWrapper(ScalarFunction):
         self._input_schema = pa.schema(
             zip(
                 inspect.getfullargspec(func)[0],
-                [_to_data_type(t) for t in _to_list(input_types)],
+                [_to_arrow_type(t) for t in _to_list(input_types)],
             )
         )
-        self._result_schema = pa.schema([(self._name, _to_data_type(result_type))])
+        self._result_schema = pa.schema([(self._name, _to_arrow_type(result_type))])
 
         super().__init__(io_threads=io_threads)
 
@@ -244,7 +247,7 @@ class UserDefinedTableFunctionWrapper(TableFunction):
         self._input_schema = pa.schema(
             zip(
                 inspect.getfullargspec(func)[0],
-                [_to_data_type(t) for t in _to_list(input_types)],
+                [_to_arrow_type(t) for t in _to_list(input_types)],
             )
         )
         self._result_schema = pa.schema(
@@ -253,9 +256,9 @@ class UserDefinedTableFunctionWrapper(TableFunction):
                 (
                     self._name,
                     (
-                        pa.struct([("", _to_data_type(t)) for t in result_types])
+                        pa.struct([("", _to_arrow_type(t)) for t in result_types])
                         if isinstance(result_types, list)
-                        else _to_data_type(result_types)
+                        else _to_arrow_type(result_types)
                     ),
                 ),
             ]
@@ -425,6 +428,77 @@ class UdfServer(pyarrow.flight.FlightServerBase):
         signal.signal(signal.SIGTERM, lambda s, f: self.shutdown())
         super(UdfServer, self).serve()
 
+    def udf[
+        F: Callable[..., Any]
+    ](self, func: Optional[F] = None, *, name: Optional[str] = None) -> F:
+        """_summary_
+
+        Args:
+            func (Callable[..., Any]): _description_
+
+        Raises:
+            ValueError: _description_
+
+        Returns:
+            Callable[..., Any]: _description_
+        """
+
+        def register_udf(name: Optional[str], func: F) -> F:
+            udf_name = name or (
+                func.__name__ if hasattr(func, "__name__") else func.__class__.__name__
+            )
+
+            argspec = inspect.getfullargspec(func)
+
+            fields = []
+            for arg_name, arg_type in argspec.annotations.items():
+                if arg_name == "return":
+                    # skip the return type, we will handle it separately
+                    continue
+                fields.append(pa.field(arg_name, _to_arrow_type(arg_type)))
+
+            assert len(fields) == len(argspec.args)
+            input_schema = pa.schema(fields)
+            print(input_schema)
+
+            if "return" not in argspec.annotations:
+                raise TypeError("Missing return type annotation")
+
+            return_type = argspec.annotations["return"]
+            udf_name = (
+                func.__name__ if hasattr(func, "__name__") else func.__class__.__name__
+            )
+            result_schema = pa.schema([(udf_name, _to_arrow_type(return_type))])
+            print(result_schema)
+
+            return func
+
+        if name is not None:
+            # In this branch, the decorator is used like:
+            #
+            #     @server.udf(name="foo2")
+            #     def foo(x: int) -> int: ...
+            assert func is None
+
+            # Note: `partial(register_udf, name)` is actually not of type `F` but `Callable[[F], F]`,
+            # but here we have to allow the following use case:
+            #
+            #     @server.udf(name="foo")
+            #     def foo(x: int, y: int) -> int: ...
+            #
+            #     def bar(x: int) -> int:
+            #         return foo(x, x)
+            #
+            # We need the correct signature of `foo` to be inferred, which should be `Callable[[int, int], int]`.
+            return cast(F, partial(register_udf, name))
+        else:
+            # In this branch, the decorator is used like:
+            #
+            #     @server.udf
+            #     def foo(x: int) -> int: ...
+            assert func is not None
+            return register_udf(None, func)
+
 
 class JsonScalar(pa.ExtensionScalar):
     def as_py(self):
@@ -478,23 +552,36 @@ pa.register_extension_type(JsonType())
 pa.register_extension_type(DecimalType())
 
 
-def _to_data_type(t: Union[str, pa.DataType]) -> pa.DataType:
+def _to_arrow_type(t: Union[str, pa.DataType, type, Any]) -> pa.DataType:
     """
     Convert a SQL data type string or `pyarrow.DataType` to `pyarrow.DataType`.
     """
-    if isinstance(t, str):
-        return _string_to_data_type(t)
-    else:
+    if isinstance(t, pa.DataType):
         return t
+    elif isinstance(t, str):
+        return _string_to_arrow_type(t)
+    elif hasattr(t, "__metadata__") and isinstance(t.__metadata__[0], pa.DataType):
+        # annotated type
+        return t.__metadata__[0]
+    elif getattr(t, "__orig_bases__", None) == (TypedDict,) and hasattr(
+        t, "__annotations__"
+    ):
+        # struct type
+        return _typed_dict_to_arrow_type(t)
+    elif t in _EASY_TYPE_MAP:
+        # derived from Python type
+        return _EASY_TYPE_MAP[t]
+
+    raise TypeError(f"Unsupported type: {t}")
 
 
-def _string_to_data_type(type: str) -> pa.DataType:
+def _string_to_arrow_type(type: str) -> pa.DataType:
     """
     Convert a SQL data type string to `pyarrow.DataType`.
     """
     t = type.upper()
     if t.endswith("[]"):
-        return pa.list_(_string_to_data_type(type[:-2]))
+        return pa.list_(_string_to_arrow_type(type[:-2]))
     elif t.startswith("STRUCT"):
         # extract 'STRUCT<a:INT, b:VARCHAR, c:STRUCT<d:INT>, ...>'
         type_list = type[7:-1]  # strip "STRUCT<>"
@@ -510,13 +597,13 @@ def _string_to_data_type(type: str) -> pa.DataType:
                 name, t = type_list[start:i].split(":", maxsplit=1)
                 name = name.strip()
                 t = t.strip()
-                fields.append(pa.field(name, _string_to_data_type(t)))
+                fields.append(pa.field(name, _string_to_arrow_type(t)))
                 start = i + 1
         if ":" in type_list[start:].strip():
             name, t = type_list[start:].split(":", maxsplit=1)
             name = name.strip()
             t = t.strip()
-            fields.append(pa.field(name, _string_to_data_type(t)))
+            fields.append(pa.field(name, _string_to_arrow_type(t)))
         return pa.struct(fields)
     elif t in ("NULL"):
         return pa.null()
@@ -570,4 +657,32 @@ def _string_to_data_type(type: str) -> pa.DataType:
     elif t in ("LARGE_BINARY"):
         return pa.large_binary()
 
-    raise ValueError(f"Unsupported type: {t}")
+    raise ValueError(f"Unable to parse Arrow data type from string: {t}")
+
+
+_EASY_TYPE_MAP: Dict[None | type, pa.DataType] = {
+    None: pa.null(),
+    bool: pa.bool_(),
+    int: pa.int32(),
+    float: pa.float32(),
+    decimal.Decimal: DecimalType(),
+    datetime.datetime: pa.timestamp("us"),
+    pa.MonthDayNano: pa.month_day_nano_interval(),
+    str: pa.string(),
+    bytes: pa.binary(),
+}
+"""
+A mapping from Python types to Arrow data types.
+For the Python types in this map, although it may be ambiguous to map to a single Arrow data type,
+we choose the most common one.
+"""
+
+
+def _typed_dict_to_arrow_type(t: type) -> pa.DataType:
+    """
+    Convert a `TypedDict`/`StructType` type to `pyarrow.DataType`.
+    """
+    fields = []
+    for field_name, field_type in t.__annotations__.items():
+        fields.append(pa.field(field_name, _to_arrow_type(field_type)))
+    return pa.struct(fields)

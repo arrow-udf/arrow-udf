@@ -15,10 +15,53 @@
 import socket
 import struct
 import time
-from typing import Iterator, List, Optional, Tuple, Any
+from typing import (
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Any,
+)
 from decimal import Decimal
 
+from arrow_udf.typing import StructType, String, Int32, Json
 from arrow_udf import udf, udtf, UdfServer
+
+server = UdfServer(location="localhost:8815")
+
+
+# TcpInfo = Struct(
+#     "TcpInfo",
+#     {
+#         "src_addr": String,
+#         "dst_addr": String,
+#         "src_port": Int32,
+#         "dst_port": Int32,
+#     },
+# )
+
+
+class TcpInfo(StructType):
+    src_addr: String
+    dst_addr: String
+    src_port: Int32
+    dst_port: Int32
+
+
+@server.udf
+@server.udf(name="foo2")
+def foo(x: Int32, y: Json) -> TcpInfo:
+    return {
+        "dst_addr": "0.0.0.0",
+        "src_addr": "0.0.0.0",
+        "src_port": x,
+        "dst_port": y["foo"],
+    }
+
+
+@server.udf
+def bar(x: Decimal, y: List[List[Json]]) -> TcpInfo:
+    return foo(int(x), y[0][0])
 
 
 @udf(input_types=[], result_type="INT")
@@ -230,7 +273,7 @@ def return_all(
     }
 
 
-if __name__ == "__main__":
+if __name__ == "__main__1":
     server = UdfServer(location="localhost:8815")
     server.add_function(int_42)
     server.add_function(sleep)

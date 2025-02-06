@@ -504,7 +504,7 @@ impl Runtime {
                 let schema = Schema::new(vec![function.return_field.clone()]);
                 Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
             } else {
-                let mut args = Args::new(ctx.clone(), input.num_columns());
+                let mut inputs = Vec::with_capacity(input.num_columns());
                 for (column, field) in input.columns().iter().zip(input.schema().fields()) {
                     let mut js_values = Vec::with_capacity(input.num_rows());
                     for i in 0..input.num_rows() {
@@ -514,14 +514,70 @@ impl Runtime {
                             .context("failed to get jsvalue from arrow array")?;
                         js_values.push(val);
                     }
-                    let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
-                    args.push_args(js_array)?;
+                    inputs.push(js_values);
                 }
 
-                let result = self
-                    .call_user_fn(&ctx, &js_function, args, function.is_async)
-                    .await
-                    .context("failed to call function")?;
+                let result = match function.mode {
+                    CallMode::CalledOnNullInput => {
+                        let mut args = Args::new(ctx.clone(), input.num_columns());
+                        for js_values in inputs {
+                            let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
+                            args.push_args(js_array)?;
+                        }
+                        self
+                            .call_user_fn(&ctx, &js_function, args, function.is_async)
+                            .await
+                            .context("failed to call function")?
+                    }
+                    CallMode::ReturnNullOnNullInput => {
+                        // This is a bit tricky. We build input arrays without nulls, call user_fn on them, and then add back null results to form the final result.
+                        // 1. Build a bitmap of which rows have nulls
+                        let mut bitmap = Vec::with_capacity(input.num_rows());
+                        for i in 0..input.num_rows() {
+                            let contains_null = (0..input.num_columns()).any(|j| inputs[j][i].is_null());
+                            bitmap.push(!contains_null);
+                        }
+                        let new_len = bitmap.iter().filter(|b| **b).count();
+
+                        // 2. Build new inputs with only the rows that don't have nulls
+                        let mut rebuilt_inputs = Vec::with_capacity(input.num_columns());
+                        for mut js_values in inputs {
+                            let mut rebuilt_js_values = Vec::with_capacity(new_len);
+                            for (i, b) in bitmap.iter().enumerate() {
+                                if *b {
+                                    let mut t = Value::new_null(ctx.clone()); // just a placeholder
+                                    std::mem::swap(&mut js_values[i], &mut t);
+                                    rebuilt_js_values.push(t);
+                                }
+                            }
+                            rebuilt_inputs.push(rebuilt_js_values);
+                        }
+
+                        // 3. Call the function on the new inputs
+                        let mut args = Args::new(ctx.clone(), rebuilt_inputs.len());
+                        for js_values in rebuilt_inputs {
+                            let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
+                            args.push_args(js_array)?;
+                        }
+                        let filtered_result: Vec<_> = self
+                            .call_user_fn(&ctx, &js_function, args, function.is_async)
+                            .await
+                            .context("failed to call function")?;
+                        let mut iter = filtered_result.into_iter();
+
+                        // 4. Add back null results to the filtered results
+                        let mut result = Vec::with_capacity(input.num_rows());
+                        for b in bitmap.iter() {
+                            if *b {
+                                result.push(Value::new_null(ctx.clone()));
+                            } else {
+                                let v = iter.next().expect("filtered result length mismatch");
+                                result.push(v);
+                            }
+                        }
+                        result
+                    }
+                };
                 let array = self
                     .converter
                     .build_array(&function.return_field, &ctx, result)?;

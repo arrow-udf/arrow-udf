@@ -580,7 +580,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), filtered_columns.len());
                 for js_values in filtered_columns {
                     let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
-                    args.push_args(js_array)?;
+                    args.push_arg(js_array)?;
                 }
                 let filtered_result: Vec<_> = self
                     .call_user_fn(&ctx, &js_function, args, function.is_async)
@@ -592,12 +592,13 @@ impl Runtime {
                 let mut result = Vec::with_capacity(n_rows);
                 for b in bitmap.iter() {
                     if *b {
-                        result.push(Value::new_null(ctx.clone()));
-                    } else {
                         let v = iter.next().expect("filtered result length mismatch");
                         result.push(v);
+                    } else {
+                        result.push(Value::new_null(ctx.clone()));
                     }
                 }
+                assert!(iter.next().is_none(), "filtered result length mismatch");
                 result
             }
         };

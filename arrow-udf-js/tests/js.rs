@@ -1434,12 +1434,12 @@ async fn test_batched_return_null_on_null_input() {
             DataType::Utf8View,
             CallMode::ReturnNullOnNullInput,
             r#"
-export function echo(x) {
-    return x + "!"
+export function echo(vals) {
+    return vals.map(v => v + "!")
 }
 "#,
             false,
-            false,
+            true,
         )
         .await
         .unwrap();

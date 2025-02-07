@@ -157,22 +157,61 @@ This crate also supports the following [Arrow extension types](https://arrow.apa
 | JSON           | String, Binary, LargeBinary | `arrowudf.json`        | any (parsed by `JSON.parse(string)`) |
 | Decimal        | String                      | `arrowudf.decimal`     | BigDecimal    |
 
-## Fetch API
+## Async Functions and Fetch API
 
-We provide a [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to allow making HTTP requests from JavaScript UDFs. To use it, you need to enable it in the `Runtime`:
+An async function is a JavaScript function that returns a promise. If the function involves IO operations, it's usually more efficient to use async functions.
+
+We provide a [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to allow making HTTP requests from JavaScript UDFs in async way. To use it, you need to enable it in the `Runtime`:
 
 ```rust,ignore
 runtime.enable_fetch();
 ```
 
-Then you can use the async `fetch()` function in your JavaScript code.
+To enable async functions, you need to set the `is_async` flag to `true` when adding the function. Then you can use the async `fetch()` function in your JavaScript code.
 
-```js
+```rust,ignore
+runtime
+    .add_function(
+        "echo",
+        DataType::Utf8View,
+        CallMode::ReturnNullOnNullInput,
+        r#"
 export async function my_fetch_udf(id) {
     const response = await fetch("https://api.example.com/" + id);
     const data = await response.json();
     return data.value;
 }
+"#,
+        true, // set is_async to true
+        false,
+    )
+    .await
+    .unwrap();
 ```
 
 See the [README](src/fetch/README.md) of the `fetch` module for more details.
+
+## Batched Function
+
+When a function is batched, it will be called once for all rows in the input `RecordBatch`. The input arguments will be an array of values.
+
+
+```rust,ignore
+runtime
+    .add_function(
+        "echo",
+        DataType::Utf8View,
+        CallMode::ReturnNullOnNullInput,
+        r#"
+export function echo(vals) {
+    return vals.map(v => v + "!")
+}
+"#,
+        false,
+        true, // set is_batched to true
+    )
+    .await
+    .unwrap();
+```
+
+Currently, table functions can not be batched.

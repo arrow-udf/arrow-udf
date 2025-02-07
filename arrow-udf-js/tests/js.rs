@@ -1473,7 +1473,7 @@ async fn test_batched_called_on_null_input() {
             CallMode::CalledOnNullInput,
             r#"
 export function echo(vals) {
-    return vals.map(v => String(v) + "!")
+    return vals.map(v => v + "!")
 }
 "#,
             false,

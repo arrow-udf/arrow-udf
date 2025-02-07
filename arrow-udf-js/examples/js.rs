@@ -38,6 +38,7 @@ async fn main() {
             }
             "#,
             false,
+            false,
         )
         .await
         .unwrap();
@@ -54,6 +55,7 @@ async fn main() {
                 return fib(x - 1) + fib(x - 2);
             }
             "#,
+            false,
             false,
         )
         .await

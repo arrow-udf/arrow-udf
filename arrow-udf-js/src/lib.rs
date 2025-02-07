@@ -260,6 +260,7 @@ impl Runtime {
     ///         }
     /// "#,
     ///         false,
+    ///         false,
     ///     )
     ///     .await
     ///     .unwrap();
@@ -276,6 +277,7 @@ impl Runtime {
     ///             }
     ///         }
     /// "#,
+    ///         false,
     ///         false,
     ///     )
     ///     .await
@@ -467,125 +469,143 @@ impl Runtime {
         let function = self.functions.get(name).context("function not found")?;
 
         async_with!(self.context => |ctx| {
-            let js_function = function.function.clone().restore(&ctx)?;
-
-            if !function.is_batched {
-                let mut results = Vec::with_capacity(input.num_rows());
-                let mut row = Vec::with_capacity(input.num_columns());
-                for i in 0..input.num_rows() {
-                    row.clear();
-                    for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                        let val = self
-                            .converter
-                            .get_jsvalue(&ctx, field, column, i)
-                            .context("failed to get jsvalue from arrow array")?;
-
-                        row.push(val);
-                    }
-                    if function.mode == CallMode::ReturnNullOnNullInput
-                        && row.iter().any(|v| v.is_null())
-                    {
-                        results.push(Value::new_null(ctx.clone()));
-                        continue;
-                    }
-                    let mut args = Args::new(ctx.clone(), row.len());
-                    args.push_args(row.drain(..))?;
-                    let result = self
-                        .call_user_fn(&ctx, &js_function, args, function.is_async)
-                        .await
-                        .context("failed to call function")?;
-                    results.push(result);
-                }
-
-                let array = self
-                    .converter
-                    .build_array(&function.return_field, &ctx, results)
-                    .context("failed to build arrow array from return values")?;
-                let schema = Schema::new(vec![function.return_field.clone()]);
-                Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
+            if function.is_batched {
+                self.call_batched_function(&ctx, function, input).await
             } else {
-                let mut inputs = Vec::with_capacity(input.num_columns());
-                for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                    let mut js_values = Vec::with_capacity(input.num_rows());
-                    for i in 0..input.num_rows() {
-                        let val = self
-                            .converter
-                            .get_jsvalue(&ctx, field, column, i)
-                            .context("failed to get jsvalue from arrow array")?;
-                        js_values.push(val);
-                    }
-                    inputs.push(js_values);
-                }
-
-                let result = match function.mode {
-                    CallMode::CalledOnNullInput => {
-                        let mut args = Args::new(ctx.clone(), input.num_columns());
-                        for js_values in inputs {
-                            let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
-                            args.push_args(js_array)?;
-                        }
-                        self
-                            .call_user_fn(&ctx, &js_function, args, function.is_async)
-                            .await
-                            .context("failed to call function")?
-                    }
-                    CallMode::ReturnNullOnNullInput => {
-                        // This is a bit tricky. We build input arrays without nulls, call user_fn on them, and then add back null results to form the final result.
-                        // 1. Build a bitmap of which rows have nulls
-                        let mut bitmap = Vec::with_capacity(input.num_rows());
-                        for i in 0..input.num_rows() {
-                            let contains_null = (0..input.num_columns()).any(|j| inputs[j][i].is_null());
-                            bitmap.push(!contains_null);
-                        }
-                        let new_len = bitmap.iter().filter(|b| **b).count();
-
-                        // 2. Build new inputs with only the rows that don't have nulls
-                        let mut rebuilt_inputs = Vec::with_capacity(input.num_columns());
-                        for mut js_values in inputs {
-                            let mut rebuilt_js_values = Vec::with_capacity(new_len);
-                            for (i, b) in bitmap.iter().enumerate() {
-                                if *b {
-                                    let mut t = Value::new_null(ctx.clone()); // just a placeholder
-                                    std::mem::swap(&mut js_values[i], &mut t);
-                                    rebuilt_js_values.push(t);
-                                }
-                            }
-                            rebuilt_inputs.push(rebuilt_js_values);
-                        }
-
-                        // 3. Call the function on the new inputs
-                        let mut args = Args::new(ctx.clone(), rebuilt_inputs.len());
-                        for js_values in rebuilt_inputs {
-                            let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
-                            args.push_args(js_array)?;
-                        }
-                        let filtered_result: Vec<_> = self
-                            .call_user_fn(&ctx, &js_function, args, function.is_async)
-                            .await
-                            .context("failed to call function")?;
-                        let mut iter = filtered_result.into_iter();
-
-                        // 4. Add back null results to the filtered results
-                        let mut result = Vec::with_capacity(input.num_rows());
-                        for b in bitmap.iter() {
-                            if *b {
-                                result.push(Value::new_null(ctx.clone()));
-                            } else {
-                                let v = iter.next().expect("filtered result length mismatch");
-                                result.push(v);
-                            }
-                        }
-                        result
-                    }
-                };
-                let array = self
-                    .converter
-                    .build_array(&function.return_field, &ctx, result)?;
-                let schema = Schema::new(vec![function.return_field.clone()]);
-                Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
+                self.call_non_batched_function(&ctx, function, input).await
             }
         })
         .await
+    }
+
+    async fn call_non_batched_function(
+        &self,
+        ctx: &Ctx<'_>,
+        function: &Function,
+        input: &RecordBatch,
+    ) -> Result<RecordBatch> {
+        let js_function = function.function.clone().restore(&ctx)?;
+
+        let mut results = Vec::with_capacity(input.num_rows());
+        let mut row = Vec::with_capacity(input.num_columns());
+        for i in 0..input.num_rows() {
+            row.clear();
+            for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+                let val = self
+                    .converter
+                    .get_jsvalue(&ctx, field, column, i)
+                    .context("failed to get jsvalue from arrow array")?;
+
+                row.push(val);
+            }
+            if function.mode == CallMode::ReturnNullOnNullInput && row.iter().any(|v| v.is_null()) {
+                results.push(Value::new_null(ctx.clone()));
+                continue;
+            }
+            let mut args = Args::new(ctx.clone(), row.len());
+            args.push_args(row.drain(..))?;
+            let result = self
+                .call_user_fn(&ctx, &js_function, args, function.is_async)
+                .await
+                .context("failed to call function")?;
+            results.push(result);
+        }
+
+        let array = self
+            .converter
+            .build_array(&function.return_field, &ctx, results)
+            .context("failed to build arrow array from return values")?;
+        let schema = Schema::new(vec![function.return_field.clone()]);
+        Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
+    }
+
+    async fn call_batched_function(
+        &self,
+        ctx: &Ctx<'_>,
+        function: &Function,
+        input: &RecordBatch,
+    ) -> Result<RecordBatch> {
+        let js_function = function.function.clone().restore(&ctx)?;
+
+        let mut js_columns = Vec::with_capacity(input.num_columns());
+        for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+            let mut js_values = Vec::with_capacity(input.num_rows());
+            for i in 0..input.num_rows() {
+                let val = self
+                    .converter
+                    .get_jsvalue(&ctx, field, column, i)
+                    .context("failed to get jsvalue from arrow array")?;
+                js_values.push(val);
+            }
+            js_columns.push(js_values);
+        }
+
+        let result = match function.mode {
+            CallMode::CalledOnNullInput => {
+                let mut args = Args::new(ctx.clone(), input.num_columns());
+                for js_values in js_columns {
+                    let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
+                    args.push_arg(js_array)?;
+                }
+                self.call_user_fn(&ctx, &js_function, args, function.is_async)
+                    .await
+                    .context("failed to call function")?
+            }
+            CallMode::ReturnNullOnNullInput => {
+                // This is a bit tricky. We build input arrays without nulls, call user_fn on them,
+                // and then add back null results to form the final result.
+                let n_cols = input.num_columns();
+                let n_rows = input.num_rows();
+
+                // 1. Build a bitmap of which rows have nulls
+                let mut bitmap = Vec::with_capacity(n_rows);
+                for i in 0..n_rows {
+                    let contains_null = (0..n_cols).any(|j| js_columns[j][i].is_null());
+                    bitmap.push(!contains_null);
+                }
+
+                // 2. Build new inputs with only the rows that don't have nulls
+                let mut filtered_columns = Vec::with_capacity(n_cols);
+                for js_values in js_columns {
+                    let filtered_js_values: Vec<_> = js_values
+                        .into_iter()
+                        .zip(bitmap.iter())
+                        .filter(|(_, b)| **b)
+                        .map(|(v, _)| v)
+                        .collect();
+                    filtered_columns.push(filtered_js_values);
+                }
+
+                // 3. Call the function on the new inputs
+                let mut args = Args::new(ctx.clone(), filtered_columns.len());
+                for js_values in filtered_columns {
+                    let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
+                    args.push_args(js_array)?;
+                }
+                let filtered_result: Vec<_> = self
+                    .call_user_fn(&ctx, &js_function, args, function.is_async)
+                    .await
+                    .context("failed to call function")?;
+                let mut iter = filtered_result.into_iter();
+
+                // 4. Add back null results to the filtered results
+                let mut result = Vec::with_capacity(n_rows);
+                for b in bitmap.iter() {
+                    if *b {
+                        result.push(Value::new_null(ctx.clone()));
+                    } else {
+                        let v = iter.next().expect("filtered result length mismatch");
+                        result.push(v);
+                    }
+                }
+                result
+            }
+        };
+        let array = self
+            .converter
+            .build_array(&function.return_field, &ctx, result)?;
+        let schema = Schema::new(vec![function.return_field.clone()]);
+        Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
     }
 
     /// Call a table function.
@@ -624,6 +644,9 @@ impl Runtime {
     ) -> Result<RecordBatchIter<'a>> {
         assert!(chunk_size > 0);
         let function = self.functions.get(name).context("function not found")?;
+        if function.is_batched {
+            bail!("table function does not support batched mode");
+        }
 
         // initial state
         Ok(RecordBatchIter {

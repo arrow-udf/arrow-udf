@@ -1426,6 +1426,82 @@ export function echo(x) {
 }
 
 #[tokio::test]
+async fn test_batched_return_null_on_null_input() {
+    let mut runtime = Runtime::new().await.unwrap();
+    runtime
+        .add_function(
+            "echo",
+            DataType::Utf8View,
+            CallMode::ReturnNullOnNullInput,
+            r#"
+export function echo(x) {
+    return x + "!"
+}
+"#,
+            false,
+            false,
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8View, true)]);
+    let arg0 = StringViewArray::from(vec![Some("hello"), None, Some("world")]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("echo", &input).await.unwrap();
+
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | echo   |
+        +--------+
+        | hello! |
+        |        |
+        | world! |
+        +--------+"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_batched_called_on_null_input() {
+    let mut runtime = Runtime::new().await.unwrap();
+    runtime
+        .add_function(
+            "echo",
+            DataType::Utf8View,
+            CallMode::CalledOnNullInput,
+            r#"
+export function echo(vals) {
+    return vals.map(v => String(v) + "!")
+}
+"#,
+            false,
+            true,
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8View, true)]);
+    let arg0 = StringViewArray::from(vec![Some("hello"), None, Some("world")]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("echo", &input).await.unwrap();
+
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | echo   |
+        +--------+
+        | hello! |
+        | null!  |
+        | world! |
+        +--------+"#]],
+    );
+}
+
+#[tokio::test]
 async fn test_async_echo() {
     let mut runtime = Runtime::new().await.unwrap();
     runtime

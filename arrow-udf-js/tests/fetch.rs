@@ -115,6 +115,7 @@ async fn test_fetch_in_udf() {
             CallMode::CalledOnNullInput,
             &js_code,
             true,
+            false,
         )
         .await
         .unwrap();
@@ -354,7 +355,8 @@ async fn test_fetch_in_udtf() {
             DataType::Utf8,
             CallMode::ReturnNullOnNullInput,
             &js_code,
-            true, // is_async
+            true,
+            false,
         )
         .await
         .unwrap();

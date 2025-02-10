@@ -163,11 +163,6 @@ impl Default for FunctionOptions {
 }
 
 impl FunctionOptions {
-    /// Creates a new `FunctionOptions` with default values.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     /// Sets the function to return null when some of its arguments are null.
     /// See [`CallMode`] for more details.
     pub fn return_null_on_null_input(mut self) -> Self {
@@ -295,7 +290,7 @@ impl Runtime {
     ///     .add_function(
     ///         "gcd",
     ///         DataType::Int32,
-    ///         FunctionOptions::new().return_null_on_null_input(),
+    ///         FunctionOptions::default().return_null_on_null_input(),
     ///         r#"
     ///         export function gcd(a, b) {
     ///             while (b != 0) {
@@ -314,7 +309,7 @@ impl Runtime {
     ///     .add_function(
     ///         "series",
     ///         DataType::Int32,
-    ///         FunctionOptions::new().return_null_on_null_input(),
+    ///         FunctionOptions::default().return_null_on_null_input(),
     ///         r#"
     ///         export function* series(n) {
     ///             for (let i = 0; i < n; i++) {

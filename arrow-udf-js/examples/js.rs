@@ -26,7 +26,7 @@ async fn main() {
         .add_function(
             "gcd",
             DataType::Int32,
-            FunctionOptions::new().return_null_on_null_input(),
+            FunctionOptions::default().return_null_on_null_input(),
             r#"
             export function gcd(a, b) {
                 while (b != 0) {
@@ -45,7 +45,7 @@ async fn main() {
         .add_function(
             "fib",
             DataType::Int32,
-            FunctionOptions::new().return_null_on_null_input(),
+            FunctionOptions::default().return_null_on_null_input(),
             r#"
             export function fib(x) {
                 if (x <= 1) 

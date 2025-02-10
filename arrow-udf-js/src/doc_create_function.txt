@@ -8,7 +8,7 @@
 #     .add_function(
 #         "gcd",
 #         DataType::Int32,
-#         FunctionOptions::new().return_null_on_null_input(),
+#         FunctionOptions::default().return_null_on_null_input(),
 #         r#"
 #         export function gcd(a, b) {
 #             while (b != 0) {
@@ -26,7 +26,7 @@
 #     .add_function(
 #         "series",
 #         DataType::Int32,
-#         FunctionOptions::new().return_null_on_null_input(),
+#         FunctionOptions::default().return_null_on_null_input(),
 #         r#"
 #         export function* series(n) {
 #             for (let i = 0; i < n; i++) {

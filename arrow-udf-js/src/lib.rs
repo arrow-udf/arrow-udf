@@ -97,14 +97,12 @@ struct Function {
 struct Aggregate {
     state_field: FieldRef,
     output_field: FieldRef,
-    mode: CallMode,
     create_state: JsFunction,
     accumulate: JsFunction,
     retract: Option<JsFunction>,
     finish: Option<JsFunction>,
     merge: Option<JsFunction>,
-    /// Whether the function is async. An async function would return a Promise.
-    is_async: bool,
+    options: AggregateOptions,
 }
 
 // This is required to pass `Function` and `Aggregate` from `async_with!` to outside.
@@ -474,13 +472,12 @@ impl Runtime {
             Ok(Aggregate {
                 state_field: state_type.into_field(name).into(),
                 output_field: output_type.into_field(name).into(),
-                mode: options.call_mode,
                 create_state: Self::get_function(&ctx, &module, "create_state")?,
                 accumulate: Self::get_function(&ctx, &module, "accumulate")?,
                 retract: Self::get_function(&ctx, &module, "retract").ok(),
                 finish: Self::get_function(&ctx, &module, "finish").ok(),
                 merge: Self::get_function(&ctx, &module, "merge").ok(),
-                is_async: options.is_async,
+                options,
             }) as Result<Aggregate>
         })
         .await?;
@@ -731,7 +728,7 @@ impl Runtime {
         let state = async_with!(self.context => |ctx| {
             let create_state = aggregate.create_state.clone().restore(&ctx)?;
             let state = self
-                .call_user_fn(&ctx, &create_state, Args::new(ctx.clone(), 0), aggregate.is_async)
+                .call_user_fn(&ctx, &create_state, Args::new(ctx.clone(), 0), aggregate.options.is_async)
                 .await
                 .context("failed to call create_state")?;
             let state = self
@@ -775,7 +772,7 @@ impl Runtime {
 
             let mut row = Vec::with_capacity(1 + input.num_columns());
             for i in 0..input.num_rows() {
-                if aggregate.mode == CallMode::ReturnNullOnNullInput
+                if aggregate.options.call_mode == CallMode::ReturnNullOnNullInput
                     && input.columns().iter().any(|column| column.is_null(i))
                 {
                     continue;
@@ -789,7 +786,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), row.len());
                 args.push_args(row.drain(..))?;
                 state = self
-                    .call_user_fn(&ctx, &accumulate, args, aggregate.is_async)
+                    .call_user_fn(&ctx, &accumulate, args, aggregate.options.is_async)
                     .await
                     .context("failed to call accumulate")?;
             }
@@ -845,7 +842,7 @@ impl Runtime {
 
         let mut row = Vec::with_capacity(1 + input.num_columns());
         for i in 0..input.num_rows() {
-            if aggregate.mode == CallMode::ReturnNullOnNullInput
+            if aggregate.options.call_mode == CallMode::ReturnNullOnNullInput
                 && input.columns().iter().any(|column| column.is_null(i))
             {
                 continue;
@@ -864,7 +861,7 @@ impl Runtime {
             let mut args = Args::new(ctx.clone(), row.len());
             args.push_args(row.drain(..))?;
             state = self
-                .call_user_fn(&ctx, func, args, aggregate.is_async)
+                .call_user_fn(&ctx, func, args, aggregate.options.is_async)
                 .await
                 .context("failed to call accumulate or retract")?;
         }
@@ -901,7 +898,7 @@ impl Runtime {
                 .converter
                 .get_jsvalue(&ctx, &aggregate.state_field, states, 0)?;
             for i in 1..states.len() {
-                if aggregate.mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
+                if aggregate.options.call_mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
                     continue;
                 }
                 let state2 = self
@@ -910,7 +907,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), 2);
                 args.push_args([state, state2])?;
                 state = self
-                    .call_user_fn(&ctx, &merge, args, aggregate.is_async)
+                    .call_user_fn(&ctx, &merge, args, aggregate.options.is_async)
                     .await
                     .context("failed to call accumulate or retract")?;
             }
@@ -946,7 +943,7 @@ impl Runtime {
             let finish = aggregate.finish.clone().unwrap().restore(&ctx)?;
             let mut results = Vec::with_capacity(states.len());
             for i in 0..states.len() {
-                if aggregate.mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
+                if aggregate.options.call_mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
                     results.push(Value::new_null(ctx.clone()));
                     continue;
                 }
@@ -956,7 +953,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), 1);
                 args.push_args([state])?;
                 let result = self
-                    .call_user_fn(&ctx, &finish, args, aggregate.is_async)
+                    .call_user_fn(&ctx, &finish, args, aggregate.options.is_async)
                     .await
                     .context("failed to call finish")?;
                 results.push(result);

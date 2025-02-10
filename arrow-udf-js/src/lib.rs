@@ -90,11 +90,7 @@ impl Debug for Runtime {
 struct Function {
     function: JsFunction,
     return_field: FieldRef,
-    mode: CallMode,
-    /// Whether the function is async. An async function would return a Promise.
-    is_async: bool,
-    /// Whether the function accepts a batch of records as input.
-    is_batched: bool,
+    options: FunctionOptions,
 }
 
 /// A user defined aggregate function.
@@ -360,9 +356,7 @@ impl Runtime {
             Ok(Function {
                 function,
                 return_field: return_type.into_field(name).into(),
-                mode: options.call_mode,
-                is_async: options.is_async,
-                is_batched: options.is_batched,
+                options,
             }) as Result<Function>
         })
         .await?;
@@ -503,7 +497,7 @@ impl Runtime {
         let function = self.functions.get(name).context("function not found")?;
 
         async_with!(self.context => |ctx| {
-            if function.is_batched {
+            if function.options.is_batched {
                 self.call_batched_function(&ctx, function, input).await
             } else {
                 self.call_non_batched_function(&ctx, function, input).await
@@ -532,14 +526,16 @@ impl Runtime {
 
                 row.push(val);
             }
-            if function.mode == CallMode::ReturnNullOnNullInput && row.iter().any(|v| v.is_null()) {
+            if function.options.call_mode == CallMode::ReturnNullOnNullInput
+                && row.iter().any(|v| v.is_null())
+            {
                 results.push(Value::new_null(ctx.clone()));
                 continue;
             }
             let mut args = Args::new(ctx.clone(), row.len());
             args.push_args(row.drain(..))?;
             let result = self
-                .call_user_fn(&ctx, &js_function, args, function.is_async)
+                .call_user_fn(&ctx, &js_function, args, function.options.is_async)
                 .await
                 .context("failed to call function")?;
             results.push(result);
@@ -574,14 +570,14 @@ impl Runtime {
             js_columns.push(js_values);
         }
 
-        let result = match function.mode {
+        let result = match function.options.call_mode {
             CallMode::CalledOnNullInput => {
                 let mut args = Args::new(ctx.clone(), input.num_columns());
                 for js_values in js_columns {
                     let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
                     args.push_arg(js_array)?;
                 }
-                self.call_user_fn(&ctx, &js_function, args, function.is_async)
+                self.call_user_fn(&ctx, &js_function, args, function.options.is_async)
                     .await
                     .context("failed to call function")?
             }
@@ -617,7 +613,7 @@ impl Runtime {
                     args.push_arg(js_array)?;
                 }
                 let filtered_result: Vec<_> = self
-                    .call_user_fn(&ctx, &js_function, args, function.is_async)
+                    .call_user_fn(&ctx, &js_function, args, function.options.is_async)
                     .await
                     .context("failed to call function")?;
                 let mut iter = filtered_result.into_iter();
@@ -679,7 +675,7 @@ impl Runtime {
     ) -> Result<RecordBatchIter<'a>> {
         assert!(chunk_size > 0);
         let function = self.functions.get(name).context("function not found")?;
-        if function.is_batched {
+        if function.options.is_batched {
             bail!("table function does not support batched mode");
         }
 
@@ -1082,7 +1078,7 @@ impl RecordBatchIter<'_> {
                             .context("failed to get jsvalue from arrow array")?;
                         row.push(val);
                     }
-                    if self.function.mode == CallMode::ReturnNullOnNullInput
+                    if self.function.options.call_mode == CallMode::ReturnNullOnNullInput
                         && row.iter().any(|v| v.is_null())
                     {
                         self.row += 1;
@@ -1107,7 +1103,7 @@ impl RecordBatchIter<'_> {
                 args.this(gen.clone())?;
                 let object: Object = self
                     .rt
-                    .call_user_fn(&ctx, next, args, self.function.is_async).await
+                    .call_user_fn(&ctx, next, args, self.function.options.is_async).await
                     .context("failed to call next")?;
                 let value: Value = object.get("value")?;
                 let done: bool = object.get("done")?;

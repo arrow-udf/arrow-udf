@@ -23,7 +23,6 @@ runtime
     .add_function(
         "gcd",
         arrow_schema::DataType::Int32,
-        CallMode::ReturnNullOnNullInput,
         r#"
         export function gcd(a, b) {
             while (b != 0) {
@@ -34,8 +33,7 @@ runtime
             return a;
         }
         "#,
-        false,
-        false,
+        FunctionOptions::default().return_null_on_null_input(),
     )
     .await?;
 ```
@@ -174,7 +172,6 @@ runtime
     .add_function(
         "echo",
         DataType::Utf8View,
-        CallMode::ReturnNullOnNullInput,
         r#"
 export async function my_fetch_udf(id) {
     const response = await fetch("https://api.example.com/" + id);
@@ -182,8 +179,7 @@ export async function my_fetch_udf(id) {
     return data.value;
 }
 "#,
-        true, // set is_async to true
-        false,
+        FunctionOptions::default().return_null_on_null_input().async_mode(),
     )
     .await
     .unwrap();

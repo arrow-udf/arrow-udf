@@ -138,7 +138,7 @@ pub enum CallMode {
 }
 
 /// Options for configuring user-defined functions.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct FunctionOptions {
     /// Whether the function will be called when some of its arguments are null.
     pub call_mode: CallMode,
@@ -146,6 +146,9 @@ pub struct FunctionOptions {
     pub is_async: bool,
     /// Whether the function accepts a batch of records as input.
     pub is_batched: bool,
+    /// The name of the function in JavaScript code to be called.
+    /// If not set, the function name will be used.
+    pub handler: Option<String>,
 }
 
 impl Default for FunctionOptions {
@@ -154,6 +157,7 @@ impl Default for FunctionOptions {
             call_mode: CallMode::default(),
             is_async: false,
             is_batched: false,
+            handler: None,
         }
     }
 }
@@ -175,6 +179,12 @@ impl FunctionOptions {
     /// Sets the function to accept a batch of records as input.
     pub fn batched(mut self) -> Self {
         self.is_batched = true;
+        self
+    }
+
+    /// Sets the name of the function in JavaScript code to be called.
+    pub fn handler(mut self, handler: impl Into<String>) -> Self {
+        self.handler = Some(handler.into());
         self
     }
 }
@@ -286,7 +296,6 @@ impl Runtime {
     ///     .add_function(
     ///         "gcd",
     ///         DataType::Int32,
-    ///         FunctionOptions::default().return_null_on_null_input(),
     ///         r#"
     ///         export function gcd(a, b) {
     ///             while (b != 0) {
@@ -297,6 +306,7 @@ impl Runtime {
     ///             return a;
     ///         }
     /// "#,
+    ///         FunctionOptions::default().return_null_on_null_input(),
     ///     )
     ///     .await
     ///     .unwrap();
@@ -305,7 +315,6 @@ impl Runtime {
     ///     .add_function(
     ///         "series",
     ///         DataType::Int32,
-    ///         FunctionOptions::default().return_null_on_null_input(),
     ///         r#"
     ///         export function* series(n) {
     ///             for (let i = 0; i < n; i++) {
@@ -313,6 +322,7 @@ impl Runtime {
     ///             }
     ///         }
     /// "#,
+    ///         FunctionOptions::default().return_null_on_null_input(),
     ///     )
     ///     .await
     ///     .unwrap();
@@ -322,28 +332,8 @@ impl Runtime {
         &mut self,
         name: &str,
         return_type: impl IntoField + Send,
-        options: FunctionOptions,
         code: &str,
-    ) -> Result<()> {
-        self.add_function_with_handler(name, return_type, options, code, name)
-            .await
-    }
-
-    /// Add a new scalar function or table function with custom handler name.
-    ///
-    /// # Arguments
-    ///
-    /// - `handler`: The name of function in Python code to be called.
-    /// - others: Same as [`add_function`].
-    ///
-    /// [`add_function`]: Runtime::add_function
-    pub async fn add_function_with_handler(
-        &mut self,
-        name: &str,
-        return_type: impl IntoField + Send,
         options: FunctionOptions,
-        code: &str,
-        handler: &str,
     ) -> Result<()> {
         let function = async_with!(self.context => |ctx| {
             let (module, _) = Module::declare(ctx.clone(), name, code)
@@ -352,7 +342,7 @@ impl Runtime {
                 .eval()
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to evaluate module")?;
-            let function = Self::get_function(&ctx, &module, handler)?;
+            let function = Self::get_function(&ctx, &module, options.handler.as_deref().unwrap_or(name))?;
             Ok(Function {
                 function,
                 return_field: return_type.into_field(name).into(),

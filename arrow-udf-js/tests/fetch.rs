@@ -112,8 +112,8 @@ async fn test_fetch_in_udf() {
         .add_function(
             "test_fetch",
             DataType::Utf8,
-            FunctionOptions::default().async_mode(),
             &js_code,
+            FunctionOptions::default().async_mode(),
         )
         .await
         .unwrap();
@@ -351,10 +351,10 @@ async fn test_fetch_in_udtf() {
         .add_function(
             "fetch_items",
             DataType::Utf8,
+            &js_code,
             FunctionOptions::default()
                 .return_null_on_null_input()
                 .async_mode(),
-            &js_code,
         )
         .await
         .unwrap();

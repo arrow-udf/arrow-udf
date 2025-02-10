@@ -26,7 +26,6 @@ async fn main() {
         .add_function(
             "gcd",
             DataType::Int32,
-            FunctionOptions::default().return_null_on_null_input(),
             r#"
             export function gcd(a, b) {
                 while (b != 0) {
@@ -37,6 +36,7 @@ async fn main() {
                 return a;
             }
             "#,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -45,7 +45,6 @@ async fn main() {
         .add_function(
             "fib",
             DataType::Int32,
-            FunctionOptions::default().return_null_on_null_input(),
             r#"
             export function fib(x) {
                 if (x <= 1) 
@@ -53,6 +52,7 @@ async fn main() {
                 return fib(x - 1) + fib(x - 2);
             }
             "#,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();

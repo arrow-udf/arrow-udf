@@ -19,7 +19,7 @@ use std::sync::Arc;
 use arrow_array::{ArrayRef, Int32Array, RecordBatch};
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_js::{CallMode, FunctionOptions, Runtime};
+use arrow_udf_js::{AggregateOptions, FunctionOptions, Runtime};
 use expect_test::{expect, Expect};
 use mockito::Server;
 use rquickjs::{async_with, AsyncContext};
@@ -235,9 +235,10 @@ async fn test_fetch_in_udaf() {
             "fetch_agg",
             DataType::Int32, // state type
             DataType::Int32, // output type
-            CallMode::ReturnNullOnNullInput,
             &js_code,
-            true, // is_async
+            AggregateOptions::default()
+                .return_null_on_null_input()
+                .async_mode(),
         )
         .await
         .unwrap();

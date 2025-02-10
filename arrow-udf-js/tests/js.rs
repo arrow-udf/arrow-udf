@@ -25,7 +25,7 @@ use arrow_array::{
 use arrow_buffer::i256;
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Fields, Schema};
-use arrow_udf_js::{CallMode, FunctionOptions, Runtime};
+use arrow_udf_js::{AggregateOptions, FunctionOptions, Runtime};
 use expect_test::{expect, Expect};
 use rquickjs::prelude::Async;
 use rquickjs::{async_with, Function};
@@ -1154,7 +1154,6 @@ async fn test_weighted_avg() {
                 .into(),
             ),
             DataType::Float32,
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function create_state() {
                 return {sum: 0, weight: 0};
@@ -1178,7 +1177,7 @@ async fn test_weighted_avg() {
                 return state.sum / state.weight;
             }
 "#,
-            false,
+            AggregateOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();

@@ -189,6 +189,39 @@ impl FunctionOptions {
     }
 }
 
+/// Options for configuring user-defined aggregate functions.
+#[derive(Debug, Clone)]
+pub struct AggregateOptions {
+    /// Whether the function will be called when some of its arguments are null.
+    pub call_mode: CallMode,
+    /// Whether the function is async. An async function would return a Promise.
+    pub is_async: bool,
+}
+
+impl Default for AggregateOptions {
+    fn default() -> Self {
+        Self {
+            call_mode: CallMode::default(),
+            is_async: false,
+        }
+    }
+}
+
+impl AggregateOptions {
+    /// Sets the function to return null when some of its arguments are null.
+    /// See [`CallMode`] for more details.
+    pub fn return_null_on_null_input(mut self) -> Self {
+        self.call_mode = CallMode::ReturnNullOnNullInput;
+        self
+    }
+
+    /// Marks the function to be async JS function.
+    pub fn async_mode(mut self) -> Self {
+        self.is_async = true;
+        self
+    }
+}
+
 impl Runtime {
     /// Create a new `Runtime`.
     ///
@@ -394,7 +427,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
-    /// # use arrow_udf_js::{Runtime, CallMode};
+    /// # use arrow_udf_js::{AggregateOptions, Runtime};
     /// # use arrow_schema::DataType;
     /// # tokio_test::block_on(async {
     /// let mut runtime = Runtime::new().await.unwrap();
@@ -403,7 +436,6 @@ impl Runtime {
     ///         "sum",
     ///         DataType::Int32, // state_type
     ///         DataType::Int32, // output_type
-    ///         CallMode::ReturnNullOnNullInput,
     ///         r#"
     ///         export function create_state() {
     ///             return 0;
@@ -418,7 +450,7 @@ impl Runtime {
     ///             return state1 + state2;
     ///         }
     ///         "#,
-    ///         false,
+    ///         AggregateOptions::default().return_null_on_null_input(),
     ///     )
     ///     .await
     ///     .unwrap();
@@ -429,9 +461,8 @@ impl Runtime {
         name: &str,
         state_type: impl IntoField + Send,
         output_type: impl IntoField + Send,
-        mode: CallMode,
         code: &str,
-        is_async: bool,
+        options: AggregateOptions,
     ) -> Result<()> {
         let aggregate = async_with!(self.context => |ctx| {
             let (module, _) = Module::declare(ctx.clone(), name, code)
@@ -443,13 +474,13 @@ impl Runtime {
             Ok(Aggregate {
                 state_field: state_type.into_field(name).into(),
                 output_field: output_type.into_field(name).into(),
-                mode,
+                mode: options.call_mode,
                 create_state: Self::get_function(&ctx, &module, "create_state")?,
                 accumulate: Self::get_function(&ctx, &module, "accumulate")?,
                 retract: Self::get_function(&ctx, &module, "retract").ok(),
                 finish: Self::get_function(&ctx, &module, "finish").ok(),
                 merge: Self::get_function(&ctx, &module, "merge").ok(),
-                is_async,
+                is_async: options.is_async,
             }) as Result<Aggregate>
         })
         .await?;

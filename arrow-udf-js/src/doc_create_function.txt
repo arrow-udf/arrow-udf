@@ -1,5 +1,5 @@
 # // this piece of code is included in the documentation
-# use arrow_udf_js::{Runtime, CallMode};
+# use arrow_udf_js::{FunctionOptions, Runtime};
 # use arrow_schema::{DataType, Field, Schema};
 # use arrow_array::{RecordBatch, Int32Array};
 # use std::sync::Arc;
@@ -8,7 +8,7 @@
 #     .add_function(
 #         "gcd",
 #         DataType::Int32,
-#         CallMode::ReturnNullOnNullInput,
+#         FunctionOptions::new().return_null_on_null_input(),
 #         r#"
 #         export function gcd(a, b) {
 #             while (b != 0) {
@@ -19,8 +19,6 @@
 #             return a;
 #         }
 # "#,
-#         false,
-#         false,
 #     )
 #     .await
 #     .unwrap();
@@ -28,7 +26,7 @@
 #     .add_function(
 #         "series",
 #         DataType::Int32,
-#         CallMode::ReturnNullOnNullInput,
+#         FunctionOptions::new().return_null_on_null_input(),
 #         r#"
 #         export function* series(n) {
 #             for (let i = 0; i < n; i++) {
@@ -36,8 +34,6 @@
 #             }
 #         }
 # "#,
-#         false,
-#         false,
 #     )
 #     .await
 #     .unwrap();

@@ -128,7 +128,7 @@ unsafe impl Send for Runtime {}
 unsafe impl Sync for Runtime {}
 
 /// Whether the function will be called when some of its arguments are null.
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum CallMode {
     /// The function will be called normally when some of its arguments are null.
     /// It is then the function author's responsibility to check for null values if necessary and respond appropriately.
@@ -139,6 +139,53 @@ pub enum CallMode {
     /// If this parameter is specified, the function is not executed when there are null arguments;
     /// instead a null result is assumed automatically.
     ReturnNullOnNullInput,
+}
+
+/// Options for configuring user-defined functions.
+#[derive(Debug, Clone, Copy)]
+pub struct FunctionOptions {
+    /// Whether the function will be called when some of its arguments are null.
+    pub call_mode: CallMode,
+    /// Whether the function is async. An async function would return a Promise.
+    pub is_async: bool,
+    /// Whether the function accepts a batch of records as input.
+    pub is_batched: bool,
+}
+
+impl Default for FunctionOptions {
+    fn default() -> Self {
+        Self {
+            call_mode: CallMode::default(),
+            is_async: false,
+            is_batched: false,
+        }
+    }
+}
+
+impl FunctionOptions {
+    /// Creates a new `FunctionOptions` with default values.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the function to return null when some of its arguments are null.
+    /// See [`CallMode`] for more details.
+    pub fn return_null_on_null_input(mut self) -> Self {
+        self.call_mode = CallMode::ReturnNullOnNullInput;
+        self
+    }
+
+    /// Marks the function to be async JS function.
+    pub fn async_mode(mut self) -> Self {
+        self.is_async = true;
+        self
+    }
+
+    /// Sets the function to accept a batch of records as input.
+    pub fn batched(mut self) -> Self {
+        self.is_batched = true;
+        self
+    }
 }
 
 impl Runtime {
@@ -230,7 +277,7 @@ impl Runtime {
     ///
     /// - `name`: The name of the function.
     /// - `return_type`: The data type of the return value.
-    /// - `mode`: Whether the function will be called when some of its arguments are null.
+    /// - `options`: The options for configuring the function.
     /// - `code`: The JavaScript code of the function.
     ///
     /// The code should define an **exported** function with the same name as the function.
@@ -239,7 +286,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
-    /// # use arrow_udf_js::{Runtime, CallMode};
+    /// # use arrow_udf_js::{FunctionOptions, Runtime};
     /// # use arrow_schema::DataType;
     /// # tokio_test::block_on(async {
     /// let mut runtime = Runtime::new().await.unwrap();
@@ -248,7 +295,7 @@ impl Runtime {
     ///     .add_function(
     ///         "gcd",
     ///         DataType::Int32,
-    ///         CallMode::ReturnNullOnNullInput,
+    ///         FunctionOptions::new().return_null_on_null_input(),
     ///         r#"
     ///         export function gcd(a, b) {
     ///             while (b != 0) {
@@ -259,8 +306,6 @@ impl Runtime {
     ///             return a;
     ///         }
     /// "#,
-    ///         false,
-    ///         false,
     ///     )
     ///     .await
     ///     .unwrap();
@@ -269,7 +314,7 @@ impl Runtime {
     ///     .add_function(
     ///         "series",
     ///         DataType::Int32,
-    ///         CallMode::ReturnNullOnNullInput,
+    ///         FunctionOptions::new().return_null_on_null_input(),
     ///         r#"
     ///         export function* series(n) {
     ///             for (let i = 0; i < n; i++) {
@@ -277,8 +322,6 @@ impl Runtime {
     ///             }
     ///         }
     /// "#,
-    ///         false,
-    ///         false,
     ///     )
     ///     .await
     ///     .unwrap();
@@ -288,12 +331,10 @@ impl Runtime {
         &mut self,
         name: &str,
         return_type: impl IntoField + Send,
-        mode: CallMode,
+        options: FunctionOptions,
         code: &str,
-        is_async: bool,
-        is_batched: bool,
     ) -> Result<()> {
-        self.add_function_with_handler(name, return_type, mode, code, is_async, is_batched, name)
+        self.add_function_with_handler(name, return_type, options, code, name)
             .await
     }
 
@@ -309,10 +350,8 @@ impl Runtime {
         &mut self,
         name: &str,
         return_type: impl IntoField + Send,
-        mode: CallMode,
+        options: FunctionOptions,
         code: &str,
-        is_async: bool,
-        is_batched: bool,
         handler: &str,
     ) -> Result<()> {
         let function = async_with!(self.context => |ctx| {
@@ -326,9 +365,9 @@ impl Runtime {
             Ok(Function {
                 function,
                 return_field: return_type.into_field(name).into(),
-                mode,
-                is_async,
-                is_batched,
+                mode: options.call_mode,
+                is_async: options.is_async,
+                is_batched: options.is_batched,
             }) as Result<Function>
         })
         .await?;

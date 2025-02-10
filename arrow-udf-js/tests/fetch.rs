@@ -19,7 +19,7 @@ use std::sync::Arc;
 use arrow_array::{ArrayRef, Int32Array, RecordBatch};
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_js::{CallMode, Runtime};
+use arrow_udf_js::{CallMode, FunctionOptions, Runtime};
 use expect_test::{expect, Expect};
 use mockito::Server;
 use rquickjs::{async_with, AsyncContext};
@@ -112,10 +112,8 @@ async fn test_fetch_in_udf() {
         .add_function(
             "test_fetch",
             DataType::Utf8,
-            CallMode::CalledOnNullInput,
+            FunctionOptions::new().async_mode(),
             &js_code,
-            true,
-            false,
         )
         .await
         .unwrap();
@@ -353,10 +351,10 @@ async fn test_fetch_in_udtf() {
         .add_function(
             "fetch_items",
             DataType::Utf8,
-            CallMode::ReturnNullOnNullInput,
+            FunctionOptions::new()
+                .return_null_on_null_input()
+                .async_mode(),
             &js_code,
-            true,
-            false,
         )
         .await
         .unwrap();

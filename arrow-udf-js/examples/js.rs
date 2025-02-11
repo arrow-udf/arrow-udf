@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_js::{CallMode, Runtime};
+use arrow_udf_js::{FunctionOptions, Runtime};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -26,7 +26,6 @@ async fn main() {
         .add_function(
             "gcd",
             DataType::Int32,
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function gcd(a, b) {
                 while (b != 0) {
@@ -37,7 +36,7 @@ async fn main() {
                 return a;
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -46,7 +45,6 @@ async fn main() {
         .add_function(
             "fib",
             DataType::Int32,
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function fib(x) {
                 if (x <= 1) 
@@ -54,7 +52,7 @@ async fn main() {
                 return fib(x - 1) + fib(x - 2);
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();

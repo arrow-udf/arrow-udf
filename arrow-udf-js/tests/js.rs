@@ -25,7 +25,7 @@ use arrow_array::{
 use arrow_buffer::i256;
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Fields, Schema};
-use arrow_udf_js::{CallMode, Runtime};
+use arrow_udf_js::{AggregateOptions, FunctionOptions, Runtime};
 use expect_test::{expect, Expect};
 use rquickjs::prelude::Async;
 use rquickjs::{async_with, Function};
@@ -48,9 +48,8 @@ async fn test_gcd() {
         .add_function(
             "gcd",
             DataType::Int32,
-            CallMode::ReturnNullOnNullInput,
             js_code,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -93,9 +92,8 @@ async fn test_to_string() {
         .add_function(
             "to_string",
             DataType::Utf8,
-            CallMode::CalledOnNullInput,
             js_code,
-            false,
+            FunctionOptions::default(),
         )
         .await
         .unwrap();
@@ -125,13 +123,12 @@ async fn test_concat() {
         .add_function(
             "concat",
             DataType::Binary,
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function concat(a, b) {
                 return a.concat(b);
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -165,13 +162,12 @@ async fn test_json_array_access() {
         .add_function(
             "json_array_access",
             json_field("json"),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function json_array_access(array, i) {
                 return array[i];
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -205,13 +201,12 @@ async fn test_json_stringify() {
         .add_function(
             "json_stringify",
             DataType::Utf8,
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function json_stringify(object) {
                 return JSON.stringify(object);
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -240,14 +235,13 @@ async fn test_binary_json_stringify() {
         .add_function(
             "add_element",
             binary_json_field("object"),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function add_element(object) {
                 object.push(10);
                 return object;
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -274,14 +268,13 @@ async fn test_large_binary_json_stringify() {
         .add_function(
             "add_element",
             large_binary_json_field("object"),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function add_element(object) {
                 object.push(10);
                 return object;
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -308,13 +301,12 @@ async fn test_large_string_as_string() {
         .add_function(
             "string_length",
             DataType::LargeUtf8,
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function string_length(s) {
                 return "string length is " + s.length;
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -343,13 +335,12 @@ async fn test_decimal128() {
         .add_function(
             "decimal128_add",
             DataType::Decimal128(19, 2),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function decimal128_add(a, b) {
                 return a + b + BigDecimal('0.000001');
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -388,13 +379,12 @@ async fn test_decimal256() {
         .add_function(
             "decimal256_add",
             DataType::Decimal256(19, 2),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function decimal256_add(a, b) {
                 return a + b + BigDecimal('0.000001');
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -433,13 +423,12 @@ async fn test_decimal_add() {
         .add_function(
             "decimal_add",
             decimal_field("add"),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function decimal_add(a, b) {
                 return a + b;
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -471,13 +460,12 @@ async fn test_timestamp_second_array() {
         .add_function(
             "timestamp_array",
             DataType::Timestamp(arrow_schema::TimeUnit::Second, None),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function timestamp_array(a) {
                 return a;
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -512,13 +500,12 @@ async fn test_timestamp_millisecond_array() {
         .add_function(
             "timestamp_array",
             DataType::Timestamp(arrow_schema::TimeUnit::Millisecond, None),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function timestamp_array(a) {
                 return a;
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -553,13 +540,12 @@ async fn test_timestamp_microsecond_array() {
         .add_function(
             "timestamp_array",
             DataType::Timestamp(arrow_schema::TimeUnit::Nanosecond, None),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function timestamp_array(a) {
                 return a;
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -594,13 +580,12 @@ async fn test_timestamp_nanosecond_array() {
         .add_function(
             "timestamp_array",
             DataType::Timestamp(arrow_schema::TimeUnit::Nanosecond, None),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function timestamp_array(a) {
                 return a;
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -635,13 +620,12 @@ async fn test_date32_array() {
         .add_function(
             "date_array",
             DataType::Date32,
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function date_array(a) {
                 return a;
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -672,13 +656,12 @@ async fn test_typed_array() {
         .add_function(
             "object_type",
             DataType::Utf8,
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function object_type(a) {
                 return Object.prototype.toString.call(a);
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -729,7 +712,6 @@ async fn test_arg_array() {
         .add_function(
             "from_array",
             DataType::Int32,
-            CallMode::CalledOnNullInput,
             r#"
             export function from_array(x) {
                 if(x == null) {
@@ -741,7 +723,7 @@ async fn test_arg_array() {
                 return null;
             }
             "#,
-            false,
+            FunctionOptions::default(),
         )
         .await
         .unwrap();
@@ -782,7 +764,6 @@ async fn test_return_array() {
         .add_function(
             "to_array",
             DataType::new_list(DataType::Int32, true),
-            CallMode::CalledOnNullInput,
             r#"
             export function to_array(x) {
                 if(x == null) {
@@ -791,7 +772,7 @@ async fn test_return_array() {
                 return [x];
             }
             "#,
-            false,
+            FunctionOptions::default(),
         )
         .await
         .unwrap();
@@ -822,7 +803,6 @@ async fn test_arg_large_array() {
         .add_function(
             "from_large_array",
             DataType::Int32,
-            CallMode::CalledOnNullInput,
             r#"
             export function from_large_array(x) {
                 if(x == null) {
@@ -834,7 +814,7 @@ async fn test_arg_large_array() {
                 return null;
             }
             "#,
-            false,
+            FunctionOptions::default(),
         )
         .await
         .unwrap();
@@ -875,7 +855,6 @@ async fn test_return_large_array() {
         .add_function(
             "to_large_array",
             DataType::new_large_list(DataType::Int32, true),
-            CallMode::CalledOnNullInput,
             r#"
             export function to_large_array(x) {
                 if(x == null) {
@@ -884,7 +863,7 @@ async fn test_return_large_array() {
                 return [x, x+1, x+2];
             }
             "#,
-            false,
+            FunctionOptions::default(),
         )
         .await
         .unwrap();
@@ -915,7 +894,6 @@ async fn test_arg_map() {
         .add_function(
             "from_map",
             DataType::Utf8,
-            CallMode::CalledOnNullInput,
             r#"
             export function from_map(x) {
                 if(x == null) {
@@ -927,7 +905,7 @@ async fn test_arg_map() {
                 return null;
             }
             "#,
-            false,
+            FunctionOptions::default(),
         )
         .await
         .unwrap();
@@ -981,7 +959,6 @@ async fn test_return_map() {
                 )),
                 false,
             ),
-            CallMode::CalledOnNullInput,
             r#"
             export function to_map(x, y) {
                 if(x == null || y == null) {
@@ -990,7 +967,7 @@ async fn test_return_map() {
                 return {k1:x,k2:y};
             }
             "#,
-            false,
+            FunctionOptions::default(),
         )
         .await
         .unwrap();
@@ -1032,14 +1009,13 @@ async fn test_key_value() {
                 ]
                 .into(),
             ),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function key_value(s) {
                 const [key, value] = s.split("=", 2);
                 return {key, value};
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -1068,13 +1044,12 @@ async fn test_struct_to_json() {
         .add_function(
             "to_json",
             json_field("to_json"),
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function to_json(object) {
                 return object;
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -1123,7 +1098,6 @@ async fn test_range() {
         .add_function(
             "range",
             DataType::Int32,
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function* range(n) {
                 for (let i = 0; i < n; i++) {
@@ -1131,7 +1105,7 @@ async fn test_range() {
                 }
             }
             "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -1180,7 +1154,6 @@ async fn test_weighted_avg() {
                 .into(),
             ),
             DataType::Float32,
-            CallMode::ReturnNullOnNullInput,
             r#"
             export function create_state() {
                 return {sum: 0, weight: 0};
@@ -1204,7 +1177,7 @@ async fn test_weighted_avg() {
                 return state.sum / state.weight;
             }
 "#,
-            false,
+            AggregateOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -1285,9 +1258,8 @@ async fn test_timeout() {
         .add_function(
             "square",
             DataType::Int32,
-            CallMode::ReturnNullOnNullInput,
             js_code,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -1330,9 +1302,8 @@ async fn test_memory_limit() {
         .add_function(
             "alloc",
             DataType::Int32,
-            CallMode::ReturnNullOnNullInput,
             js_code,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -1367,13 +1338,12 @@ async fn test_view_array() {
         .add_function(
             "echo",
             DataType::Utf8View,
-            CallMode::ReturnNullOnNullInput,
             r#"
 export function echo(x) {
     return x + "!"
 }
 "#,
-            false,
+            FunctionOptions::default().return_null_on_null_input(),
         )
         .await
         .unwrap();
@@ -1397,19 +1367,94 @@ export function echo(x) {
 }
 
 #[tokio::test]
+async fn test_batched_return_null_on_null_input() {
+    let mut runtime = Runtime::new().await.unwrap();
+    runtime
+        .add_function(
+            "echo",
+            DataType::Utf8View,
+            r#"
+export function echo(vals) {
+    return vals.map(v => v + "!")
+}
+"#,
+            FunctionOptions::default()
+                .return_null_on_null_input()
+                .batched(),
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8View, true)]);
+    let arg0 = StringViewArray::from(vec![Some("hello"), None, Some("world")]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("echo", &input).await.unwrap();
+
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | echo   |
+        +--------+
+        | hello! |
+        |        |
+        | world! |
+        +--------+"#]],
+    );
+}
+
+#[tokio::test]
+async fn test_batched_called_on_null_input() {
+    let mut runtime = Runtime::new().await.unwrap();
+    runtime
+        .add_function(
+            "echo",
+            DataType::Utf8View,
+            r#"
+export function echo(vals) {
+    return vals.map(v => v + "!")
+}
+"#,
+            FunctionOptions::default().batched(),
+        )
+        .await
+        .unwrap();
+
+    let schema = Schema::new(vec![Field::new("x", DataType::Utf8View, true)]);
+    let arg0 = StringViewArray::from(vec![Some("hello"), None, Some("world")]);
+    let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
+
+    let output = runtime.call("echo", &input).await.unwrap();
+
+    check(
+        &[output],
+        expect![[r#"
+        +--------+
+        | echo   |
+        +--------+
+        | hello! |
+        | null!  |
+        | world! |
+        +--------+"#]],
+    );
+}
+
+#[tokio::test]
 async fn test_async_echo() {
     let mut runtime = Runtime::new().await.unwrap();
     runtime
         .add_function(
             "echo",
             DataType::Utf8View,
-            CallMode::ReturnNullOnNullInput,
             r#"
 export async function echo(x) {
     return x + "!"
 }
 "#,
-            true,
+            FunctionOptions::default()
+                .return_null_on_null_input()
+                .async_mode(),
         )
         .await
         .unwrap();
@@ -1440,7 +1485,6 @@ async fn test_async_range() {
         .add_function(
             "range",
             DataType::Int32,
-            CallMode::ReturnNullOnNullInput,
             r#"
             export async function* range(n) {
                 for (let i = 0; i < n; i++) {
@@ -1448,7 +1492,9 @@ async fn test_async_range() {
                 }
             }
             "#,
-            true,
+            FunctionOptions::default()
+                .return_null_on_null_input()
+                .async_mode(),
         )
         .await
         .unwrap();
@@ -1510,13 +1556,14 @@ async fn test_async_rust_fn() {
         .add_function(
             "delayStrlen",
             DataType::Int32,
-            CallMode::ReturnNullOnNullInput,
             r#"
 export async function delayStrlen(s) {
     return await native_delay_strlen(s);
 }
 "#,
-            true,
+            FunctionOptions::default()
+                .return_null_on_null_input()
+                .async_mode(),
         )
         .await
         .unwrap();

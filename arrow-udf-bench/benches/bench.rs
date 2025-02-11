@@ -18,7 +18,7 @@ use arrow_arith::arity::binary;
 use arrow_array::{Int32Array, RecordBatch, StringArray};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf::function;
-use arrow_udf_js::Runtime as JsRuntime;
+use arrow_udf_js::{AggregateOptions, FunctionOptions, Runtime as JsRuntime};
 use arrow_udf_python::Runtime as PythonRuntime;
 use arrow_udf_wasm::Runtime as WasmRuntime;
 use criterion::async_executor::{AsyncExecutor as _, FuturesExecutor};
@@ -100,9 +100,8 @@ def gcd(a: int, b: int) -> int:
             rt.add_function(
                 "gcd",
                 DataType::Int32,
-                arrow_udf_js::CallMode::ReturnNullOnNullInput,
                 js_code,
-                false,
+                FunctionOptions::default().return_null_on_null_input(),
             )
             .await
             .unwrap();
@@ -184,9 +183,8 @@ def range1(n: int):
             rt.add_function(
                 "range",
                 DataType::Int32,
-                arrow_udf_js::CallMode::ReturnNullOnNullInput,
                 js_code,
-                false,
+                FunctionOptions::default().return_null_on_null_input(),
             )
             .await
             .unwrap();
@@ -255,9 +253,8 @@ def decimal_(a):
             rt.add_function(
                 "decimal",
                 decimal_field("decimal"),
-                arrow_udf_js::CallMode::ReturnNullOnNullInput,
                 js_code,
-                false,
+                FunctionOptions::default().return_null_on_null_input(),
             )
             .await
             .unwrap();
@@ -302,7 +299,6 @@ fn bench_eval_sum(c: &mut Criterion) {
                 "sum",
                 DataType::Int32,
                 DataType::Int32,
-                arrow_udf_js::CallMode::ReturnNullOnNullInput,
                 r#"
                     export function create_state() {
                         return 0;
@@ -313,8 +309,8 @@ fn bench_eval_sum(c: &mut Criterion) {
                     export function retract(state, value) {
                         return state - value;
                     }
-"#,
-                false,
+                "#,
+                AggregateOptions::default().return_null_on_null_input(),
             )
             .await
             .unwrap();

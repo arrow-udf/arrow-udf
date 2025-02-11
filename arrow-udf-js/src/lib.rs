@@ -28,8 +28,8 @@ use futures_util::{FutureExt, Stream};
 use rquickjs::context::intrinsic::{All, Base};
 pub use rquickjs::runtime::MemoryUsage;
 use rquickjs::{
-    async_with, function::Args, module::Evaluated, AsyncContext, AsyncRuntime, Ctx, FromJs, Module,
-    Object, Persistent, Promise, Value,
+    async_with, function::Args, module::Evaluated, Array as JsArray, AsyncContext, AsyncRuntime,
+    Ctx, FromJs, IteratorJs as _, Module, Object, Persistent, Promise, Value,
 };
 
 pub use self::into_field::IntoField;
@@ -90,21 +90,19 @@ impl Debug for Runtime {
 struct Function {
     function: JsFunction,
     return_field: FieldRef,
-    mode: CallMode,
-    is_async: bool,
+    options: FunctionOptions,
 }
 
 /// A user defined aggregate function.
 struct Aggregate {
     state_field: FieldRef,
     output_field: FieldRef,
-    mode: CallMode,
     create_state: JsFunction,
     accumulate: JsFunction,
     retract: Option<JsFunction>,
     finish: Option<JsFunction>,
     merge: Option<JsFunction>,
-    is_async: bool,
+    options: AggregateOptions,
 }
 
 // This is required to pass `Function` and `Aggregate` from `async_with!` to outside.
@@ -124,7 +122,7 @@ unsafe impl Send for Runtime {}
 unsafe impl Sync for Runtime {}
 
 /// Whether the function will be called when some of its arguments are null.
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum CallMode {
     /// The function will be called normally when some of its arguments are null.
     /// It is then the function author's responsibility to check for null values if necessary and respond appropriately.
@@ -135,6 +133,71 @@ pub enum CallMode {
     /// If this parameter is specified, the function is not executed when there are null arguments;
     /// instead a null result is assumed automatically.
     ReturnNullOnNullInput,
+}
+
+/// Options for configuring user-defined functions.
+#[derive(Debug, Clone, Default)]
+pub struct FunctionOptions {
+    /// Whether the function will be called when some of its arguments are null.
+    pub call_mode: CallMode,
+    /// Whether the function is async. An async function would return a Promise.
+    pub is_async: bool,
+    /// Whether the function accepts a batch of records as input.
+    pub is_batched: bool,
+    /// The name of the function in JavaScript code to be called.
+    /// If not set, the function name will be used.
+    pub handler: Option<String>,
+}
+
+impl FunctionOptions {
+    /// Sets the function to return null when some of its arguments are null.
+    /// See [`CallMode`] for more details.
+    pub fn return_null_on_null_input(mut self) -> Self {
+        self.call_mode = CallMode::ReturnNullOnNullInput;
+        self
+    }
+
+    /// Marks the function to be async JS function.
+    pub fn async_mode(mut self) -> Self {
+        self.is_async = true;
+        self
+    }
+
+    /// Sets the function to accept a batch of records as input.
+    pub fn batched(mut self) -> Self {
+        self.is_batched = true;
+        self
+    }
+
+    /// Sets the name of the function in JavaScript code to be called.
+    pub fn handler(mut self, handler: impl Into<String>) -> Self {
+        self.handler = Some(handler.into());
+        self
+    }
+}
+
+/// Options for configuring user-defined aggregate functions.
+#[derive(Debug, Clone, Default)]
+pub struct AggregateOptions {
+    /// Whether the function will be called when some of its arguments are null.
+    pub call_mode: CallMode,
+    /// Whether the function is async. An async function would return a Promise.
+    pub is_async: bool,
+}
+
+impl AggregateOptions {
+    /// Sets the function to return null when some of its arguments are null.
+    /// See [`CallMode`] for more details.
+    pub fn return_null_on_null_input(mut self) -> Self {
+        self.call_mode = CallMode::ReturnNullOnNullInput;
+        self
+    }
+
+    /// Marks the function to be async JS function.
+    pub fn async_mode(mut self) -> Self {
+        self.is_async = true;
+        self
+    }
 }
 
 impl Runtime {
@@ -226,7 +289,7 @@ impl Runtime {
     ///
     /// - `name`: The name of the function.
     /// - `return_type`: The data type of the return value.
-    /// - `mode`: Whether the function will be called when some of its arguments are null.
+    /// - `options`: The options for configuring the function.
     /// - `code`: The JavaScript code of the function.
     ///
     /// The code should define an **exported** function with the same name as the function.
@@ -235,7 +298,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
-    /// # use arrow_udf_js::{Runtime, CallMode};
+    /// # use arrow_udf_js::{FunctionOptions, Runtime};
     /// # use arrow_schema::DataType;
     /// # tokio_test::block_on(async {
     /// let mut runtime = Runtime::new().await.unwrap();
@@ -244,7 +307,6 @@ impl Runtime {
     ///     .add_function(
     ///         "gcd",
     ///         DataType::Int32,
-    ///         CallMode::ReturnNullOnNullInput,
     ///         r#"
     ///         export function gcd(a, b) {
     ///             while (b != 0) {
@@ -255,7 +317,7 @@ impl Runtime {
     ///             return a;
     ///         }
     /// "#,
-    ///         false,
+    ///         FunctionOptions::default().return_null_on_null_input(),
     ///     )
     ///     .await
     ///     .unwrap();
@@ -264,7 +326,6 @@ impl Runtime {
     ///     .add_function(
     ///         "series",
     ///         DataType::Int32,
-    ///         CallMode::ReturnNullOnNullInput,
     ///         r#"
     ///         export function* series(n) {
     ///             for (let i = 0; i < n; i++) {
@@ -272,7 +333,7 @@ impl Runtime {
     ///             }
     ///         }
     /// "#,
-    ///         false,
+    ///         FunctionOptions::default().return_null_on_null_input(),
     ///     )
     ///     .await
     ///     .unwrap();
@@ -282,30 +343,8 @@ impl Runtime {
         &mut self,
         name: &str,
         return_type: impl IntoField + Send,
-        mode: CallMode,
         code: &str,
-        is_async: bool,
-    ) -> Result<()> {
-        self.add_function_with_handler(name, return_type, mode, code, is_async, name)
-            .await
-    }
-
-    /// Add a new scalar function or table function with custom handler name.
-    ///
-    /// # Arguments
-    ///
-    /// - `handler`: The name of function in Python code to be called.
-    /// - others: Same as [`add_function`].
-    ///
-    /// [`add_function`]: Runtime::add_function
-    pub async fn add_function_with_handler(
-        &mut self,
-        name: &str,
-        return_type: impl IntoField + Send,
-        mode: CallMode,
-        code: &str,
-        is_async: bool,
-        handler: &str,
+        options: FunctionOptions,
     ) -> Result<()> {
         let function = async_with!(self.context => |ctx| {
             let (module, _) = Module::declare(ctx.clone(), name, code)
@@ -314,12 +353,11 @@ impl Runtime {
                 .eval()
                 .map_err(|e| check_exception(e, &ctx))
                 .context("failed to evaluate module")?;
-            let function = Self::get_function(&ctx, &module, handler)?;
+            let function = Self::get_function(&ctx, &module, options.handler.as_deref().unwrap_or(name))?;
             Ok(Function {
                 function,
                 return_field: return_type.into_field(name).into(),
-                mode,
-                is_async,
+                options,
             }) as Result<Function>
         })
         .await?;
@@ -367,7 +405,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
-    /// # use arrow_udf_js::{Runtime, CallMode};
+    /// # use arrow_udf_js::{AggregateOptions, Runtime};
     /// # use arrow_schema::DataType;
     /// # tokio_test::block_on(async {
     /// let mut runtime = Runtime::new().await.unwrap();
@@ -376,7 +414,6 @@ impl Runtime {
     ///         "sum",
     ///         DataType::Int32, // state_type
     ///         DataType::Int32, // output_type
-    ///         CallMode::ReturnNullOnNullInput,
     ///         r#"
     ///         export function create_state() {
     ///             return 0;
@@ -391,7 +428,7 @@ impl Runtime {
     ///             return state1 + state2;
     ///         }
     ///         "#,
-    ///         false,
+    ///         AggregateOptions::default().return_null_on_null_input(),
     ///     )
     ///     .await
     ///     .unwrap();
@@ -402,9 +439,8 @@ impl Runtime {
         name: &str,
         state_type: impl IntoField + Send,
         output_type: impl IntoField + Send,
-        mode: CallMode,
         code: &str,
-        is_async: bool,
+        options: AggregateOptions,
     ) -> Result<()> {
         let aggregate = async_with!(self.context => |ctx| {
             let (module, _) = Module::declare(ctx.clone(), name, code)
@@ -416,13 +452,12 @@ impl Runtime {
             Ok(Aggregate {
                 state_field: state_type.into_field(name).into(),
                 output_field: output_type.into_field(name).into(),
-                mode,
                 create_state: Self::get_function(&ctx, &module, "create_state")?,
                 accumulate: Self::get_function(&ctx, &module, "accumulate")?,
                 retract: Self::get_function(&ctx, &module, "retract").ok(),
                 finish: Self::get_function(&ctx, &module, "finish").ok(),
                 merge: Self::get_function(&ctx, &module, "merge").ok(),
-                is_async,
+                options,
             }) as Result<Aggregate>
         })
         .await?;
@@ -460,43 +495,146 @@ impl Runtime {
         let function = self.functions.get(name).context("function not found")?;
 
         async_with!(self.context => |ctx| {
-            let js_function = function.function.clone().restore(&ctx)?;
-            let mut results = Vec::with_capacity(input.num_rows());
-            let mut row = Vec::with_capacity(input.num_columns());
-
-            for i in 0..input.num_rows() {
-                row.clear();
-                for (column, field) in input.columns().iter().zip(input.schema().fields()) {
-                    let val = self
-                        .converter
-                        .get_jsvalue(&ctx, field, column, i)
-                        .context("failed to get jsvalue from arrow array")?;
-
-                    row.push(val);
-                }
-                if function.mode == CallMode::ReturnNullOnNullInput
-                    && row.iter().any(|v| v.is_null())
-                {
-                    results.push(Value::new_null(ctx.clone()));
-                    continue;
-                }
-                let mut args = Args::new(ctx.clone(), row.len());
-                args.push_args(row.drain(..))?;
-                let result = self
-                    .call_user_fn(&ctx, &js_function, args, function.is_async)
-                    .await
-                    .context("failed to call function")?;
-                results.push(result);
+            if function.options.is_batched {
+                self.call_batched_function(&ctx, function, input).await
+            } else {
+                self.call_non_batched_function(&ctx, function, input).await
             }
-
-            let array = self
-                .converter
-                .build_array(&function.return_field, &ctx, results)
-                .context("failed to build arrow array from return values")?;
-            let schema = Schema::new(vec![function.return_field.clone()]);
-            Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
         })
         .await
+    }
+
+    async fn call_non_batched_function(
+        &self,
+        ctx: &Ctx<'_>,
+        function: &Function,
+        input: &RecordBatch,
+    ) -> Result<RecordBatch> {
+        let js_function = function.function.clone().restore(ctx)?;
+
+        let mut results = Vec::with_capacity(input.num_rows());
+        let mut row = Vec::with_capacity(input.num_columns());
+        for i in 0..input.num_rows() {
+            row.clear();
+            for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+                let val = self
+                    .converter
+                    .get_jsvalue(ctx, field, column, i)
+                    .context("failed to get jsvalue from arrow array")?;
+
+                row.push(val);
+            }
+            if function.options.call_mode == CallMode::ReturnNullOnNullInput
+                && row.iter().any(|v| v.is_null())
+            {
+                results.push(Value::new_null(ctx.clone()));
+                continue;
+            }
+            let mut args = Args::new(ctx.clone(), row.len());
+            args.push_args(row.drain(..))?;
+            let result = self
+                .call_user_fn(ctx, &js_function, args, function.options.is_async)
+                .await
+                .context("failed to call function")?;
+            results.push(result);
+        }
+
+        let array = self
+            .converter
+            .build_array(&function.return_field, ctx, results)
+            .context("failed to build arrow array from return values")?;
+        let schema = Schema::new(vec![function.return_field.clone()]);
+        Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
+    }
+
+    async fn call_batched_function(
+        &self,
+        ctx: &Ctx<'_>,
+        function: &Function,
+        input: &RecordBatch,
+    ) -> Result<RecordBatch> {
+        let js_function = function.function.clone().restore(ctx)?;
+
+        let mut js_columns = Vec::with_capacity(input.num_columns());
+        for (column, field) in input.columns().iter().zip(input.schema().fields()) {
+            let mut js_values = Vec::with_capacity(input.num_rows());
+            for i in 0..input.num_rows() {
+                let val = self
+                    .converter
+                    .get_jsvalue(ctx, field, column, i)
+                    .context("failed to get jsvalue from arrow array")?;
+                js_values.push(val);
+            }
+            js_columns.push(js_values);
+        }
+
+        let result = match function.options.call_mode {
+            CallMode::CalledOnNullInput => {
+                let mut args = Args::new(ctx.clone(), input.num_columns());
+                for js_values in js_columns {
+                    let js_array = js_values.into_iter().collect_js::<JsArray>(ctx)?;
+                    args.push_arg(js_array)?;
+                }
+                self.call_user_fn(ctx, &js_function, args, function.options.is_async)
+                    .await
+                    .context("failed to call function")?
+            }
+            CallMode::ReturnNullOnNullInput => {
+                // This is a bit tricky. We build input arrays without nulls, call user_fn on them,
+                // and then add back null results to form the final result.
+                let n_cols = input.num_columns();
+                let n_rows = input.num_rows();
+
+                // 1. Build a bitmap of which rows have nulls
+                let mut bitmap = Vec::with_capacity(n_rows);
+                for i in 0..n_rows {
+                    let has_null = (0..n_cols).any(|j| js_columns[j][i].is_null());
+                    bitmap.push(!has_null);
+                }
+
+                // 2. Build new inputs with only the rows that don't have nulls
+                let mut filtered_columns = Vec::with_capacity(n_cols);
+                for js_values in js_columns {
+                    let filtered_js_values: Vec<_> = js_values
+                        .into_iter()
+                        .zip(bitmap.iter())
+                        .filter(|(_, b)| **b)
+                        .map(|(v, _)| v)
+                        .collect();
+                    filtered_columns.push(filtered_js_values);
+                }
+
+                // 3. Call the function on the new inputs
+                let mut args = Args::new(ctx.clone(), filtered_columns.len());
+                for js_values in filtered_columns {
+                    let js_array = js_values.into_iter().collect_js::<JsArray>(ctx)?;
+                    args.push_arg(js_array)?;
+                }
+                let filtered_result: Vec<_> = self
+                    .call_user_fn(ctx, &js_function, args, function.options.is_async)
+                    .await
+                    .context("failed to call function")?;
+                let mut iter = filtered_result.into_iter();
+
+                // 4. Add back null results to the filtered results
+                let mut result = Vec::with_capacity(n_rows);
+                for b in bitmap.iter() {
+                    if *b {
+                        let v = iter.next().expect("filtered result length mismatch");
+                        result.push(v);
+                    } else {
+                        result.push(Value::new_null(ctx.clone()));
+                    }
+                }
+                assert!(iter.next().is_none(), "filtered result length mismatch");
+                result
+            }
+        };
+        let array = self
+            .converter
+            .build_array(&function.return_field, ctx, result)?;
+        let schema = Schema::new(vec![function.return_field.clone()]);
+        Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
     }
 
     /// Call a table function.
@@ -535,6 +673,9 @@ impl Runtime {
     ) -> Result<RecordBatchIter<'a>> {
         assert!(chunk_size > 0);
         let function = self.functions.get(name).context("function not found")?;
+        if function.options.is_batched {
+            bail!("table function does not support batched mode");
+        }
 
         // initial state
         Ok(RecordBatchIter {
@@ -567,7 +708,7 @@ impl Runtime {
         let state = async_with!(self.context => |ctx| {
             let create_state = aggregate.create_state.clone().restore(&ctx)?;
             let state = self
-                .call_user_fn(&ctx, &create_state, Args::new(ctx.clone(), 0), aggregate.is_async)
+                .call_user_fn(&ctx, &create_state, Args::new(ctx.clone(), 0), aggregate.options.is_async)
                 .await
                 .context("failed to call create_state")?;
             let state = self
@@ -611,7 +752,7 @@ impl Runtime {
 
             let mut row = Vec::with_capacity(1 + input.num_columns());
             for i in 0..input.num_rows() {
-                if aggregate.mode == CallMode::ReturnNullOnNullInput
+                if aggregate.options.call_mode == CallMode::ReturnNullOnNullInput
                     && input.columns().iter().any(|column| column.is_null(i))
                 {
                     continue;
@@ -625,7 +766,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), row.len());
                 args.push_args(row.drain(..))?;
                 state = self
-                    .call_user_fn(&ctx, &accumulate, args, aggregate.is_async)
+                    .call_user_fn(&ctx, &accumulate, args, aggregate.options.is_async)
                     .await
                     .context("failed to call accumulate")?;
             }
@@ -681,7 +822,7 @@ impl Runtime {
 
         let mut row = Vec::with_capacity(1 + input.num_columns());
         for i in 0..input.num_rows() {
-            if aggregate.mode == CallMode::ReturnNullOnNullInput
+            if aggregate.options.call_mode == CallMode::ReturnNullOnNullInput
                 && input.columns().iter().any(|column| column.is_null(i))
             {
                 continue;
@@ -700,7 +841,7 @@ impl Runtime {
             let mut args = Args::new(ctx.clone(), row.len());
             args.push_args(row.drain(..))?;
             state = self
-                .call_user_fn(&ctx, func, args, aggregate.is_async)
+                .call_user_fn(&ctx, func, args, aggregate.options.is_async)
                 .await
                 .context("failed to call accumulate or retract")?;
         }
@@ -737,7 +878,7 @@ impl Runtime {
                 .converter
                 .get_jsvalue(&ctx, &aggregate.state_field, states, 0)?;
             for i in 1..states.len() {
-                if aggregate.mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
+                if aggregate.options.call_mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
                     continue;
                 }
                 let state2 = self
@@ -746,7 +887,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), 2);
                 args.push_args([state, state2])?;
                 state = self
-                    .call_user_fn(&ctx, &merge, args, aggregate.is_async)
+                    .call_user_fn(&ctx, &merge, args, aggregate.options.is_async)
                     .await
                     .context("failed to call accumulate or retract")?;
             }
@@ -782,7 +923,7 @@ impl Runtime {
             let finish = aggregate.finish.clone().unwrap().restore(&ctx)?;
             let mut results = Vec::with_capacity(states.len());
             for i in 0..states.len() {
-                if aggregate.mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
+                if aggregate.options.call_mode == CallMode::ReturnNullOnNullInput && states.is_null(i) {
                     results.push(Value::new_null(ctx.clone()));
                     continue;
                 }
@@ -792,7 +933,7 @@ impl Runtime {
                 let mut args = Args::new(ctx.clone(), 1);
                 args.push_args([state])?;
                 let result = self
-                    .call_user_fn(&ctx, &finish, args, aggregate.is_async)
+                    .call_user_fn(&ctx, &finish, args, aggregate.options.is_async)
                     .await
                     .context("failed to call finish")?;
                 results.push(result);
@@ -935,7 +1076,7 @@ impl RecordBatchIter<'_> {
                             .context("failed to get jsvalue from arrow array")?;
                         row.push(val);
                     }
-                    if self.function.mode == CallMode::ReturnNullOnNullInput
+                    if self.function.options.call_mode == CallMode::ReturnNullOnNullInput
                         && row.iter().any(|v| v.is_null())
                     {
                         self.row += 1;
@@ -960,7 +1101,7 @@ impl RecordBatchIter<'_> {
                 args.this(gen.clone())?;
                 let object: Object = self
                     .rt
-                    .call_user_fn(&ctx, next, args, self.function.is_async).await
+                    .call_user_fn(&ctx, next, args, self.function.options.is_async).await
                     .context("failed to call next")?;
                 let value: Value = object.get("value")?;
                 let done: bool = object.get("done")?;

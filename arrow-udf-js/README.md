@@ -16,14 +16,13 @@ Create a `Runtime` and define your JS functions in string form.
 Note that the function must be exported and its name must match the one you pass to `add_function`.
 
 ```rust,ignore
-use arrow_udf_js::{Runtime, CallMode};
+use arrow_udf_js::{FunctionOptions, Runtime};
 
 let mut runtime = Runtime::new().await?;
 runtime
     .add_function(
         "gcd",
         arrow_schema::DataType::Int32,
-        CallMode::ReturnNullOnNullInput,
         r#"
         export function gcd(a, b) {
             while (b != 0) {
@@ -34,7 +33,7 @@ runtime
             return a;
         }
         "#,
-        false,
+        FunctionOptions::default().return_null_on_null_input(),
     )
     .await?;
 ```
@@ -61,14 +60,13 @@ If you print the input and output batch, it will be like this:
 For set-returning functions (or so-called table functions), define the function as a generator:
 
 ```rust,ignore
-use arrow_udf_js::{Runtime, CallMode};
+use arrow_udf_js::{FunctionOptions, Runtime};
 
 let mut runtime = Runtime::new().await?;
 runtime
     .add_function(
         "range",
         arrow_schema::DataType::Int32,
-        CallMode::ReturnNullOnNullInput,
         r#"
         export function* range(n) {
             for (let i = 0; i < n; i++) {
@@ -76,7 +74,7 @@ runtime
             }
         }
         "#,
-        false,
+        FunctionOptions::default().return_null_on_null_input(),
     )
     .await?;
 ```
@@ -155,22 +153,57 @@ This crate also supports the following [Arrow extension types](https://arrow.apa
 | JSON           | String, Binary, LargeBinary | `arrowudf.json`        | any (parsed by `JSON.parse(string)`) |
 | Decimal        | String                      | `arrowudf.decimal`     | BigDecimal    |
 
-## Fetch API
+## Async Functions and Fetch API
 
-We provide a [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to allow making HTTP requests from JavaScript UDFs. To use it, you need to enable it in the `Runtime`:
+An async function is a JavaScript function that returns a promise. If the function involves IO operations, it's usually more efficient to use async functions.
+
+We provide a [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to allow making HTTP requests from JavaScript UDFs in async way. To use it, you need to enable it in the `Runtime`:
 
 ```rust,ignore
 runtime.enable_fetch();
 ```
 
-Then you can use the async `fetch()` function in your JavaScript code.
+To enable async functions, you need to set `async_mode()` when adding the function. Then you can use the async `fetch()` function in your JavaScript code.
 
-```js
+```rust,ignore
+runtime
+    .add_function(
+        "echo",
+        DataType::Utf8View,
+        r#"
 export async function my_fetch_udf(id) {
     const response = await fetch("https://api.example.com/" + id);
     const data = await response.json();
     return data.value;
 }
+"#,
+        FunctionOptions::default().return_null_on_null_input().async_mode(),
+    )
+    .await
+    .unwrap();
 ```
 
 See the [README](src/fetch/README.md) of the `fetch` module for more details.
+
+## Batched Function
+
+When a function is batched, it will be called once for all rows in the input `RecordBatch`. The input arguments will be an array of values.
+
+
+```rust,ignore
+runtime
+    .add_function(
+        "echo",
+        DataType::Utf8View,
+        r#"
+export function echo(vals) {
+    return vals.map(v => v + "!")
+}
+"#,
+        FunctionOptions::default().return_null_on_null_input().batched(),
+    )
+    .await
+    .unwrap();
+```
+
+Currently, table functions can not be batched.

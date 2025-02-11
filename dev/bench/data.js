@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1738649831720,
+  "lastUpdate": 1739276248159,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -13139,6 +13139,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 159036,
             "range": "± 23972",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fuyufjh@gmail.com",
+            "name": "Eric Fu",
+            "username": "fuyufjh"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7530df23ad5aa098630e101fcf42408d9dbcdedd",
+          "message": "feat: JS batched function (#104)\n\nMotivation: Many real-world APIs support batching, such as [text\nembedding](https://platform.openai.com/docs/api-reference/embeddings/create#embeddings-create-input).\nWith `is_batched = true`, users can call API once for multiple rows of\ninputs.\n\nThis is somehow related to\nhttps://github.com/arrow-udf/arrow-udf/pull/97#issuecomment-2614260401\nbut in a different approach.\n\n---------\n\nCo-authored-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2025-02-11T12:07:12Z",
+          "tree_id": "8333fd8608c46b47c782648918593a0f65297279",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/7530df23ad5aa098630e101fcf42408d9dbcdedd"
+        },
+        "date": 1739276247762,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3927,
+            "range": "± 18",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4008,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22750,
+            "range": "± 1375",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 208218,
+            "range": "± 1358",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 250642,
+            "range": "± 4515",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 73666,
+            "range": "± 1844",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 384815,
+            "range": "± 19755",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6057200,
+            "range": "± 36163",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 972031,
+            "range": "± 22557",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 682912,
+            "range": "± 6104",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11859664,
+            "range": "± 131511",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 152149,
+            "range": "± 2813",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 151576,
+            "range": "± 3164",
             "unit": "ns/iter"
           }
         ]

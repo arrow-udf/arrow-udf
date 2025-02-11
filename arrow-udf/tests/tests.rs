@@ -434,10 +434,8 @@ fn test_key_values() {
     let arg0 = StringArray::from(vec!["a=b,c=d"]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = key_values_string_struct_KeyValue_eval(&input)
-        .unwrap()
-        .next()
-        .unwrap();
+    let mut stream = key_values_string_struct_KeyValue_eval(&input).unwrap();
+    let output = stream.next().unwrap().unwrap();
     check(
         &[output],
         expect![[r#"
@@ -617,7 +615,16 @@ fn test_range() {
     let arg0 = Int32Array::from(vec![Some(1), None, Some(3)]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = range_int32_int32_eval(&input).unwrap().next().unwrap();
+    let mut stream = range_int32_int32_eval(&input).unwrap();
+    assert_eq!(
+        *stream.schema(),
+        Schema::new(vec![
+            Field::new("row", DataType::Int32, true),
+            Field::new("range", DataType::Int32, true),
+        ])
+    );
+
+    let output = stream.next().unwrap().unwrap();
     check(
         &[output],
         expect![[r#"
@@ -637,7 +644,8 @@ fn test_range() {
 
     // for large set, the output is split into multiple batches
     let mut i = 0;
-    for output in range_int32_int32_eval(&input).unwrap() {
+    for result in range_int32_int32_eval(&input).unwrap() {
+        let output = result.unwrap();
         let array = output
             .column(1)
             .as_any()
@@ -656,10 +664,8 @@ fn test_json_array_elements() {
     let arg0 = StringArray::from(vec![r#"[null,1,""]"#, "1"]);
     let input = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(arg0)]).unwrap();
 
-    let output = json_array_elements_json_json_eval(&input)
-        .unwrap()
-        .next()
-        .unwrap();
+    let mut stream = json_array_elements_json_json_eval(&input).unwrap();
+    let output = stream.next().unwrap().unwrap();
     check(
         &[output],
         expect![[r#"

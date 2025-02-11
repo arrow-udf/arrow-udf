@@ -258,9 +258,6 @@ impl FunctionAttr {
                 }
             };
 
-            let error_field = user_fn.has_error().then(|| {
-                quote! { Field::new("error", DataType::Utf8, true), }
-            });
             let let_error_builder = user_fn.has_error().then(|| {
                 quote! { let mut error_builder = StringBuilder::with_capacity(input.num_rows(), input.num_rows() * 16); }
             });
@@ -270,16 +267,10 @@ impl FunctionAttr {
             let yield_batch = quote! {
                 let index_array = Arc::new(index_builder.finish());
                 let value_array = Arc::new(builder.finish());
-                yield_!(RecordBatch::try_new(SCHEMA.clone(), vec![index_array, value_array, #error_array]).unwrap());
+                let batch = RecordBatch::try_new(SCHEMA.clone(), vec![index_array, value_array, #error_array]).unwrap();
+                yield_!(Ok(batch));
             };
             quote! {{
-                static SCHEMA: once_cell::sync::Lazy<SchemaRef> = once_cell::sync::Lazy::new(|| {
-                    Arc::new(Schema::new(vec![
-                        Field::new("row", DataType::Int32, true),
-                        #ret_data_type,
-                        #error_field
-                    ]))
-                });
                 let mut index_builder = Int32Builder::with_capacity(input.num_rows());
                 let mut builder = #builder;
                 let builder = &mut builder;
@@ -434,15 +425,36 @@ impl FunctionAttr {
         };
 
         Ok(if self.is_table_function {
+            let error_field = user_fn.has_error().then(|| {
+                quote! { Field::new("error", DataType::Utf8, true), }
+            });
             quote! {
-                #fn_with_visibility #eval_fn_name<'a>(input: &'a ::arrow_udf::codegen::arrow_array::RecordBatch)
-                    -> ::arrow_udf::Result<Box<dyn Iterator<Item = ::arrow_udf::codegen::arrow_array::RecordBatch> + 'a>>
+                #fn_with_visibility #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
+                    -> ::arrow_udf::Result<Box<dyn ::arrow_udf::codegen::arrow_array::RecordBatchReader>>
                 {
                     const BATCH_SIZE: usize = 1024;
-                    use ::arrow_udf::codegen::genawaiter2::{self, rc::gen, yield_};
+                    use ::arrow_udf::codegen::genawaiter2::{rc::gen, yield_};
                     use ::arrow_udf::codegen::arrow_array::array::*;
-                    #downcast_arrays
-                    Ok(Box::new(gen!({ #body_with_imports }).into_iter()))
+                    use ::arrow_udf::codegen::arrow_schema::{Schema, SchemaRef};
+
+                    static SCHEMA: once_cell::sync::Lazy<SchemaRef> = once_cell::sync::Lazy::new(|| {
+                        Arc::new(Schema::new(vec![
+                            Field::new("row", DataType::Int32, true),
+                            #ret_data_type,
+                            #error_field
+                        ]))
+                    });
+                    #downcast_arrays // check the input data types only
+                    let input = input.clone();
+                    let gen_ = gen!({
+                        // input is moved into the closure
+                        // data types are checked above, so we can safely unwrap here
+                        #(
+                            let #array_idents: &#array_types = input.column(#children_indices).as_any().downcast_ref().unwrap();
+                        )*
+                        #body_with_imports
+                    });
+                    Ok(Box::new(RecordBatchIterator::new(gen_, SCHEMA.clone())))
                 }
             }
         } else {

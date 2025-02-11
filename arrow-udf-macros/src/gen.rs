@@ -433,12 +433,13 @@ impl FunctionAttr {
                     -> ::arrow_udf::Result<Box<dyn ::arrow_udf::codegen::arrow_array::RecordBatchReader>>
                 {
                     const BATCH_SIZE: usize = 1024;
-                    use ::arrow_udf::codegen::genawaiter2::{rc::gen, yield_};
-                    use ::arrow_udf::codegen::arrow_array::array::*;
-                    use ::arrow_udf::codegen::arrow_schema::{Schema, SchemaRef};
+                    use ::arrow_udf::codegen::genawaiter2::{self, rc::gen, yield_};
+                    use ::arrow_udf::codegen::arrow_array::{array::*, RecordBatchIterator};
+                    use ::arrow_udf::codegen::arrow_schema::{self, DataType, Field, Schema, SchemaRef};
+                    use ::arrow_udf::codegen::once_cell;
 
                     static SCHEMA: once_cell::sync::Lazy<SchemaRef> = once_cell::sync::Lazy::new(|| {
-                        Arc::new(Schema::new(vec![
+                        std::sync::Arc::new(Schema::new(vec![
                             Field::new("row", DataType::Int32, true),
                             #ret_data_type,
                             #error_field

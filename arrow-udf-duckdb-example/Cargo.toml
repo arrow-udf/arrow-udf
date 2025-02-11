@@ -1,0 +1,13 @@
+[package]
+name = "arrow-udf-duckdb-example"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+arrow-udf = { path = "../arrow-udf" }
+duckdb = { git = "https://github.com/duckdb/duckdb-rs.git", branch = "main", features = ["vscalar", "vscalar-arrow", "vtab-arrow", "vtab-loadable"] }
+duckdb-loadable-macros = { git = "https://github.com/duckdb/duckdb-rs.git", branch = "main" }
+libduckdb-sys = { git = "https://github.com/duckdb/duckdb-rs.git", branch = "main", features = ["loadable-extension"] }

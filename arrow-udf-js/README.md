@@ -163,7 +163,7 @@ We provide a [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_
 runtime.enable_fetch();
 ```
 
-To enable async functions, you need to set the `is_async` flag to `true` when adding the function. Then you can use the async `fetch()` function in your JavaScript code.
+To enable async functions, you need to set `async_mode()` when adding the function. Then you can use the async `fetch()` function in your JavaScript code.
 
 ```rust,ignore
 runtime

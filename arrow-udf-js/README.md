@@ -16,7 +16,7 @@ Create a `Runtime` and define your JS functions in string form.
 Note that the function must be exported and its name must match the one you pass to `add_function`.
 
 ```rust,ignore
-use arrow_udf_js::{Runtime, CallMode};
+use arrow_udf_js::{FunctionOptions, Runtime};
 
 let mut runtime = Runtime::new().await?;
 runtime
@@ -60,14 +60,13 @@ If you print the input and output batch, it will be like this:
 For set-returning functions (or so-called table functions), define the function as a generator:
 
 ```rust,ignore
-use arrow_udf_js::{Runtime, CallMode};
+use arrow_udf_js::{FunctionOptions, Runtime};
 
 let mut runtime = Runtime::new().await?;
 runtime
     .add_function(
         "range",
         arrow_schema::DataType::Int32,
-        CallMode::ReturnNullOnNullInput,
         r#"
         export function* range(n) {
             for (let i = 0; i < n; i++) {
@@ -75,8 +74,7 @@ runtime
             }
         }
         "#,
-        false,
-        false,
+        FunctionOptions::default().return_null_on_null_input(),
     )
     .await?;
 ```
@@ -197,14 +195,12 @@ runtime
     .add_function(
         "echo",
         DataType::Utf8View,
-        CallMode::ReturnNullOnNullInput,
         r#"
 export function echo(vals) {
     return vals.map(v => v + "!")
 }
 "#,
-        false,
-        true, // set is_batched to true
+        FunctionOptions::default().return_null_on_null_input().batched(),
     )
     .await
     .unwrap();

@@ -136,7 +136,7 @@ pub enum CallMode {
 }
 
 /// Options for configuring user-defined functions.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct FunctionOptions {
     /// Whether the function will be called when some of its arguments are null.
     pub call_mode: CallMode,
@@ -147,17 +147,6 @@ pub struct FunctionOptions {
     /// The name of the function in JavaScript code to be called.
     /// If not set, the function name will be used.
     pub handler: Option<String>,
-}
-
-impl Default for FunctionOptions {
-    fn default() -> Self {
-        Self {
-            call_mode: CallMode::default(),
-            is_async: false,
-            is_batched: false,
-            handler: None,
-        }
-    }
 }
 
 impl FunctionOptions {
@@ -188,21 +177,12 @@ impl FunctionOptions {
 }
 
 /// Options for configuring user-defined aggregate functions.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct AggregateOptions {
     /// Whether the function will be called when some of its arguments are null.
     pub call_mode: CallMode,
     /// Whether the function is async. An async function would return a Promise.
     pub is_async: bool,
-}
-
-impl Default for AggregateOptions {
-    fn default() -> Self {
-        Self {
-            call_mode: CallMode::default(),
-            is_async: false,
-        }
-    }
 }
 
 impl AggregateOptions {
@@ -530,7 +510,7 @@ impl Runtime {
         function: &Function,
         input: &RecordBatch,
     ) -> Result<RecordBatch> {
-        let js_function = function.function.clone().restore(&ctx)?;
+        let js_function = function.function.clone().restore(ctx)?;
 
         let mut results = Vec::with_capacity(input.num_rows());
         let mut row = Vec::with_capacity(input.num_columns());
@@ -539,7 +519,7 @@ impl Runtime {
             for (column, field) in input.columns().iter().zip(input.schema().fields()) {
                 let val = self
                     .converter
-                    .get_jsvalue(&ctx, field, column, i)
+                    .get_jsvalue(ctx, field, column, i)
                     .context("failed to get jsvalue from arrow array")?;
 
                 row.push(val);
@@ -553,7 +533,7 @@ impl Runtime {
             let mut args = Args::new(ctx.clone(), row.len());
             args.push_args(row.drain(..))?;
             let result = self
-                .call_user_fn(&ctx, &js_function, args, function.options.is_async)
+                .call_user_fn(ctx, &js_function, args, function.options.is_async)
                 .await
                 .context("failed to call function")?;
             results.push(result);
@@ -561,7 +541,7 @@ impl Runtime {
 
         let array = self
             .converter
-            .build_array(&function.return_field, &ctx, results)
+            .build_array(&function.return_field, ctx, results)
             .context("failed to build arrow array from return values")?;
         let schema = Schema::new(vec![function.return_field.clone()]);
         Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
@@ -573,7 +553,7 @@ impl Runtime {
         function: &Function,
         input: &RecordBatch,
     ) -> Result<RecordBatch> {
-        let js_function = function.function.clone().restore(&ctx)?;
+        let js_function = function.function.clone().restore(ctx)?;
 
         let mut js_columns = Vec::with_capacity(input.num_columns());
         for (column, field) in input.columns().iter().zip(input.schema().fields()) {
@@ -581,7 +561,7 @@ impl Runtime {
             for i in 0..input.num_rows() {
                 let val = self
                     .converter
-                    .get_jsvalue(&ctx, field, column, i)
+                    .get_jsvalue(ctx, field, column, i)
                     .context("failed to get jsvalue from arrow array")?;
                 js_values.push(val);
             }
@@ -592,10 +572,10 @@ impl Runtime {
             CallMode::CalledOnNullInput => {
                 let mut args = Args::new(ctx.clone(), input.num_columns());
                 for js_values in js_columns {
-                    let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
+                    let js_array = js_values.into_iter().collect_js::<JsArray>(ctx)?;
                     args.push_arg(js_array)?;
                 }
-                self.call_user_fn(&ctx, &js_function, args, function.options.is_async)
+                self.call_user_fn(ctx, &js_function, args, function.options.is_async)
                     .await
                     .context("failed to call function")?
             }
@@ -627,11 +607,11 @@ impl Runtime {
                 // 3. Call the function on the new inputs
                 let mut args = Args::new(ctx.clone(), filtered_columns.len());
                 for js_values in filtered_columns {
-                    let js_array = js_values.into_iter().collect_js::<JsArray>(&ctx)?;
+                    let js_array = js_values.into_iter().collect_js::<JsArray>(ctx)?;
                     args.push_arg(js_array)?;
                 }
                 let filtered_result: Vec<_> = self
-                    .call_user_fn(&ctx, &js_function, args, function.options.is_async)
+                    .call_user_fn(ctx, &js_function, args, function.options.is_async)
                     .await
                     .context("failed to call function")?;
                 let mut iter = filtered_result.into_iter();
@@ -652,7 +632,7 @@ impl Runtime {
         };
         let array = self
             .converter
-            .build_array(&function.return_field, &ctx, result)?;
+            .build_array(&function.return_field, ctx, result)?;
         let schema = Schema::new(vec![function.return_field.clone()]);
         Ok(RecordBatch::try_new(Arc::new(schema), vec![array])?)
     }

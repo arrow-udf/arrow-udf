@@ -33,8 +33,7 @@ class UserDefinedFunction:
     _name: str
     _input_schema: pa.Schema
     _result_schema: pa.Schema
-    _io_threads: Optional[int]
-    _executor: Optional[ThreadPoolExecutor]
+    _executor: Optional[ThreadPoolExecutor] = None
 
     def eval_batch(self, batch: pa.RecordBatch) -> Iterator[pa.RecordBatch]:
         """
@@ -49,13 +48,13 @@ class ScalarFunction(UserDefinedFunction):
     or multiple scalar values to a new scalar value.
     """
 
+    _batch: bool
+
     def __init__(self, *args, **kwargs):
-        self._io_threads = kwargs.pop("io_threads")
-        self._executor = (
-            ThreadPoolExecutor(max_workers=self._io_threads)
-            if self._io_threads is not None
-            else None
-        )
+        self._batch = kwargs.pop("batch", False)
+        io_threads = kwargs.pop("io_threads", None) or 1
+        if not self._batch and io_threads > 1:
+            self._executor = ThreadPoolExecutor(max_workers=io_threads)
         super().__init__(*args, **kwargs)
 
     def eval(self, *args) -> Any:
@@ -68,24 +67,29 @@ class ScalarFunction(UserDefinedFunction):
         # parse value from json string for jsonb columns
         inputs = [[v.as_py() for v in array] for array in batch]
 
-        # evaluate the function for each row
-        if self._executor is not None:
-            # run in executor concurrently
-            results = list(
-                self._executor.map(
-                    lambda args: self._func(*args),  # manual `starmap`
-                    (
-                        # converts column-based inputs to rows
-                        [col[i] for col in inputs]
-                        for i in range(batch.num_rows)
-                    ),
-                )
-            )
+        if self._batch:
+            # evaluate the function on the entire batch
+            results = self._func(*inputs)
         else:
-            # run sequentially
-            results = [
-                self.eval(*[col[i] for col in inputs]) for i in range(batch.num_rows)
-            ]
+            # evaluate the function row by row
+            if self._executor:
+                # run in executor concurrently
+                results = list(
+                    self._executor.map(
+                        lambda args: self._func(*args),  # manual `starmap`
+                        (
+                            # converts column-based inputs to rows
+                            [col[i] for col in inputs]
+                            for i in range(batch.num_rows)
+                        ),
+                    )
+                )
+            else:
+                # run sequentially
+                results = [
+                    self.eval(*[col[i] for col in inputs])
+                    for i in range(batch.num_rows)
+                ]
 
         array = _to_arrow_array(results, self._result_schema.types[0])
 
@@ -208,7 +212,7 @@ class UserDefinedScalarFunctionWrapper(ScalarFunction):
 
     _func: Callable
 
-    def __init__(self, func, input_types, result_type, name=None, io_threads=None):
+    def __init__(self, func, input_types, result_type, name=None, **kwargs):
         self._func = func
         self._name = name or (
             func.__name__ if hasattr(func, "__name__") else func.__class__.__name__
@@ -221,7 +225,7 @@ class UserDefinedScalarFunctionWrapper(ScalarFunction):
         )
         self._result_schema = pa.schema([(self._name, _to_data_type(result_type))])
 
-        super().__init__(io_threads=io_threads)
+        super().__init__(**kwargs)
 
     def __call__(self, *args):
         return self._func(*args)
@@ -281,6 +285,7 @@ def udf(
     result_type: Union[str, pa.DataType],
     name: Optional[str] = None,
     io_threads: Optional[int] = None,
+    batch: bool = False,
 ) -> Callable:
     """
     Annotation for creating a user-defined scalar function.
@@ -290,6 +295,7 @@ def udf(
     - result_type: A string or an Arrow data type that specifies the return value type.
     - name: An optional string specifying the function name. If not provided, the original name will be used.
     - io_threads: Number of I/O threads used per data chunk for I/O bound functions.
+    - batch: Whether the function accepts and returns a batch of data. When this is True, `io_threads` will take no effect.
 
     Example:
     ```
@@ -307,16 +313,19 @@ def udf(
         response = requests.get(my_endpoint + '?param=' + x)
         return response["data"]
     ```
+
+    Batched Example:
+    ```
+    @udf(input_types=['VARCHAR'], result_type='REAL[]', batch=True)
+    def external_api(texts: List[str]) -> List[List[float]]:
+        response = requests.post(my_endpoint, json={"inputs": texts})
+        return response["data"]
+    ```
     """
 
-    if io_threads is not None and io_threads > 1:
-        return lambda f: UserDefinedScalarFunctionWrapper(
-            f, input_types, result_type, name, io_threads=io_threads
-        )
-    else:
-        return lambda f: UserDefinedScalarFunctionWrapper(
-            f, input_types, result_type, name
-        )
+    return lambda f: UserDefinedScalarFunctionWrapper(
+        f, input_types, result_type, name, io_threads=io_threads, batch=batch
+    )
 
 
 def udtf(

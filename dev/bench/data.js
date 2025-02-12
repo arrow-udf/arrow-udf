@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1739359045868,
+  "lastUpdate": 1739379474327,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -13445,6 +13445,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 149172,
             "range": "± 3461",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7616a89d1dc1ea499f2fa4f5910394d6ab84c761",
+          "message": "Fix global_registry (#110)\n\nCorrectly propagate `global_registry` feature to the macro crate.\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2025-02-12T16:47:27Z",
+          "tree_id": "d3ec46d657e55d9684170209b6fe11110561ed6f",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/7616a89d1dc1ea499f2fa4f5910394d6ab84c761"
+        },
+        "date": 1739379473347,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3938,
+            "range": "± 13",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4016,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23009,
+            "range": "± 1278",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 208867,
+            "range": "± 2821",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 256284,
+            "range": "± 2557",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 75965,
+            "range": "± 1508",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 385216,
+            "range": "± 17908",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6137550,
+            "range": "± 113301",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 966792,
+            "range": "± 17751",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 686715,
+            "range": "± 11388",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12304177,
+            "range": "± 288896",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 146774,
+            "range": "± 2725",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 152725,
+            "range": "± 5100",
             "unit": "ns/iter"
           }
         ]

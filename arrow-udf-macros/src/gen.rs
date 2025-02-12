@@ -48,29 +48,14 @@ impl FunctionAttr {
     ///
     /// The types of arguments and return value should not contain wildcard.
     pub fn generate_function_descriptor(&self, user_fn: &UserFunctionAttr) -> Result<TokenStream2> {
-        let name = self.name.clone();
-        let variadic = matches!(self.args.last(), Some(t) if t == "...");
-        let args = match variadic {
-            true => &self.args[..self.args.len() - 1],
-            false => &self.args[..],
-        }
-        .iter()
-        .map(|ty| field("", ty))
-        .collect_vec();
-        let ret = field(&self.name, &self.ret);
-
         let eval_name = match &self.output {
             Some(output) => format_ident!("{}", output),
             None => format_ident!("{}_eval", self.ident_name()),
         };
-        let sig_name = format_ident!("{}_sig", self.ident_name());
         let ffi_name = format_ident!("{}_ffi", self.ident_name());
         let export_name = format!("arrowudf_{}", base64_encode(&self.normalize_signature()));
         let eval_function = self.generate_function(user_fn, &eval_name)?;
-        let kind = match self.is_table_function {
-            true => quote! { Table },
-            false => quote! { Scalar },
-        };
+
         let ffi_wrapper = match self.is_table_function {
             true => quote! { table_wrapper },
             false => quote! { scalar_wrapper },
@@ -80,6 +65,43 @@ impl FunctionAttr {
             .as_ref()
             .map(|struct_name| self.generate_duckdb_scalar_impl(struct_name, &eval_name));
 
+        let global_registry = if cfg!(feature = "global_registry") {
+            let name = self.name.clone();
+            let variadic = matches!(self.args.last(), Some(t) if t == "...");
+            let args = match variadic {
+                true => &self.args[..self.args.len() - 1],
+                false => &self.args[..],
+            }
+            .iter()
+            .map(|ty| field("", ty))
+            .collect_vec();
+            let ret = field(&self.name, &self.ret);
+            let sig_name = format_ident!("{}_sig", self.ident_name());
+            let kind = match self.is_table_function {
+                true => quote! { Table },
+                false => quote! { Scalar },
+            };
+            quote! {
+                #[::arrow_udf::codegen::linkme::distributed_slice(::arrow_udf::sig::SIGNATURES)]
+                #[linkme(crate = ::arrow_udf::codegen::linkme)]
+                fn #sig_name() -> ::arrow_udf::sig::FunctionSignature {
+                    use ::arrow_udf::sig::{FunctionSignature, FunctionKind};
+                    use ::arrow_udf::codegen::arrow_schema::{self, TimeUnit, IntervalUnit, Field};
+
+                    let args: Vec<Field> = vec![#(#args),*];
+                    FunctionSignature {
+                        name: #name.into(),
+                        arg_types: args.into(),
+                        variadic: #variadic,
+                        return_type: #ret,
+                        function: FunctionKind::#kind(#eval_name),
+                    }
+                }
+            }
+        } else {
+            quote! {}
+        };
+
         Ok(quote! {
             #eval_function
 
@@ -88,21 +110,7 @@ impl FunctionAttr {
                 arrow_udf::ffi::#ffi_wrapper(#eval_name, ptr, len, out)
             }
 
-            #[cfg(feature = "global_registry")]
-            #[::arrow_udf::codegen::linkme::distributed_slice(::arrow_udf::sig::SIGNATURES)]
-            fn #sig_name() -> ::arrow_udf::sig::FunctionSignature {
-                use ::arrow_udf::sig::{FunctionSignature, FunctionKind};
-                use ::arrow_udf::codegen::arrow_schema::{self, TimeUnit, IntervalUnit, Field};
-
-                let args: Vec<Field> = vec![#(#args),*];
-                FunctionSignature {
-                    name: #name.into(),
-                    arg_types: args.into(),
-                    variadic: #variadic,
-                    return_type: #ret,
-                    function: FunctionKind::#kind(#eval_name),
-                }
-            }
+            #global_registry
 
             #duckdb_impl
         })

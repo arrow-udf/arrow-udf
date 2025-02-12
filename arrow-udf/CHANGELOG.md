@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix `global_registry` feature.
+
 ## [0.5.2] - 2024-12-24
 
 ### Fixed

@@ -75,6 +75,10 @@ impl FunctionAttr {
             true => quote! { table_wrapper },
             false => quote! { scalar_wrapper },
         };
+        let duckdb_impl = self
+            .duckdb
+            .as_ref()
+            .map(|struct_name| self.generate_duckdb_scalar_impl(struct_name, &eval_name));
 
         Ok(quote! {
             #eval_function
@@ -99,7 +103,38 @@ impl FunctionAttr {
                     function: FunctionKind::#kind(#eval_name),
                 }
             }
+
+            #duckdb_impl
         })
+    }
+
+    fn generate_duckdb_scalar_impl(&self, struct_name: &str, eval_name: &Ident) -> TokenStream2 {
+        let struct_ident = format_ident!("{}", struct_name);
+        let arg_types = self.args.iter().map(|ty| data_type(ty));
+        let ret_type = data_type(&self.ret);
+        quote! {
+            pub struct #struct_ident;
+
+            impl ::duckdb::vscalar::arrow::VArrowScalar for #struct_ident {
+                type State = ();
+
+                fn invoke(
+                    _: &Self::State,
+                    input: ::duckdb::arrow::array::RecordBatch,
+                ) -> ::duckdb::Result<std::sync::Arc<dyn ::duckdb::arrow::array::Array>, Box<dyn std::error::Error>> {
+                    let batch = #eval_name(&input)?;
+                    Ok(batch.column(0).clone())
+                }
+
+                fn signatures() -> Vec<::duckdb::vscalar::arrow::ArrowFunctionSignature> {
+                    use ::arrow_udf::codegen::arrow_schema;
+                    vec![::duckdb::vscalar::arrow::ArrowFunctionSignature::exact(
+                        vec![#(#arg_types),*],
+                        #ret_type
+                    )]
+                }
+            }
+        }
     }
 
     /// Generate a scalar or table function.
@@ -458,9 +493,9 @@ impl FunctionAttr {
     }
 }
 
-/// Returns a `Field` from type name.
-pub fn field(name: &str, ty: &str) -> TokenStream2 {
-    let data_type = if let Some(ty) = ty.strip_suffix("[]") {
+/// Returns a `DataType` from type name.
+pub fn data_type(ty: &str) -> TokenStream2 {
+    if let Some(ty) = ty.strip_suffix("[]") {
         let inner = field("item", ty);
         quote! { arrow_schema::DataType::List(Arc::new(#inner)) }
     } else if let Some(s) = ty.strip_prefix("struct ") {
@@ -469,7 +504,12 @@ pub fn field(name: &str, ty: &str) -> TokenStream2 {
     } else {
         let variant: TokenStream2 = types::data_type(ty).parse().unwrap();
         quote! { arrow_schema::DataType::#variant }
-    };
+    }
+}
+
+/// Returns a `Field` from type name.
+pub fn field(name: &str, ty: &str) -> TokenStream2 {
+    let data_type = data_type(ty);
     let with_metadata = match ty {
         "json" => {
             quote! { .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into()) }

@@ -323,6 +323,8 @@ struct FunctionAttr {
     /// Generated batch function name.
     /// If not specified, the macro will not generate batch function.
     output: Option<String>,
+    /// If specified, the macro will generate DuckDB struct with this name.
+    duckdb: Option<String>,
     /// Customized function visibility.
     visibility: Option<String>,
 }

@@ -9,10 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add async function support, as a result:
-  - All methods of `Runtime` becomes `async`. Return value of `call_table_function` becomes an async `Stream`.
-  - A new `is_async` parameter is added to `add_function` and `add_aggregate` to specify the type of function.
-  - Add `Runtime::enable_fetch` to enable the Fetch API extension.
+- Add async function support, as a result, all methods of `Runtime` becomes `async`. Return value of `call_table_function` becomes an async `Stream`.
+- Add `Runtime::enable_fetch` to enable the async Fetch API extension.
+- Add batched function support.
+- Refactor the parameter as `FunctionOptions` and `AggregateOptions` to keep code clean.
 
 ## [0.5.0] - 2024-10-10
 

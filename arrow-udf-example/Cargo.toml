@@ -8,5 +8,4 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-arrow-udf = { path = "../arrow-udf", features = ["global_registry"] }
-linkme = { version = "0.3" }
+arrow-udf = { path = "../arrow-udf" }

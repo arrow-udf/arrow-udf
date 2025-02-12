@@ -8,7 +8,7 @@ fn hello(name: &str) -> String {
     format!("Hello {}!", name)
 }
 
-#[duckdb_entrypoint_c_api(ext_name = "arrow_udf_duckdb_example", min_duckdb_version = "v1.2.0")]
+#[duckdb_entrypoint_c_api(ext_name = "arrow_udf_duckdb_example", min_duckdb_version = "v1.0.0")]
 pub unsafe fn extension_entrypoint(con: Connection) -> Result<(), Box<dyn Error>> {
     con.register_scalar_function::<Hello>("hello")
         .expect("Failed to register hello function");

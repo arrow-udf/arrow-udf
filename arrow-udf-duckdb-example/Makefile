@@ -4,7 +4,7 @@ PROJ_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 # TODO: these values are currently duplicated in lib.rs. There's a PR open in duckdb-rs that fixes this
 EXTENSION_NAME=arrow_udf_duckdb_example
-TARGET_DUCKDB_VERSION=v1.2.0
+TARGET_DUCKDB_VERSION=v1.0.0
 
 all: configure debug
 

@@ -79,6 +79,7 @@ impl FunctionAttr {
             };
             quote! {
                 #[::arrow_udf::codegen::linkme::distributed_slice(::arrow_udf::sig::SIGNATURES)]
+                #[linkme(crate = ::arrow_udf::codegen::linkme)]
                 fn #sig_name() -> ::arrow_udf::sig::FunctionSignature {
                     use ::arrow_udf::sig::{FunctionSignature, FunctionKind};
                     use ::arrow_udf::codegen::arrow_schema::{self, TimeUnit, IntervalUnit, Field};

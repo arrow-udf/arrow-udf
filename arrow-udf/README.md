@@ -110,7 +110,6 @@ If you want to lookup functions by signature, you can enable the `global_registr
 ```toml
 [dependencies]
 arrow-udf = { version = "0.3", features = ["global_registry"] }
-linkme = "0.3"
 ```
 
 Each function will be registered in a global registry when it is defined.

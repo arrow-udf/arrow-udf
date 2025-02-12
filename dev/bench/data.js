@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1739276248159,
+  "lastUpdate": 1739351509442,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -13241,6 +13241,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 151576,
             "range": "± 3164",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "stdrc@outlook.com",
+            "name": "Richard Chien",
+            "username": "stdrc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "355a2f765aca2223d2cd2c6719878a4cfcc76a16",
+          "message": "feat(flight): support batched python remote udf (#108)\n\nSo that we can call external APIs with a batch of inputs instead of\ndoing it row by row:\n\n```py\n@udf(input_types=[\"string\"], result_type=\"float32[]\", batch=True)\ndef text_embedding(texts: List[str]) -> List[List[float]]:\n    embeddings = [\n        e.embedding\n        for e in openai.embeddings.create(\n            model=\"text-embedding-ada-002\",\n            input=texts,\n            encoding_format=\"float\",\n        ).data\n    ]\n    return embeddings\n```\n\n---------\n\nSigned-off-by: Richard Chien <stdrc@outlook.com>",
+          "timestamp": "2025-02-12T09:01:26Z",
+          "tree_id": "4b79989ca327d2091766e982faa1aeb3ad3c85f1",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/355a2f765aca2223d2cd2c6719878a4cfcc76a16"
+        },
+        "date": 1739351508927,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3929,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4035,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22582,
+            "range": "± 1361",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 210319,
+            "range": "± 1823",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 255016,
+            "range": "± 12747",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 73748,
+            "range": "± 709",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 388079,
+            "range": "± 20440",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6084636,
+            "range": "± 108046",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 969184,
+            "range": "± 21176",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 685940,
+            "range": "± 10889",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12365844,
+            "range": "± 500589",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 145705,
+            "range": "± 2046",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 150994,
+            "range": "± 4719",
             "unit": "ns/iter"
           }
         ]

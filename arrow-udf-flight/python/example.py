@@ -230,6 +230,23 @@ def return_all(
     }
 
 
+@udf(input_types=["string"], result_type="float32[]", batch=True)
+def text_embedding(texts: List[str]) -> List[List[float]]:
+    # embeddings = [
+    #     e.embedding
+    #     for e in openai.embeddings.create(
+    #         model="text-embedding-ada-002",
+    #         input=texts,
+    #         encoding_format="float",
+    #     ).data
+    # ]
+    embeddings = [
+        [0.1, 0.2],
+        [0.3, 0.4],
+    ]
+    return embeddings
+
+
 if __name__ == "__main__":
     server = UdfServer(location="localhost:8815")
     server.add_function(int_42)
@@ -247,4 +264,5 @@ if __name__ == "__main__":
     server.add_function(json_concat)
     server.add_function(json_array_identity)
     server.add_function(return_all)
+    server.add_function(text_embedding)
     server.serve()

@@ -29,6 +29,10 @@ The functions can be executed natively, or in WebAssembly, or in a [remote serve
 - `arrow-udf-python/js/wasm`: You first `add_function` to a `Runtime`, and then call it with the `Runtime`.
 - `arrow-udf-flight`: You start a `Client` to call the function running in a remote `Server` process.
 
+You can also use this library to add custom functions to DuckDB, see [arrow-udf-duckdb-example].
+
+[arrow-udf-duckdb-example]: ./arrow-udf-duckdb-example
+
 ## Extension Types
 
 In addition to the standard types defined by Arrow, these crates also support the following data types through Arrow's [extension type](https://arrow.apache.org/docs/format/Columnar.html#format-metadata-extension-types). When using extension types, you need to add the `ARROW:extension:name` key to the field's metadata.

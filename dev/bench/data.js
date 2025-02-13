@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1739379474327,
+  "lastUpdate": 1739414835420,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -13547,6 +13547,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 152725,
             "range": "± 5100",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e6d8ce8956b07ddd0a3432fea08c72dac26448e2",
+          "message": "feat: support adding functions to duckdb using arrow-udf (#107)\n\nThis PR adds a minimal example of adding functions to duckdb using\narrow-udf.\n\nreference:\n- https://github.com/duckdb/duckdb-rs/pull/429 in upcoming duckdb-rs\nv1.2.0\n- https://github.com/duckdb/extension-template-rs\n\n---------\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2025-02-13T02:37:04Z",
+          "tree_id": "11e6498981baf0600278c508ac1b9c082876e750",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/e6d8ce8956b07ddd0a3432fea08c72dac26448e2"
+        },
+        "date": 1739414834862,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3927,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4030,
+            "range": "± 55",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23650,
+            "range": "± 1463",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 210161,
+            "range": "± 1036",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 259653,
+            "range": "± 3126",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 73263,
+            "range": "± 487",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 392180,
+            "range": "± 62055",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6315451,
+            "range": "± 125121",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 961523,
+            "range": "± 18763",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 687527,
+            "range": "± 25742",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12126907,
+            "range": "± 189687",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 134959,
+            "range": "± 1466",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 161730,
+            "range": "± 6525",
             "unit": "ns/iter"
           }
         ]

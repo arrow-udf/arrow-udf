@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.2] - todo
+## [0.3.0] - 2025-02-12
+
+### Added
+
+- Add `batch` keyword parameter to the `udf` decorator. When it is set to `True`, the UDF will receive a batch of input instead of just one. Example:
+    ```py
+    @udf(input_types=["string"], result_type="float32[]", batch=True)
+    def text_embedding(texts: List[str]) -> List[List[float]]:
+        embeddings = [
+            e.embedding
+            for e in openai.embeddings.create(
+                model="text-embedding-ada-002",
+                input=texts,
+                encoding_format="float",
+            ).data
+        ]
+        return embeddings
+    ```
+
+## [0.2.2] - 2025-01-15
 
 ### Fixed
 

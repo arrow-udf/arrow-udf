@@ -10,18 +10,21 @@ members = [
   "arrow-udf-python",
   "arrow-udf-wasm",
 ]
+exclude = [
+  "arrow-udf-duckdb-example",
+]
 
 [workspace.dependencies]
 anyhow = "1"
-arrow-arith = "53"
-arrow-array = "53"
-arrow-buffer = "53"
-arrow-cast = "53"
-arrow-schema = "53"
-arrow-select = "53"
-arrow-ipc = "53"
-arrow-data = "53"
-arrow-flight = "53"
+arrow-arith = ">=53,<55"
+arrow-array = ">=53,<55"
+arrow-buffer = ">=53,<55"
+arrow-cast = ">=53,<55"
+arrow-schema = ">=53,<55"
+arrow-select = ">=53,<55"
+arrow-ipc = ">=53,<55"
+arrow-data = ">=53,<55"
+arrow-flight = ">=53,<55"
 expect-test = "1"
 serde_json = "1"
 tokio = "1"

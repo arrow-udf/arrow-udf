@@ -1,6 +1,6 @@
 [package]
 name = "arrow-udf-macros"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2021"
 description = "Procedural macros for generating Arrow functions."
 repository = "https://github.com/risingwavelabs/arrow-udf"
@@ -9,6 +9,9 @@ license = "Apache-2.0"
 
 [lib]
 proc-macro = true
+
+[features]
+global_registry = []
 
 [dependencies]
 base64 = "0.22"

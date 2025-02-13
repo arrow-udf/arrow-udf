@@ -7,8 +7,5 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"]
 
-[lints.rust]
-unexpected_cfgs = { level = "allow" }
-
 [dependencies]
 arrow-udf = { path = "../arrow-udf" }

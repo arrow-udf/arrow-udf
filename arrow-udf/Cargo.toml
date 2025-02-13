@@ -1,6 +1,6 @@
 [package]
 name = "arrow-udf"
-version = "0.5.2"
+version = "0.5.3"
 edition = "2021"
 description = "User-defined function framework for arrow-rs."
 repository = "https://github.com/risingwavelabs/arrow-udf"
@@ -9,14 +9,14 @@ categories = ["wasm"]
 license = "Apache-2.0"
 
 [features]
-global_registry = ["linkme"]
+global_registry = ["linkme", "arrow-udf-macros/global_registry"]
 
 [dependencies]
 arrow-arith.workspace = true
 arrow-array.workspace = true
 arrow-ipc.workspace = true
 arrow-schema.workspace = true
-arrow-udf-macros = { version = "0.5.0", path = "../arrow-udf-macros" }
+arrow-udf-macros = { version = "0.5.1", path = "../arrow-udf-macros" }
 chrono = { version = "0.4", default-features = false }
 genawaiter2 = "0.100.1"
 linkme = { version = "0.3", optional = true }

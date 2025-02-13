@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1739414835420,
+  "lastUpdate": 1739427780880,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -13649,6 +13649,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 161730,
             "range": "± 6525",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7a60ffd257eae26f7a91de8e5e144c9f21252d48",
+          "message": "refactor: make `TableFunction` return `RecordBatchReader` (#106)\n\nGenerated table functions now return `RecordBatchReader` in order to\nprovide schema before consuming the iterator.\nThey also no longer borrow input record batch, making C wrapper simpler.\n\n```rust\npub type TableFunction = fn(input: &RecordBatch) -> Result<Box<dyn RecordBatchReader>>;\n```\n\nOther public APIs are unaffected.\n\n---------\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2025-02-13T06:12:36Z",
+          "tree_id": "becce8ddd3365ec87f2c1cd36cfbf1623d173d79",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/7a60ffd257eae26f7a91de8e5e144c9f21252d48"
+        },
+        "date": 1739427779872,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3927,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3996,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23741,
+            "range": "± 1293",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 222924,
+            "range": "± 2830",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 254835,
+            "range": "± 4109",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74458,
+            "range": "± 9380",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 398654,
+            "range": "± 26886",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6347427,
+            "range": "± 131113",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 974970,
+            "range": "± 34441",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 700567,
+            "range": "± 8555",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11916043,
+            "range": "± 248174",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 144107,
+            "range": "± 1510",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 159182,
+            "range": "± 4841",
             "unit": "ns/iter"
           }
         ]

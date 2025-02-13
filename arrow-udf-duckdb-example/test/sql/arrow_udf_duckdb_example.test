@@ -1,0 +1,18 @@
+# name: test/sql/arrow_udf_duckdb_example.test
+# description: test hello extension
+# group: [hello]
+
+# Before we load the extension, this will fail
+statement error
+SELECT hello('Sam');
+----
+Catalog Error: Scalar Function with name hello does not exist!
+
+# Require statement will ensure the extension is loaded from now on
+require arrow_udf_duckdb_example
+
+# Confirm the extension works
+query I
+SELECT hello('Sam');
+----
+Hello Sam!

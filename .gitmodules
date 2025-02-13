@@ -1,0 +1,4 @@
+[submodule "arrow-udf-duckdb-example/extension-ci-tools"]
+	path = arrow-udf-duckdb-example/extension-ci-tools
+	url = https://github.com/duckdb/extension-ci-tools.git
+	branch = v1.2.0

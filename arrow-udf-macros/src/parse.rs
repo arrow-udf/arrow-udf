@@ -80,6 +80,8 @@ impl Parse for FunctionAttr {
                 parsed.generic = Some(get_value()?);
             } else if meta.path().is_ident("output") {
                 parsed.output = Some(get_value()?);
+            } else if meta.path().is_ident("duckdb") {
+                parsed.duckdb = Some(get_value()?);
             } else if meta.path().is_ident("volatile") {
                 parsed.volatile = true;
             } else if meta.path().is_ident("append_only") {

@@ -1,0 +1,13 @@
+[package]
+name = "arrow-udf-duckdb-example"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+arrow-udf = { path = "../arrow-udf" }
+duckdb = { version = "1.2", features = ["vscalar", "vscalar-arrow", "vtab-arrow", "vtab-loadable"] }
+duckdb-loadable-macros = { version = "0.1" }
+libduckdb-sys = { version = "1.2", features = ["loadable-extension"] }

@@ -120,6 +120,37 @@ jobs:
           kill $pid
           cd ../..
 
+  test-duckdb:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install duckdb on Ubuntu
+        uses: opt-nc/setup-duckdb-action@v1.0.8
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        with:
+          version: v1.1.3
+      - name: Install duckdb on macOS
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: brew install duckdb
+      - name: Build duckdb-example
+        run: |
+          cd arrow-udf-duckdb-example
+          make configure
+          make release
+          make test_release
+          cd ..
+
   docs:
     runs-on: ubuntu-latest
     steps:

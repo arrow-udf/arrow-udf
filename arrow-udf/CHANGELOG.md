@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `TableFunction` now returns a `RecordBatchReader`.
+
 ## [0.5.3] - 2025-02-13
 
 ### Changed

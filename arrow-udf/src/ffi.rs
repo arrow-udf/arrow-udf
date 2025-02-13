@@ -15,7 +15,7 @@
 //! FFI interfaces.
 
 use crate::{Error, ScalarFunction, TableFunction};
-use arrow_array::RecordBatch;
+use arrow_array::RecordBatchReader;
 use arrow_ipc::{reader::FileReader, writer::FileWriter};
 
 /// A symbol indicating the ABI version.
@@ -127,10 +127,7 @@ fn call_scalar(function: ScalarFunction, input_bytes: &[u8]) -> Result<Box<[u8]>
 
 /// An opaque type for iterating over record batches.
 pub struct RecordBatchIter {
-    /// The input record batch is borrowed by `iter`. Its lifetime must be longer than `iter`.
-    _input: Box<RecordBatch>,
-    /// This iterator borrows `input`.
-    iter: Box<dyn Iterator<Item = RecordBatch>>,
+    iter: Box<dyn RecordBatchReader>,
 }
 
 /// A wrapper for calling table functions from C.
@@ -179,14 +176,8 @@ fn call_table(function: TableFunction, input_bytes: &[u8]) -> Result<Box<RecordB
         .next()
         .ok_or_else(|| Error::IpcError("no record batch".into()))??;
 
-    let input = Box::new(input_batch);
-    // SAFETY: The lifetime of `input` is longer than `iter`.
-    let input_ref: &RecordBatch = unsafe { std::mem::transmute(input.as_ref()) };
-    let iter = function(input_ref)?;
-    Ok(Box::new(RecordBatchIter {
-        _input: input,
-        iter,
-    }))
+    let iter = function(&input_batch)?;
+    Ok(Box::new(RecordBatchIter { iter }))
 }
 
 /// Get the next record batch from the iterator.
@@ -200,7 +191,7 @@ fn call_table(function: TableFunction, input_bytes: &[u8]) -> Result<Box<RecordB
 #[no_mangle]
 pub unsafe extern "C" fn record_batch_iterator_next(iter: *mut RecordBatchIter, out: *mut CSlice) {
     let iter = iter.as_mut().expect("null pointer");
-    if let Some(batch) = iter.iter.next() {
+    if let Some(Ok(batch)) = iter.iter.next() {
         let mut buf = vec![];
         let mut writer = FileWriter::try_new(&mut buf, &batch.schema()).unwrap();
         writer.write(&batch).unwrap();
@@ -214,6 +205,7 @@ pub unsafe extern "C" fn record_batch_iterator_next(iter: *mut RecordBatchIter, 
         });
         std::mem::forget(buf);
     } else {
+        // TODO: return error message
         out.write(CSlice {
             ptr: std::ptr::null(),
             len: 0,

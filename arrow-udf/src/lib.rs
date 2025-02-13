@@ -14,7 +14,7 @@
 
 #![doc = include_str!("../README.md")]
 
-use arrow_array::RecordBatch;
+use arrow_array::{RecordBatch, RecordBatchReader};
 pub use arrow_schema::ArrowError as Error;
 pub use arrow_udf_macros::function;
 
@@ -30,8 +30,7 @@ pub mod types;
 pub type ScalarFunction = fn(input: &RecordBatch) -> Result<RecordBatch>;
 
 /// A table function that operates on a record batch and returns an iterator of record batches.
-pub type TableFunction =
-    for<'a> fn(input: &'a RecordBatch) -> Result<Box<dyn Iterator<Item = RecordBatch> + 'a>>;
+pub type TableFunction = fn(input: &RecordBatch) -> Result<Box<dyn RecordBatchReader>>;
 
 /// Internal APIs used by macros.
 #[doc(hidden)]

@@ -14,11 +14,11 @@
 
 //! High-level API for Python sub-interpreters.
 
-use std::ffi::CStr;
+use std::{ffi::CStr, sync::Once};
 
 #[allow(deprecated)]
 use pyo3::GILPool;
-use pyo3::{ffi::*, prepare_freethreaded_python, PyErr, Python};
+use pyo3::{ffi::*, PyErr, Python};
 
 /// A Python sub-interpreter with its own GIL.
 #[derive(Debug)]
@@ -32,16 +32,40 @@ pub struct SubInterpreter {
 unsafe impl Send for SubInterpreter {}
 unsafe impl Sync for SubInterpreter {}
 
+static GLOBAL_INIT: Once = Once::new();
+
 impl SubInterpreter {
     /// Create a new sub-interpreter.
     pub fn new() -> Result<Self, PyError> {
-        prepare_freethreaded_python();
-        // XXX: import the `decimal` module in the main interpreter before creating sub-interpreters.
-        //      otherwise it will cause `SIGABRT: pointer being freed was not allocated`
-        //      when importing decimal in the second sub-interpreter.
-        Python::with_gil(|py| {
-            py.import_bound("decimal").unwrap();
+        GLOBAL_INIT.call_once_force(|_| {
+            // use call_once_force because if initialization panics, it's okay to try again
+
+            // see `pyo3::prepare_freethreaded_python`
+            unsafe {
+                if Py_IsInitialized() == 0 {
+                    Py_InitializeEx(0);
+                    // now the current thread state is of the main interpreter
+                    // and the GIL of it is held
+
+                    // release the GIL
+                    PyEval_SaveThread();
+                }
+            }
+
+            // XXX: import the `decimal` module in the main interpreter before creating any sub-interpreters.
+            //      otherwise it will cause `SIGABRT: pointer being freed was not allocated`
+            //      when importing decimal in the second sub-interpreter.
+            Python::with_gil(|py| {
+                py.import_bound("decimal").unwrap();
+            });
         });
+
+        // switch to the main interpreter and acquire its GIL, because `Py_NewInterpreterFromConfig`
+        // requires the GIL to be held before calling.
+        unsafe {
+            let state = PyInterpreterState_ThreadHead(PyInterpreterState_Main());
+            PyEval_RestoreThread(state);
+        }
 
         // reference: https://github.com/PyO3/pyo3/blob/9a36b5078989a7c07a5e880aea3c6da205585ee3/examples/sequential/tests/test.rs
         let config = PyInterpreterConfig {
@@ -51,13 +75,9 @@ impl SubInterpreter {
             allow_threads: 0,
             allow_daemon_threads: 0,
             check_multi_interp_extensions: 1,
-            gil: PyInterpreterConfig_OWN_GIL,
+            gil: PyInterpreterConfig_OWN_GIL, // each sub-interpreter has its own GIL
         };
         let mut state: *mut PyThreadState = std::ptr::null_mut();
-        // FIXME: according to the documentation:
-        // - "the GIL must be held before calling this function"
-        // - "a current thread state must be set on entry"
-        // but we don't acquire the GIL here.
         let status: PyStatus = unsafe { Py_NewInterpreterFromConfig(&mut state, &config) };
         if unsafe { PyStatus_IsError(status) } == 1 {
             let msg = unsafe { CStr::from_ptr(status.err_msg) };
@@ -67,7 +87,9 @@ impl SubInterpreter {
             )
             .into());
         }
-        // release the GIL
+        // after success of `Py_NewInterpreterFromConfig`, the current thread state is set to the new sub-interpreter
+        assert_eq!(state, unsafe { PyThreadState_Get() });
+        // release the GIL of the new sub-interpreter
         unsafe { PyEval_SaveThread() };
         Ok(Self { state })
     }
@@ -107,6 +129,7 @@ impl Drop for SubInterpreter {
         unsafe {
             // switch to the sub-interpreter
             PyEval_RestoreThread(self.state);
+            assert_eq!(self.state, PyThreadState_GET());
             // destroy the sub-interpreter
             Py_EndInterpreter(self.state);
         }

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1739427780880,
+  "lastUpdate": 1740129103300,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -13751,6 +13751,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 159182,
             "range": "± 4841",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "stdrc@outlook.com",
+            "name": "Richard Chien",
+            "username": "stdrc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0b185be96a37bdcd644fe40d1f0ccf0b7972a99a",
+          "message": "fix: restore to main interpreter before creating sub-interpreter (#111)\n\nFix a segmentation fault encountered in RisingWave:\nhttps://github.com/risingwavelabs/risingwave/issues/20527\n\n---------\n\nSigned-off-by: Richard Chien <stdrc@outlook.com>",
+          "timestamp": "2025-02-21T17:01:48+08:00",
+          "tree_id": "c98647b1dde38f054773f77b899a67a76563117a",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/0b185be96a37bdcd644fe40d1f0ccf0b7972a99a"
+        },
+        "date": 1740129102916,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3925,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4005,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23157,
+            "range": "± 1282",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 202574,
+            "range": "± 1161",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 253796,
+            "range": "± 6370",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76561,
+            "range": "± 648",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 402481,
+            "range": "± 17906",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5836455,
+            "range": "± 134702",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 984030,
+            "range": "± 13626",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 697808,
+            "range": "± 6974",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12276580,
+            "range": "± 264016",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 135275,
+            "range": "± 1155",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 151738,
+            "range": "± 4914",
             "unit": "ns/iter"
           }
         ]

@@ -10,7 +10,7 @@ Add the following lines to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-arrow-udf-python = "0.2"
+arrow-udf-python = "0.4"
 ```
 
 Create a `Runtime` and define your Python functions in string form.

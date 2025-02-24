@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1740129103300,
+  "lastUpdate": 1740385582352,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -13853,6 +13853,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 151738,
             "range": "± 4914",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "stdrc@outlook.com",
+            "name": "Richard Chien",
+            "username": "stdrc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5a11548395da70596d84e2ad4cffd567ff83c0f0",
+          "message": "chore: bump arrow-udf to 0.6.0, arrow-udf-js to 0.6.0, arrow-udf-python to 0.4.1, arrow-udf-wasm to 0.5.0 (#112)\n\nSigned-off-by: Richard Chien <stdrc@outlook.com>\n\n---------\n\nSigned-off-by: Richard Chien <stdrc@outlook.com>",
+          "timestamp": "2025-02-24T16:16:24+08:00",
+          "tree_id": "1e62e027b076960ee24dcd239e88f492f65cc6b3",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/5a11548395da70596d84e2ad4cffd567ff83c0f0"
+        },
+        "date": 1740385581730,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3930,
+            "range": "± 24",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4011,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23276,
+            "range": "± 1229",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 207797,
+            "range": "± 2096",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 252158,
+            "range": "± 3415",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 73282,
+            "range": "± 995",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 401474,
+            "range": "± 22871",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6092141,
+            "range": "± 35350",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 975279,
+            "range": "± 13246",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 702202,
+            "range": "± 109148",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12026756,
+            "range": "± 226036",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 134323,
+            "range": "± 2361",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 162978,
+            "range": "± 10029",
             "unit": "ns/iter"
           }
         ]

@@ -9,7 +9,7 @@ Add the following lines to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-arrow-udf-js = "0.3"
+arrow-udf-js = "0.6"
 ```
 
 Create a `Runtime` and define your JS functions in string form.

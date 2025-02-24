@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2025-02-24
+
 ### Changed
 
 - Remove `Runtime::find_function_by_inlined_signature` method.

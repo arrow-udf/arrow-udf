@@ -11,7 +11,7 @@ Add the following lines to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-arrow-udf = "0.3"
+arrow-udf = "0.6"
 ```
 
 Define your functions with the `#[function]` macro:

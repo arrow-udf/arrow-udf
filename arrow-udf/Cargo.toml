@@ -1,6 +1,6 @@
 [package]
 name = "arrow-udf"
-version = "0.5.3"
+version = "0.6.0"
 edition = "2021"
 description = "User-defined function framework for arrow-rs."
 repository = "https://github.com/risingwavelabs/arrow-udf"

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-02-24
+
 ### Fixed
 
 - Fix a bug that causes `RuntimeError('unable to get sys.modules')` when creating the second `SubInterpreter`.

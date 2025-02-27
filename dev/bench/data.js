@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1740385582352,
+  "lastUpdate": 1740679962368,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -13955,6 +13955,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 162978,
             "range": "± 10029",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "chojan.shang@vesoft.com",
+            "name": "Chojan Shang",
+            "username": "PsiACE"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3aec215b3c02b52cad903ea6fc825ce0910e5120",
+          "message": "chore: replace once_cell with LazyLock (#59)\n\nhttps://blog.rust-lang.org/2024/07/25/Rust-1.80.0.html#lazycell-and-lazylock\n\nFixes: #1\n\n---------\n\nSigned-off-by: Chojan Shang <psiace@apache.org>\nSigned-off-by: Chojan Shang <chojan.shang@vesoft.com>",
+          "timestamp": "2025-02-28T02:02:38+08:00",
+          "tree_id": "790292818bfd46b3a9316586224087dd3b7e7fa9",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/3aec215b3c02b52cad903ea6fc825ce0910e5120"
+        },
+        "date": 1740679961758,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3938,
+            "range": "± 60",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4061,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22764,
+            "range": "± 1370",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 201550,
+            "range": "± 2037",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 258354,
+            "range": "± 5750",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76076,
+            "range": "± 617",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 397213,
+            "range": "± 19861",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5851836,
+            "range": "± 93976",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 978142,
+            "range": "± 25112",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 693349,
+            "range": "± 17661",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12144350,
+            "range": "± 202439",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 150218,
+            "range": "± 4286",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 158144,
+            "range": "± 4106",
             "unit": "ns/iter"
           }
         ]

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1740679962368,
+  "lastUpdate": 1740825641614,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -14057,6 +14057,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 158144,
             "range": "± 4106",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5d8cf536322a0492109381b91cbbfaefda7b8df6",
+          "message": "build(deps): bump org.apache.maven.plugins:maven-source-plugin from 3.3.0 to 3.3.1 in /arrow-udf-flight/java (#113)\n\nBumps\n[org.apache.maven.plugins:maven-source-plugin](https://github.com/apache/maven-source-plugin)\nfrom 3.3.0 to 3.3.1.\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/apache/maven-source-plugin/commit/f80596e4eb587cf99452b67b43ee9729fdadbf3a\"><code>f80596e</code></a>\n[maven-release-plugin] prepare release maven-source-plugin-3.3.1</li>\n<li><a\nhref=\"https://github.com/apache/maven-source-plugin/commit/7626998d262931570c969abe3fc60cf911fd6820\"><code>7626998</code></a>\nBump apache/maven-gh-actions-shared from 3 to 4</li>\n<li><a\nhref=\"https://github.com/apache/maven-source-plugin/commit/83c963c0fffadd3257e9a1ca9266cfac98c057c3\"><code>83c963c</code></a>\nBump org.apache.maven.plugins:maven-plugins from 39 to 41 (<a\nhref=\"https://redirect.github.com/apache/maven-source-plugin/issues/18\">#18</a>)</li>\n<li><a\nhref=\"https://github.com/apache/maven-source-plugin/commit/40ae49538beebc793f16a91578629383de114edb\"><code>40ae495</code></a>\nBump org.codehaus.plexus:plexus-archiver from 4.8.0 to 4.9.1 (<a\nhref=\"https://redirect.github.com/apache/maven-source-plugin/issues/20\">#20</a>)</li>\n<li><a\nhref=\"https://github.com/apache/maven-source-plugin/commit/073462bf11ad9cf61cab6a2ed213bb8af5349f35\"><code>073462b</code></a>\nBump org.apache.maven:maven-archiver from 3.6.0 to 3.6.1 (<a\nhref=\"https://redirect.github.com/apache/maven-source-plugin/issues/21\">#21</a>)</li>\n<li><a\nhref=\"https://github.com/apache/maven-source-plugin/commit/0b1c82366e306c9d138a3a83950326071c2fc7c6\"><code>0b1c823</code></a>\nFix typos in AbstractSourceJarMojo exception</li>\n<li><a\nhref=\"https://github.com/apache/maven-source-plugin/commit/099c65a64ac20e9f1133b41e2d1906944f6c13c3\"><code>099c65a</code></a>\n[MSOURCES-142] Bump org.codehaus.plexus:plexus-archiver from 4.7.1 to\n4.8.0 (...</li>\n<li><a\nhref=\"https://github.com/apache/maven-source-plugin/commit/1edeea47f80bc5c5903e88c1adbff56501248a8b\"><code>1edeea4</code></a>\n[MSOURCES-139] Fix typo in AbstractSourceJarMojo exception</li>\n<li><a\nhref=\"https://github.com/apache/maven-source-plugin/commit/436966ed7f93611d5faa6534478347b99c40f488\"><code>436966e</code></a>\n[maven-release-plugin] prepare for next development iteration</li>\n<li>See full diff in <a\nhref=\"https://github.com/apache/maven-source-plugin/compare/maven-source-plugin-3.3.0...maven-source-plugin-3.3.1\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=org.apache.maven.plugins:maven-source-plugin&package-manager=maven&previous-version=3.3.0&new-version=3.3.1)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-03-01T18:30:59+08:00",
+          "tree_id": "203f6af1cdda38c635727719f7123d7363ca05e3",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/5d8cf536322a0492109381b91cbbfaefda7b8df6"
+        },
+        "date": 1740825641209,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3929,
+            "range": "± 11",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4025,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23254,
+            "range": "± 1435",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 213602,
+            "range": "± 3933",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 263139,
+            "range": "± 5341",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74748,
+            "range": "± 792",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 399816,
+            "range": "± 20985",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5982067,
+            "range": "± 72635",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1040546,
+            "range": "± 32708",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 694797,
+            "range": "± 34585",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11834677,
+            "range": "± 139021",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 136949,
+            "range": "± 964",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 161455,
+            "range": "± 3485",
             "unit": "ns/iter"
           }
         ]

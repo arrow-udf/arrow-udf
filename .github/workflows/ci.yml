@@ -136,7 +136,7 @@ jobs:
         with:
           toolchain: stable
       - name: Install duckdb on Ubuntu
-        uses: opt-nc/setup-duckdb-action@v1.0.8
+        uses: opt-nc/setup-duckdb-action@v1.0.11
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           version: v1.1.3

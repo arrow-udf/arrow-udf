@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1740825641614,
+  "lastUpdate": 1740826372436,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -14159,6 +14159,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 161455,
             "range": "± 3485",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "85bfd0c0d4eea29739d1980597bcce6727fa3789",
+          "message": "build(deps): update thiserror requirement from 1 to 2 (#114)\n\nUpdates the requirements on\n[thiserror](https://github.com/dtolnay/thiserror) to permit the latest\nversion.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/dtolnay/thiserror/releases\">thiserror's\nreleases</a>.</em></p>\n<blockquote>\n<h2>2.0.11</h2>\n<ul>\n<li>Add feature gate to tests that use std (<a\nhref=\"https://redirect.github.com/dtolnay/thiserror/issues/409\">#409</a>,\n<a\nhref=\"https://redirect.github.com/dtolnay/thiserror/issues/410\">#410</a>,\nthanks <a\nhref=\"https://github.com/Maytha8\"><code>@​Maytha8</code></a>)</li>\n</ul>\n</blockquote>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/dtolnay/thiserror/commit/0f532e326e9a4cc6c6e30ee19ab00cb9eeb44362\"><code>0f532e3</code></a>\nRelease 2.0.11</li>\n<li><a\nhref=\"https://github.com/dtolnay/thiserror/commit/3d15543a9117e32050caa6a219da6299b6271576\"><code>3d15543</code></a>\nMerge pull request <a\nhref=\"https://redirect.github.com/dtolnay/thiserror/issues/410\">#410</a>\nfrom dtolnay/testnostd</li>\n<li><a\nhref=\"https://github.com/dtolnay/thiserror/commit/1a226ae42c20114f71bd3ed339f9e0351351abce\"><code>1a226ae</code></a>\nDisable two more integration tests in no-std mode</li>\n<li><a\nhref=\"https://github.com/dtolnay/thiserror/commit/8b5f2d78f0576d8a64a96bd0b73c2b4eef45e6c9\"><code>8b5f2d7</code></a>\nFix unused import in test when built without std</li>\n<li><a\nhref=\"https://github.com/dtolnay/thiserror/commit/eecd247cdf7dfa1cee9898dd29d56b0021b5f4d0\"><code>eecd247</code></a>\nAdd CI step to test with &quot;std&quot; disabled</li>\n<li><a\nhref=\"https://github.com/dtolnay/thiserror/commit/8f2a76b4ba520e5615147977531bff394bed6894\"><code>8f2a76b</code></a>\nMerge pull request <a\nhref=\"https://redirect.github.com/dtolnay/thiserror/issues/409\">#409</a>\nfrom Maytha8/std-tests</li>\n<li><a\nhref=\"https://github.com/dtolnay/thiserror/commit/693a6cddad750d0401942d553969310193ec2614\"><code>693a6cd</code></a>\nAdd feature gate to tests that use std</li>\n<li><a\nhref=\"https://github.com/dtolnay/thiserror/commit/349f6960ff02d64bec38de392850ea9aa07bb766\"><code>349f696</code></a>\nRelease 2.0.10</li>\n<li><a\nhref=\"https://github.com/dtolnay/thiserror/commit/6cd87bc228612a1b8634ddb613059cc11b47f7ae\"><code>6cd87bc</code></a>\nMerge pull request <a\nhref=\"https://redirect.github.com/dtolnay/thiserror/issues/408\">#408</a>\nfrom dtolnay/assoctype</li>\n<li><a\nhref=\"https://github.com/dtolnay/thiserror/commit/6b3e1e50b27d9f90fd4a4be098d4693e50609784\"><code>6b3e1e5</code></a>\nGenerate trait bounds on associated types</li>\n<li>Additional commits viewable in <a\nhref=\"https://github.com/dtolnay/thiserror/compare/1.0.0...2.0.11\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-03-01T18:43:11+08:00",
+          "tree_id": "016da070ff455a45b7f6334f14dd590a747a4235",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/85bfd0c0d4eea29739d1980597bcce6727fa3789"
+        },
+        "date": 1740826371378,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3930,
+            "range": "± 11",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4015,
+            "range": "± 30",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23012,
+            "range": "± 1466",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 209995,
+            "range": "± 1603",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 271496,
+            "range": "± 9483",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 77946,
+            "range": "± 2438",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 399197,
+            "range": "± 19437",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5960308,
+            "range": "± 376037",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1037076,
+            "range": "± 24272",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 690393,
+            "range": "± 17250",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12262616,
+            "range": "± 118581",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 137466,
+            "range": "± 1593",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 165949,
+            "range": "± 5016",
             "unit": "ns/iter"
           }
         ]

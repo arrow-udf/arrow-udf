@@ -14,7 +14,7 @@ arrow-flight.workspace = true
 arrow-schema.workspace = true
 arrow-select.workspace = true
 futures-util = "0.3"
-thiserror = "1"
+thiserror = "2"
 tokio = { workspace = true, features = ["time"] }
 tonic = "0.12"
 tracing = "0.1"

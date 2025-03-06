@@ -14,9 +14,8 @@
 
 #![doc = include_str!("../README.md")]
 
-use arrow_array::{RecordBatch, RecordBatchReader};
 pub use arrow_schema::ArrowError as Error;
-pub use arrow_udf_macros::function;
+pub use arrow_udf_macros::{aggregate, function};
 
 /// A specialized `Result` type for Arrow UDF operations.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -25,12 +24,6 @@ pub mod ffi;
 #[cfg(feature = "global_registry")]
 pub mod sig;
 pub mod types;
-
-/// A scalar function that operates on a record batch.
-pub type ScalarFunction = fn(input: &RecordBatch) -> Result<RecordBatch>;
-
-/// A table function that operates on a record batch and returns an iterator of record batches.
-pub type TableFunction = fn(input: &RecordBatch) -> Result<Box<dyn RecordBatchReader>>;
 
 /// Internal APIs used by macros.
 #[doc(hidden)]

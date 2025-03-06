@@ -431,8 +431,8 @@ impl FunctionAttr {
                 #let_error_builder
                 #eval
 
-                static SCHEMA: std::sync::LazyLock<SchemaRef> = std::sync::LazyLock::new(|| {
-                    Arc::new(Schema::new(vec![#ret_data_type, #error_field]))
+                static SCHEMA: ::std::sync::LazyLock<SchemaRef> = ::std::sync::LazyLock::new(|| {
+                    ::std::sync::Arc::new(Schema::new(vec![#ret_data_type, #error_field]))
                 });
                 Ok(RecordBatch::try_new(SCHEMA.clone(), vec![array, #error_array]).unwrap())
             }
@@ -448,7 +448,7 @@ impl FunctionAttr {
             )*
         };
 
-        let body_with_imports = quote! {
+        let imports = quote! {
             use ::std::sync::Arc;
             use ::arrow_udf::{Result, Error};
             use ::arrow_udf::codegen::arrow_array;
@@ -456,14 +456,12 @@ impl FunctionAttr {
             use ::arrow_udf::codegen::arrow_array::array::*;
             use ::arrow_udf::codegen::arrow_array::builder::*;
             use ::arrow_udf::codegen::arrow_array::cast::AsArray;
+            use ::arrow_udf::codegen::arrow_schema;
             use ::arrow_udf::codegen::arrow_schema::{Schema, SchemaRef, Field, DataType, IntervalUnit, TimeUnit};
             use ::arrow_udf::codegen::arrow_arith;
-            use ::arrow_udf::codegen::arrow_schema;
             use ::arrow_udf::codegen::chrono;
             use ::arrow_udf::codegen::rust_decimal;
             use ::arrow_udf::codegen::serde_json;
-
-            #body
         };
 
         Ok(if self.is_table_function {
@@ -474,12 +472,13 @@ impl FunctionAttr {
                 #fn_with_visibility #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
                     -> ::arrow_udf::Result<Box<dyn ::arrow_udf::codegen::arrow_array::RecordBatchReader>>
                 {
-                    const BATCH_SIZE: usize = 1024;
+                    #imports
                     use ::arrow_udf::codegen::genawaiter2::{self, rc::gen, yield_};
-                    use ::arrow_udf::codegen::arrow_array::{array::*, RecordBatchIterator};
-                    use ::arrow_udf::codegen::arrow_schema::{self, DataType, Field, Schema, SchemaRef};
+                    use ::arrow_udf::codegen::arrow_array::RecordBatchIterator;
 
-                    static SCHEMA: std::sync::LazyLock<SchemaRef> = std::sync::LazyLock::new(|| {
+                    const BATCH_SIZE: usize = 1024;
+
+                    static SCHEMA: ::std::sync::LazyLock<SchemaRef> = ::std::sync::LazyLock::new(|| {
                         Arc::new(Schema::new(vec![
                             Field::new("row", DataType::Int32, true),
                             #ret_data_type,
@@ -494,7 +493,7 @@ impl FunctionAttr {
                         #(
                             let #array_idents: &#array_types = input.column(#children_indices).as_any().downcast_ref().unwrap();
                         )*
-                        #body_with_imports
+                        #body
                     });
                     Ok(Box::new(RecordBatchIterator::new(gen_, SCHEMA.clone())))
                 }
@@ -504,8 +503,9 @@ impl FunctionAttr {
                 #fn_with_visibility #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
                     -> ::arrow_udf::Result<::arrow_udf::codegen::arrow_array::RecordBatch>
                 {
+                    #imports
                     #downcast_arrays
-                    #body_with_imports
+                    #body
                 }
             }
         })

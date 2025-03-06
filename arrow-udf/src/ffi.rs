@@ -14,8 +14,8 @@
 
 //! FFI interfaces.
 
-use crate::{Error, ScalarFunction, TableFunction};
-use arrow_array::RecordBatchReader;
+use crate::{Error, Result};
+use arrow_array::{RecordBatch, RecordBatchReader};
 use arrow_ipc::{reader::FileReader, writer::FileWriter};
 
 /// A symbol indicating the ABI version.
@@ -64,9 +64,65 @@ pub struct CSlice {
     pub len: usize,
 }
 
-/// A wrapper for calling scalar functions from C.
-///
-/// The input record batch is read from the IPC buffer pointed to by `ptr` and `len`.
+/// Alias type for function accepting no arguments and returning a record batch.
+type Func0Arg1Ret = fn() -> Result<RecordBatch>;
+/// Alias type for function accepting a record batch and returning a record batch.
+type Func1Arg1Ret = fn(input: &RecordBatch) -> Result<RecordBatch>;
+/// Alias type for function accepting a record batch and returning an iterator of record batches.
+type Func1ArgNRet = fn(input: &RecordBatch) -> Result<Box<dyn RecordBatchReader>>;
+
+/// The internal safe wrapper for calling a [`Func0Arg1Ret`].
+fn call_0_arg_1_ret_inner(f: Func0Arg1Ret) -> Result<Box<[u8]>> {
+    let result = f()?;
+
+    // write output batch to IPC buffer
+    let mut buf = vec![];
+    let mut writer = FileWriter::try_new(&mut buf, &result.schema())?;
+    writer.write(&result)?;
+    writer.finish()?;
+    drop(writer);
+
+    Ok(buf.into())
+}
+
+/// The internal safe wrapper for calling a [`Func1Arg1Ret`].
+fn call_1_arg_1_ret_inner(f: Func1Arg1Ret, input_bytes: &[u8]) -> Result<Box<[u8]>> {
+    // read input batch from IPC buffer
+    let mut reader = FileReader::try_new(std::io::Cursor::new(input_bytes), None)?;
+    let input_batch = reader
+        .next()
+        .ok_or_else(|| Error::IpcError("no record batch".into()))??;
+
+    let output_batch = f(&input_batch)?;
+
+    // write output batch to IPC buffer
+    let mut buf = vec![];
+    let mut writer = FileWriter::try_new(&mut buf, &output_batch.schema())?;
+    writer.write(&output_batch)?;
+    writer.finish()?;
+    drop(writer);
+
+    Ok(buf.into())
+}
+
+/// An opaque type for iterating over record batches.
+pub struct RecordBatchIter {
+    iter: Box<dyn RecordBatchReader>,
+}
+
+/// The internal safe wrapper for calling a [`Func1ArgNRet`].
+fn call_1_arg_n_ret_inner(f: Func1ArgNRet, input_bytes: &[u8]) -> Result<Box<RecordBatchIter>> {
+    // read input batch from IPC buffer
+    let mut reader = FileReader::try_new(std::io::Cursor::new(input_bytes), None)?;
+    let input_batch = reader
+        .next()
+        .ok_or_else(|| Error::IpcError("no record batch".into()))??;
+
+    let iter = f(&input_batch)?;
+    Ok(Box::new(RecordBatchIter { iter }))
+}
+
+/// Call a [`Func0Arg1Ret`] function from `extern "C"` code.
 ///
 /// The output data is written to the buffer pointed to by `out_slice`.
 /// The caller is responsible for deallocating the output buffer.
@@ -77,15 +133,9 @@ pub struct CSlice {
 ///
 /// # Safety
 ///
-/// `ptr`, `len`, `out_slice` must point to a valid buffer.
-pub unsafe fn scalar_wrapper(
-    function: ScalarFunction,
-    ptr: *const u8,
-    len: usize,
-    out_slice: *mut CSlice,
-) -> i32 {
-    let input = std::slice::from_raw_parts(ptr, len);
-    match call_scalar(function, input) {
+/// `out_slice` must point to a valid buffer.
+pub unsafe fn call_0_arg_1_ret(f: Func0Arg1Ret, out_slice: *mut CSlice) -> i32 {
+    match call_0_arg_1_ret_inner(f) {
         Ok(data) => {
             out_slice.write(CSlice {
                 ptr: data.as_ptr(),
@@ -106,31 +156,49 @@ pub unsafe fn scalar_wrapper(
     }
 }
 
-/// The internal wrapper that returns a Result.
-fn call_scalar(function: ScalarFunction, input_bytes: &[u8]) -> Result<Box<[u8]>, Error> {
-    let mut reader = FileReader::try_new(std::io::Cursor::new(input_bytes), None)?;
-    let input_batch = reader
-        .next()
-        .ok_or_else(|| Error::IpcError("no record batch".into()))??;
-
-    let output_batch = function(&input_batch)?;
-
-    // Write data to IPC buffer
-    let mut buf = vec![];
-    let mut writer = FileWriter::try_new(&mut buf, &output_batch.schema())?;
-    writer.write(&output_batch)?;
-    writer.finish()?;
-    drop(writer);
-
-    Ok(buf.into())
+/// Call a [`Func1Arg1Ret`] function from `extern "C"` code.
+///
+/// The input record batch is read from the IPC buffer pointed to by `ptr` and `len`.
+///
+/// The output data is written to the buffer pointed to by `out_slice`.
+/// The caller is responsible for deallocating the output buffer.
+///
+/// The return value is 0 on success, -1 on error.
+/// If successful, the record batch is written to the buffer.
+/// If failed, the error message is written to the buffer.
+///
+/// # Safety
+///
+/// `ptr`, `len`, `out_slice` must point to a valid buffer.
+pub unsafe fn call_1_arg_1_ret(
+    f: Func1Arg1Ret,
+    ptr: *const u8,
+    len: usize,
+    out_slice: *mut CSlice,
+) -> i32 {
+    let input = std::slice::from_raw_parts(ptr, len);
+    match call_1_arg_1_ret_inner(f, input) {
+        Ok(data) => {
+            out_slice.write(CSlice {
+                ptr: data.as_ptr(),
+                len: data.len(),
+            });
+            std::mem::forget(data);
+            0
+        }
+        Err(err) => {
+            let msg = err.to_string().into_boxed_str();
+            out_slice.write(CSlice {
+                ptr: msg.as_ptr(),
+                len: msg.len(),
+            });
+            std::mem::forget(msg);
+            -1
+        }
+    }
 }
 
-/// An opaque type for iterating over record batches.
-pub struct RecordBatchIter {
-    iter: Box<dyn RecordBatchReader>,
-}
-
-/// A wrapper for calling table functions from C.
+/// Call a [`Func1ArgNRet`] function from `extern "C"` code.
 ///
 /// The input record batch is read from the IPC buffer pointed to by `ptr` and `len`.
 ///
@@ -143,14 +211,14 @@ pub struct RecordBatchIter {
 /// # Safety
 ///
 /// `ptr`, `len`, `out_slice` must point to a valid buffer.
-pub unsafe fn table_wrapper(
-    function: TableFunction,
+pub unsafe fn call_1_arg_n_ret(
+    f: Func1ArgNRet,
     ptr: *const u8,
     len: usize,
     out_slice: *mut CSlice,
 ) -> i32 {
     let input = std::slice::from_raw_parts(ptr, len);
-    match call_table(function, input) {
+    match call_1_arg_n_ret_inner(f, input) {
         Ok(iter) => {
             out_slice.write(CSlice {
                 ptr: Box::into_raw(iter) as *const u8,
@@ -168,16 +236,6 @@ pub unsafe fn table_wrapper(
             -1
         }
     }
-}
-
-fn call_table(function: TableFunction, input_bytes: &[u8]) -> Result<Box<RecordBatchIter>, Error> {
-    let mut reader = FileReader::try_new(std::io::Cursor::new(input_bytes), None)?;
-    let input_batch = reader
-        .next()
-        .ok_or_else(|| Error::IpcError("no record batch".into()))??;
-
-    let iter = function(&input_batch)?;
-    Ok(Box::new(RecordBatchIter { iter }))
 }
 
 /// Get the next record batch from the iterator.

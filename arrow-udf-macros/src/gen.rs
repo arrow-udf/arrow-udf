@@ -57,8 +57,8 @@ impl FunctionAttr {
         let eval_function = self.generate_function(user_fn, &eval_name)?;
 
         let ffi_wrapper = match self.is_table_function {
-            true => quote! { table_wrapper },
-            false => quote! { scalar_wrapper },
+            true => quote! { call_1_arg_n_ret },
+            false => quote! { call_1_arg_1_ret },
         };
         let duckdb_impl = self
             .duckdb

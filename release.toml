@@ -1,0 +1,5 @@
+# for cargo-release
+# https://github.com/crate-ci/cargo-release/blob/master/docs/faq.md#maintaining-changelog
+pre-release-replacements = [
+  {file="CHANGELOG.md", search="[Unreleased]", replace="[{{version}}] - {{date}}"},
+]

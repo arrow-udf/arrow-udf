@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2025-03-19
+
+### Added
+
+- Re-export `arrow_flight` so downstream crates can use it without depending on `arrow-udf-flight`, and avoid version conflicts.
+
 ## [0.4.1] - 2025-03-19
 
 ### Changed

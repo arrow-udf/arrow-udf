@@ -18,6 +18,10 @@ mod error;
 
 pub use error::{Error, Result};
 
+/// Re-export `arrow_flight` so downstream crates can use it without depending on `arrow-udf-flight`,
+/// and avoid version conflicts.
+pub use arrow_flight;
+
 use arrow_array::RecordBatch;
 use arrow_flight::decode::FlightRecordBatchStream;
 use arrow_flight::encode::FlightDataEncoderBuilder;

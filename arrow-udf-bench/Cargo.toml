@@ -1,11 +1,11 @@
 [package]
 name = "arrow-udf-bench"
-version = "0.1.0"
 edition = "2021"
 description = "Benchmark Arrow UDFs for different languages"
 repository = "https://github.com/risingwavelabs/arrow-udf"
 keywords = ["arrow", "udf"]
 license = "Apache-2.0"
+publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev-dependencies]

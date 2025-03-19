@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1740827266255,
+  "lastUpdate": 1742363641500,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -14363,6 +14363,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 161621,
             "range": "± 2035",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xxchan22f@gmail.com",
+            "name": "xxchan",
+            "username": "xxchan"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9f103fe034f9f9335309ea938c5f6b4f1c526e19",
+          "message": "deps: use fixed major version for arrow (#117)\n\nSigned-off-by: xxchan <xxchan22f@gmail.com>\n\nOtherwise causing problems like\nhttps://github.com/risingwavelabs/risingwave/pull/20972/files\n\nAlso added `release.toml` for cargo release to auto bump version/\nchangelog.\n\n```\ncargo release patch --exclude arrow-udf-macros --no-publish -x\n# After this PR merge, we can\ncargo release publish --exclude arrow-udf-macros\n```\n\n---------\n\nSigned-off-by: xxchan <xxchan22f@gmail.com>",
+          "timestamp": "2025-03-19T13:44:02+08:00",
+          "tree_id": "639022d6d5a16eafd0c91ff40adc6b522797a555",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/9f103fe034f9f9335309ea938c5f6b4f1c526e19"
+        },
+        "date": 1742363640486,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3930,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4034,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23026,
+            "range": "± 1377",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 203718,
+            "range": "± 4753",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 260836,
+            "range": "± 5985",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76262,
+            "range": "± 1067",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 400023,
+            "range": "± 20956",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5869330,
+            "range": "± 96823",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 981445,
+            "range": "± 9564",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 692313,
+            "range": "± 10061",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 11989106,
+            "range": "± 120028",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 144276,
+            "range": "± 2582",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 158028,
+            "range": "± 2382",
             "unit": "ns/iter"
           }
         ]

@@ -480,7 +480,7 @@ impl FunctionAttr {
                     use ::arrow_udf::codegen::arrow_schema::{self, DataType, Field, Schema, SchemaRef};
 
                     static SCHEMA: std::sync::LazyLock<SchemaRef> = std::sync::LazyLock::new(|| {
-                        Arc::new(Schema::new(vec![
+                        std::sync::Arc::new(Schema::new(vec![
                             Field::new("row", DataType::Int32, true),
                             #ret_data_type,
                             #error_field

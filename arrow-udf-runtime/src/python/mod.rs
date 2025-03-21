@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![doc = include_str!("../README.md")]
+#![doc = include_str!("README.md")]
 
 // Notice for developers:
 // This library uses the sub-interpreter and per-interpreter GIL introduced in Python 3.12
@@ -24,8 +24,10 @@
 // Special attention is needed for PyErr in PyResult.
 // Remember to convert `PyErr` using the `pyerr_to_anyhow` function before passing it out of the sub-interpreter.
 
+use crate::into_field::IntoField;
+use crate::CallMode;
+
 use self::interpreter::SubInterpreter;
-pub use self::into_field::IntoField;
 use anyhow::{bail, Context, Result};
 use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
 use arrow_array::{Array, ArrayRef, BooleanArray, RecordBatch};
@@ -38,7 +40,6 @@ use std::sync::Arc;
 
 // #[cfg(Py_3_12)]
 mod interpreter;
-mod into_field;
 mod pyarrow;
 
 /// A runtime to execute user defined functions in Python.
@@ -859,20 +860,6 @@ impl Drop for RecordBatchIter<'_> {
             });
         }
     }
-}
-
-/// Whether the function will be called when some of its arguments are null.
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub enum CallMode {
-    /// The function will be called normally when some of its arguments are null.
-    /// It is then the function author's responsibility to check for null values if necessary and respond appropriately.
-    #[default]
-    CalledOnNullInput,
-
-    /// The function always returns null whenever any of its arguments are null.
-    /// If this parameter is specified, the function is not executed when there are null arguments;
-    /// instead a null result is assumed automatically.
-    ReturnNullOnNullInput,
 }
 
 impl Drop for Runtime {

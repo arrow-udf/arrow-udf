@@ -5,14 +5,10 @@ members = [
   "arrow-udf-bench",
   "arrow-udf-example",
   "arrow-udf-flight",
-  "arrow-udf-js",
   "arrow-udf-macros",
-  "arrow-udf-python",
-  "arrow-udf-wasm",
+  "arrow-udf-runtime",
 ]
-exclude = [
-  "arrow-udf-duckdb-example",
-]
+exclude = ["arrow-udf-duckdb-example"]
 
 [workspace.dependencies]
 anyhow = "1"

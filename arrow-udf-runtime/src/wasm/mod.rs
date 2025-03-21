@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![doc = include_str!("../README.md")]
+#![doc = include_str!("README.md")]
 
 use anyhow::{anyhow, bail, ensure, Context};
 use arrow_array::RecordBatch;
 use arrow_schema::{DataType, Field, IntervalUnit, TimeUnit};
-use into_field::IntoField;
 use itertools::Itertools;
 use ram_file::{RamFile, RamFileRef};
 use std::collections::{HashMap, HashSet};
@@ -26,9 +25,10 @@ use std::sync::{Arc, Mutex};
 use wasi_common::{sync::WasiCtxBuilder, WasiCtx};
 use wasmtime::*;
 
-#[cfg(feature = "build")]
+use crate::into_field::IntoField;
+
+#[cfg(feature = "wasm-build")]
 pub mod build;
-mod into_field;
 mod ram_file;
 
 /// The WASM UDF runtime.

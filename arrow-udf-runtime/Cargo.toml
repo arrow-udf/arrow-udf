@@ -1,0 +1,65 @@
+[package]
+name = "arrow-udf-runtime"
+version = "0.7.0"
+edition = "2021"
+description = "Runtime for Arrow UDFs."
+repository = "https://github.com/risingwavelabs/arrow-udf"
+keywords = ["arrow", "udf", "runtime", "wasm", "python", "javascript", "flight"]
+license = "Apache-2.0"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["wasm-all", "python-all", "javascript-all", "flight-all"]
+embedded = ["wasm-all", "python-all", "javascript-all"]
+
+wasm-all = ["wasm", "wasm-build"]
+python-all = ["python"]
+javascript-all = ["javascript", "javascript-fetch"]
+flight-all = ["flight"]
+
+wasm = ["dep:wasi-common", "dep:wasmtime", "dep:genawaiter2"]
+wasm-build = ["dep:tempfile"]
+python = ["dep:pyo3"]
+javascript = ["dep:atomic-time", "dep:rquickjs"]
+javascript-fetch = ["dep:reqwest", "dep:serde_json"]
+flight = []
+
+[dependencies]
+anyhow = { workspace = true }
+arrow-array = { workspace = true }
+arrow-buffer = { workspace = true }
+arrow-ipc = { workspace = true }
+arrow-schema = { workspace = true }
+async-trait = "0.1"
+base64 = "0.22"
+itertools = "0.14"
+futures-util = "0.3"
+tokio = { workspace = true, features = ["time", "test-util", "macros"] }
+
+wasi-common = { version = "27", optional = true }
+wasmtime = { version = "27", optional = true }
+genawaiter2 = { version = "0.100.1", optional = true }
+tempfile = { version = "3", optional = true }
+
+pyo3 = { version = "0.21", features = ["gil-refs"], optional = true }
+
+atomic-time = { version = "0.1", optional = true }
+rquickjs = { version = "0.6", features = [
+    "array-buffer",
+    "parallel",
+    "futures",
+    "macro",
+    "loader",
+], optional = true }
+reqwest = { version = "0.12", features = ["json"], optional = true }
+serde_json = { version = "1", optional = true }
+
+[build-dependencies]
+pyo3-build-config = "0.21"
+
+[dev-dependencies]
+arrow-cast = { workspace = true, features = ["prettyprint"] }
+arrow-select = { workspace = true }
+expect-test = "1"
+tokio-test = "0.4"
+mockito = "1.6.1"

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![doc = include_str!("./README.md")]
+#![doc = include_str!("README.md")]
 
 use anyhow::anyhow;
 use response::Response;
@@ -27,14 +27,14 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::check_exception;
+use super::check_exception;
 
 mod response;
 
 /// The bundled JS modules for the Fetch API. They will be compiled into bytecode at build time.
 static BUNDLE: Bundle = embed! {
-    "headers.js": "src/fetch/headers.js",
-    "fetch.js": "src/fetch/fetch.js",
+    "headers.js": "src/javascript/fetch/headers.js",
+    "fetch.js": "src/javascript/fetch/fetch.js",
 };
 
 pub struct SendHttpRequest;

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![doc = include_str!("../README.md")]
+#![doc = include_str!("README.md")]
 
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -32,11 +32,11 @@ use rquickjs::{
     Ctx, FromJs, IteratorJs as _, Module, Object, Persistent, Promise, Value,
 };
 
-pub use self::into_field::IntoField;
+use crate::into_field::IntoField;
+use crate::CallMode;
 
-#[cfg(feature = "fetch")]
+#[cfg(feature = "javascript-fetch")]
 mod fetch;
-mod into_field;
 mod jsarrow;
 
 /// A runtime to execute user defined functions in JavaScript.
@@ -120,20 +120,6 @@ type JsFunction = Persistent<rquickjs::Function<'static>>;
 // SAFETY: `rquickjs::Runtime` is `Send` and `Sync`
 unsafe impl Send for Runtime {}
 unsafe impl Sync for Runtime {}
-
-/// Whether the function will be called when some of its arguments are null.
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub enum CallMode {
-    /// The function will be called normally when some of its arguments are null.
-    /// It is then the function author's responsibility to check for null values if necessary and respond appropriately.
-    #[default]
-    CalledOnNullInput,
-
-    /// The function always returns null whenever any of its arguments are null.
-    /// If this parameter is specified, the function is not executed when there are null arguments;
-    /// instead a null result is assumed automatically.
-    ReturnNullOnNullInput,
-}
 
 /// Options for configuring user-defined functions.
 #[derive(Debug, Clone, Default)]
@@ -1011,7 +997,7 @@ impl Runtime {
     /// Enable the `fetch` API in the `Runtime`.
     ///
     /// See module [`fetch`] for more details.
-    #[cfg(feature = "fetch")]
+    #[cfg(feature = "javascript-fetch")]
     pub async fn enable_fetch(&self) -> Result<()> {
         fetch::enable_fetch(&self.runtime, &self.context).await
     }

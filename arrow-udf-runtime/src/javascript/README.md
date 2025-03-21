@@ -1,8 +1,5 @@
 # JavaScript UDF for Apache Arrow
 
-[![Crate](https://img.shields.io/crates/v/arrow-udf-js.svg)](https://crates.io/crates/arrow-udf-js)
-[![Docs](https://docs.rs/arrow-udf-js/badge.svg)](https://docs.rs/arrow-udf-js)
-
 ## Usage
 
 Add the following lines to your `Cargo.toml`:

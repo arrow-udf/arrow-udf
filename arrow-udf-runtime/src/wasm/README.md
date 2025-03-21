@@ -1,8 +1,5 @@
 # WebAssembly UDF for Apache Arrow
 
-[![Crate](https://img.shields.io/crates/v/arrow-udf-wasm.svg)](https://crates.io/crates/arrow-udf-wasm)
-[![Docs](https://docs.rs/arrow-udf-wasm/badge.svg)](https://docs.rs/arrow-udf-wasm)
-
 For untrusted user-defined functions, you can compile them into WebAssembly and run them in a sandboxed environment.
 
 ## Build UDF in WebAssembly

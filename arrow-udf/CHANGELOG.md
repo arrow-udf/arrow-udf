@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2025-03-21
+
+### Fixed
+
+- Bump `arrow-udf-macros` to fix compiling error regarding to `once_cell`.
+
 ## [0.6.1] - 2025-03-19
 
 ### Changed

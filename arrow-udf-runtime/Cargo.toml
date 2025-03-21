@@ -1,12 +1,11 @@
 [package]
 name = "arrow-udf-runtime"
 version = "0.7.0"
-edition = "2021"
 description = "Runtime for Arrow UDFs."
-repository = "https://github.com/risingwavelabs/arrow-udf"
 keywords = ["arrow", "udf", "runtime", "wasm", "python", "javascript", "remote"]
-license = "Apache-2.0"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [features]
 default = ["wasm", "python", "javascript", "remote"]

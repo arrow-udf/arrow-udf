@@ -2,9 +2,9 @@
 resolver = "2"
 members = [
   "arrow-udf",
+  "arrow-udf/arrow-udf-macros",
   "arrow-udf-bench",
   "arrow-udf-example",
-  "arrow-udf-macros",
   "arrow-udf-runtime",
 ]
 exclude = ["arrow-udf-duckdb-example"]
@@ -23,3 +23,8 @@ arrow-flight = "54"
 expect-test = "1"
 serde_json = "1"
 tokio = "1"
+
+[workspace.package]
+repository = "https://github.com/risingwavelabs/arrow-udf"
+license = "Apache-2.0"
+edition = "2021"

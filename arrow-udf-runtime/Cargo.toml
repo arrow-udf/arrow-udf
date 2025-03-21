@@ -60,7 +60,7 @@ tonic = { version = "0.12", optional = true }
 tracing = { version = "0.1", optional = true }
 
 [build-dependencies]
-pyo3-build-config = "0.21"
+pyo3-build-config = { version = "0.21", features = ["resolve-config"] }
 
 [dev-dependencies]
 arrow-cast = { workspace = true, features = ["prettyprint"] }

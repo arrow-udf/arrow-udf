@@ -98,11 +98,6 @@ jobs:
           cd arrow-udf-remote/java
           mvn test
           cd ../..
-      - name: Build flight test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p arrow-udf-remote --no-run
       - name: Test remote with Python UDF Server
         run: |
           python arrow-udf-remote/python/example.py &

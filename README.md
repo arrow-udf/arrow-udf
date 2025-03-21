@@ -4,20 +4,20 @@ Easily create and run user-defined functions (UDF) on Apache Arrow.
 You can define functions in Rust, Python, Java or JavaScript.
 The functions can be executed natively, or in WebAssembly, or in a [remote server].
 
-| Language   | Native             | WebAssembly      | Remote                    |
-| ---------- |--------------------|------------------|---------------------------|
-| Rust       | [arrow-udf]        | [arrow-udf-wasm] |                           |
-| Python     | [arrow-udf-python] |                  | [arrow-udf-flight/python] |
-| JavaScript | [arrow-udf-js]     |                  |                           |
-| Java       |                    |                  | [arrow-udf-flight/java]   |
+| Language   | Native                             | WebAssembly              | Remote                    |
+| ---------- |------------------------------------|--------------------------|---------------------------|
+| Rust       | [arrow-udf]                        | [arrow-udf-runtime/wasm] |                           |
+| Python     | [arrow-udf-runtime/python]         |                          | [arrow-udf-remote/python] |
+| JavaScript | [arrow-udf-runtime/javascript]     |                          |                           |
+| Java       |                                    |                          | [arrow-udf-remote/java]   |
 
+[remote server]: ./arrow-udf-runtime/src/remote
 [arrow-udf]: ./arrow-udf
-[arrow-udf-python]: ./arrow-udf-python
-[arrow-udf-js]: ./arrow-udf-js
-[arrow-udf-wasm]: ./arrow-udf-wasm
-[remote server]: ./arrow-udf-flight
-[arrow-udf-flight/python]: ./arrow-udf-flight/python
-[arrow-udf-flight/java]: ./arrow-udf-flight/java
+[arrow-udf-runtime/python]: ./arrow-udf-runtime/src/python
+[arrow-udf-runtime/javascript]: ./arrow-udf-runtime/src/javascript
+[arrow-udf-runtime/wasm]: ./arrow-udf-runtime/src/wasm
+[arrow-udf-remote/python]: ./arrow-udf-remote/python
+[arrow-udf-remote/java]: ./arrow-udf-remote/java
 
 > [!NOTE]
 > [arrow-udf] generates `RecordBatch` Rust functions from scalar functions, and can be used in more general contexts
@@ -26,8 +26,9 @@ The functions can be executed natively, or in WebAssembly, or in a [remote serve
 > Other crates are more focused on providing runtimes or protocols for running user-provided code.
 
 - `arrow-udf`: You call `fn(&RecordBatch)->RecordBatch` directly, as if you wrote it by hand.
-- `arrow-udf-python/js/wasm`: You first `add_function` to a `Runtime`, and then call it with the `Runtime`.
-- `arrow-udf-flight`: You start a `Client` to call the function running in a remote `Server` process.
+- `arrow-udf-runtime/python`/`arrow-udf-runtime/javascript`: You first `add_function` to a `Runtime`, and then call it with the `Runtime`.
+- `arrow-udf-runtime/wasm`: You first create a `Runtime` with compiled WASM binary, and then `find_function` and call it.
+- `arrow-udf-runtime/remote`: You start a `Client` to call the function running in a remote `Server` process.
 
 You can also use this library to add custom functions to DuckDB, see [arrow-udf-duckdb-example].
 

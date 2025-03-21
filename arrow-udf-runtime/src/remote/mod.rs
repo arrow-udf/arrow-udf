@@ -18,8 +18,8 @@ mod error;
 
 pub use error::{Error, Result};
 
-/// Re-export `arrow_flight` so downstream crates can use it without depending on `arrow-udf-flight`,
-/// and avoid version conflicts.
+/// Re-export `arrow_flight` so downstream crates can use it without declaring it on their own,
+/// avoiding version conflicts.
 pub use arrow_flight;
 
 use arrow_array::RecordBatch;

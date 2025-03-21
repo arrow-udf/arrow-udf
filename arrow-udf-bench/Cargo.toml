@@ -14,7 +14,7 @@ arrow-array.workspace = true
 arrow-cast = { workspace = true, features = ["prettyprint"] }
 arrow-schema.workspace = true
 arrow-udf = { path = "../arrow-udf" }
-arrow-udf-runtime = { path = "../arrow-udf-runtime" }
+arrow-udf-runtime = { path = "../arrow-udf-runtime", features = ["embedded"] }
 criterion = { version = "0.5", features = ["async_tokio", "async_futures"] }
 tokio = { workspace = true, features = ["rt"] }
 futures-util = "0.3"

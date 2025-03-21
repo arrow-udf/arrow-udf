@@ -67,7 +67,7 @@ git clone https://github.com/risingwavelabs/risingwave-java-udf-template.git
 
 </details>
 
-## 2. Define your functions in Java  
+## 2. Define your functions in Java
 
 ### Scalar functions
 
@@ -99,9 +99,9 @@ public class Gcd implements ScalarFunction {
 :::note Differences with Flink
 
 - The `ScalarFunction` is an interface instead of an abstract class.
-   
+
 - Multiple overloaded `eval` methods are not supported.
-   
+
 - Variable arguments such as `eval(Integer...)` are not supported.
 
 :::
@@ -170,7 +170,7 @@ Run the following command to start the UDF server.
 _JAVA_OPTIONS="--add-opens=java.base/java.nio=ALL-UNNAMED" mvn exec:java -Dexec.mainClass="com.example.App"
 ```
 
-The UDF server will start running, allowing you to call the defined UDFs from `arrow-udf-flight`.
+The UDF server will start running, allowing you to call the defined UDFs from `arrow-udf-remote`.
 
 ## Data type mapping
 

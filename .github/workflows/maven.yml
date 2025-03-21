@@ -19,7 +19,7 @@ jobs:
           gpg-passphrase: GPG_PASSPHRASE
       - name: Publish package
         run: |
-            cd arrow-udf-flight/java
+            cd arrow-udf-remote/java
             mvn --batch-mode deploy
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}

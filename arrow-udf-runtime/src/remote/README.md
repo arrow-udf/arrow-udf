@@ -8,8 +8,8 @@ Run user-defined functions in a separate process and call them via [Arrow Flight
 
 Currently the following languages are supported:
 
-- [Python](https://github.com/risingwavelabs/arrow-udf/tree/main/arrow-udf-flight/python)
-- [Java](https://github.com/risingwavelabs/arrow-udf/tree/main/arrow-udf-flight/java)
+- [Python](https://github.com/risingwavelabs/arrow-udf/tree/main/arrow-udf-remote/python)
+- [Java](https://github.com/risingwavelabs/arrow-udf/tree/main/arrow-udf-remote/java)
 
 Please click the link to see the specific usage.
 

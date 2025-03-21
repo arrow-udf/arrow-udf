@@ -1,4 +1,4 @@
-#![cfg(all(feature = "wasm", feature = "wasm-build"))]
+#![cfg(all(feature = "wasm-runtime", feature = "wasm-build"))]
 
 use arrow_udf_runtime::wasm::{build::*, Runtime};
 

@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![cfg(feature = "remote-runtime")]
+
 use std::{collections::HashSet, sync::Arc};
 
 use arrow_array::{Int32Array, RecordBatch, StringArray};
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_flight::Client;
+use arrow_udf_runtime::remote::Client;
 use expect_test::{expect, Expect};
 use futures_util::StreamExt;
 

@@ -39,7 +39,7 @@ Add the following lines to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-arrow-udf-wasm = "0.5"
+arrow-udf-runtime = "0.7"
 ```
 
 You can then load the WebAssembly module and call the functions:
@@ -75,14 +75,7 @@ cargo run --example wasm -- target/wasm32-wasip1/release/arrow_udf_example.wasm
 
 ## Build WASM UDF at Runtime
 
-Enable the `build` feature to build the wasm binary from source:
-
-```toml
-[dependencies]
-arrow-udf-wasm = { version = "0.5", features = ["build"] }
-```
-
-You can then build the WebAssembly module at runtime:
+With the `wasm-build` feature enabled (by default), you can build the WebAssembly module at runtime:
 
 ```rust,ignore
 let manifest = r#"

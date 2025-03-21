@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg(feature = "javascript")]
+#![cfg(feature = "javascript-runtime")]
 
 use std::sync::Arc;
 

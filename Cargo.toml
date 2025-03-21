@@ -4,7 +4,6 @@ members = [
   "arrow-udf",
   "arrow-udf-bench",
   "arrow-udf-example",
-  "arrow-udf-flight",
   "arrow-udf-macros",
   "arrow-udf-runtime",
 ]

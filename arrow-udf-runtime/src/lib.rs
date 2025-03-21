@@ -30,9 +30,11 @@ pub enum CallMode {
 
 mod into_field;
 
-#[cfg(feature = "javascript")]
+#[cfg(feature = "javascript-runtime")]
 pub mod javascript;
-#[cfg(feature = "python")]
+#[cfg(feature = "python-runtime")]
 pub mod python;
-#[cfg(feature = "wasm")]
+#[cfg(feature = "remote-runtime")]
+pub mod remote;
+#[cfg(feature = "wasm-runtime")]
 pub mod wasm;

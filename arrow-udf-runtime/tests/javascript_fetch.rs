@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg(all(feature = "javascript", feature = "javascript-fetch"))]
+#![cfg(all(feature = "javascript-runtime", feature = "javascript-fetch"))]
 
 use std::sync::Arc;
 

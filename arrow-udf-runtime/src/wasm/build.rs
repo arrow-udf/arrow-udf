@@ -31,7 +31,7 @@ use std::process::Command;
 /// }
 /// "#;
 ///
-/// let binary = arrow_udf_wasm::build::build(manifest, script).unwrap();
+/// let binary = arrow_udf_runtime::wasm::build::build(manifest, script).unwrap();
 /// ```
 pub fn build(manifest: &str, script: &str) -> Result<Vec<u8>> {
     let opts = BuildOpts {

@@ -192,7 +192,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
-    /// # use arrow_udf_js::Runtime;
+    /// # use arrow_udf_runtime::javascript::Runtime;
     /// # tokio_test::block_on(async {
     /// let runtime = Runtime::new().await.unwrap();
     /// runtime.set_memory_limit(Some(1 << 20)); // 1MB
@@ -220,7 +220,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
-    /// # use arrow_udf_js::Runtime;
+    /// # use arrow_udf_runtime::javascript::Runtime;
     /// # tokio_test::block_on(async {
     /// let runtime = Runtime::new().await.unwrap();
     /// runtime.set_memory_limit(Some(1 << 20)); // 1MB
@@ -235,7 +235,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
-    /// # use arrow_udf_js::Runtime;
+    /// # use arrow_udf_runtime::javascript::Runtime;
     /// # use std::time::Duration;
     /// # tokio_test::block_on(async {
     /// let mut runtime = Runtime::new().await.unwrap();
@@ -284,7 +284,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
-    /// # use arrow_udf_js::{FunctionOptions, Runtime};
+    /// # use arrow_udf_runtime::javascript::{FunctionOptions, Runtime};
     /// # use arrow_schema::DataType;
     /// # tokio_test::block_on(async {
     /// let mut runtime = Runtime::new().await.unwrap();
@@ -391,7 +391,7 @@ impl Runtime {
     /// # Example
     ///
     /// ```
-    /// # use arrow_udf_js::{AggregateOptions, Runtime};
+    /// # use arrow_udf_runtime::javascript::{AggregateOptions, Runtime};
     /// # use arrow_schema::DataType;
     /// # tokio_test::block_on(async {
     /// let mut runtime = Runtime::new().await.unwrap();

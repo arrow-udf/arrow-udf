@@ -45,7 +45,7 @@ arrow-udf-wasm = "0.5"
 You can then load the WebAssembly module and call the functions:
 
 ```rust,ignore
-use arrow_udf_wasm::Runtime;
+use arrow_udf_runtime::wasm::Runtime;
 use arrow_schema::DataType;
 use arrow_array::RecordBatch;
 
@@ -101,7 +101,7 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
     a
 }
 "#;
-let binary = arrow_udf_wasm::build::build(manifest, script).unwrap();
+let binary = arrow_udf_runtime::wasm::build::build(manifest, script).unwrap();
 ```
 
 See the [`build`] module for more details.

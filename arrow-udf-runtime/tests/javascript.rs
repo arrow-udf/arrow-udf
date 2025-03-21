@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![cfg(feature = "javascript")]
+
 use std::{sync::Arc, time::Duration};
 
 use arrow_array::builder::{MapBuilder, StringBuilder};
@@ -25,7 +27,7 @@ use arrow_array::{
 use arrow_buffer::i256;
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Fields, Schema};
-use arrow_udf_js::{AggregateOptions, FunctionOptions, Runtime};
+use arrow_udf_runtime::javascript::{AggregateOptions, FunctionOptions, Runtime};
 use expect_test::{expect, Expect};
 use rquickjs::prelude::Async;
 use rquickjs::{async_with, Function};

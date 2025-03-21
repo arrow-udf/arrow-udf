@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![cfg(feature = "wasm")]
+
 use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Fields, Schema};
-use arrow_udf_wasm::Runtime;
+use arrow_udf_runtime::wasm::Runtime;
 
 fn main() {
     let filename = std::env::args().nth(1).expect("no filename");

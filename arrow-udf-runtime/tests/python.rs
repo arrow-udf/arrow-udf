@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![cfg(feature = "python")]
+
 use std::sync::Arc;
 
 use arrow_array::builder::{MapBuilder, StringBuilder};
@@ -20,7 +22,8 @@ use arrow_array::Array;
 use arrow_array::*;
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Fields, Schema};
-use arrow_udf_python::{CallMode, Runtime};
+use arrow_udf_runtime::python::Runtime;
+use arrow_udf_runtime::CallMode;
 use expect_test::{expect, Expect};
 
 #[test]

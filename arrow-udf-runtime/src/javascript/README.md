@@ -13,7 +13,7 @@ Create a `Runtime` and define your JS functions in string form.
 Note that the function must be exported and its name must match the one you pass to `add_function`.
 
 ```rust,ignore
-use arrow_udf_js::{FunctionOptions, Runtime};
+use arrow_udf_runtime::javascript::{FunctionOptions, Runtime};
 
 let mut runtime = Runtime::new().await?;
 runtime
@@ -57,7 +57,7 @@ If you print the input and output batch, it will be like this:
 For set-returning functions (or so-called table functions), define the function as a generator:
 
 ```rust,ignore
-use arrow_udf_js::{FunctionOptions, Runtime};
+use arrow_udf_runtime::javascript::{FunctionOptions, Runtime};
 
 let mut runtime = Runtime::new().await?;
 runtime

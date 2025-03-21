@@ -140,7 +140,7 @@ impl Builder {
     /// # Examples
     ///
     /// ```
-    /// # use arrow_udf_python::Runtime;
+    /// # use arrow_udf_runtime::python::Runtime;
     /// let builder = Runtime::builder().remove_symbol("__builtins__.eval");
     /// ```
     pub fn remove_symbol(mut self, symbol: &str) -> Self {
@@ -236,7 +236,8 @@ impl Runtime {
     /// # Example
     ///
     /// ```
-    /// # use arrow_udf_python::{Runtime, CallMode};
+    /// # use arrow_udf_runtime::python::Runtime;
+    /// # use arrow_udf_runtime::CallMode;
     /// # use arrow_schema::DataType;
     /// let mut runtime = Runtime::new().unwrap();
     /// // add a scalar function
@@ -333,7 +334,8 @@ impl Runtime {
     /// # Example
     ///
     /// ```
-    /// # use arrow_udf_python::{Runtime, CallMode};
+    /// # use arrow_udf_runtime::python::Runtime;
+    /// # use arrow_udf_runtime::CallMode;
     /// # use arrow_schema::DataType;
     /// let mut runtime = Runtime::new().unwrap();
     /// runtime

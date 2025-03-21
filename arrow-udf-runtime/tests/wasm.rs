@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![cfg(feature = "wasm")]
+
 use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch, RecordBatchOptions, StringArray};
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Fields, Schema};
-use arrow_udf_wasm::Runtime;
+use arrow_udf_runtime::wasm::Runtime;
 use expect_test::{expect, Expect};
 
 const BINARY_PATH: &str = "../target/wasm32-wasip1/release/arrow_udf_example.wasm";

@@ -1,6 +1,6 @@
-#![cfg(feature = "build")]
+#![cfg(all(feature = "wasm", feature = "wasm-build"))]
 
-use arrow_udf_wasm::{build::*, Runtime};
+use arrow_udf_runtime::wasm::{build::*, Runtime};
 
 #[test]
 fn test_build() {

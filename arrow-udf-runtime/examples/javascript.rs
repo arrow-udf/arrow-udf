@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![cfg(feature = "javascript")]
+
 use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_js::{FunctionOptions, Runtime};
+use arrow_udf_runtime::javascript::{FunctionOptions, Runtime};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -47,7 +49,7 @@ async fn main() {
             DataType::Int32,
             r#"
             export function fib(x) {
-                if (x <= 1) 
+                if (x <= 1)
                     return x;
                 return fib(x - 1) + fib(x - 2);
             }

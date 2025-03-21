@@ -20,7 +20,7 @@ The functions can be executed natively, or in WebAssembly, or in a [remote serve
 [arrow-udf-flight/java]: ./arrow-udf-flight/java
 
 > [!NOTE]
-> [arrow-udf] generates `RecordBatch` Rust functions from scalar functions, and can be used in more general contexts 
+> [arrow-udf] generates `RecordBatch` Rust functions from scalar functions, and can be used in more general contexts
 > whenever you need to work with Arrow Data in Rust, not specifically user-provided code.
 >
 > Other crates are more focused on providing runtimes or protocols for running user-provided code.
@@ -45,7 +45,7 @@ In addition to the standard types defined by Arrow, these crates also support th
 Alternatively, you can configure the extension metadata key and values to look for when converting between Arrow and extension types:
 
 ```rust
-let mut js_runtime = arrow_udf_js::Runtime::new().unwrap();
+let mut js_runtime = arrow_udf_runtime::javascript::Runtime::new().unwrap();
 let converter = js_runtime.converter_mut();
 converter.set_arrow_extension_key("Extension");
 converter.set_json_extension_name("Variant");

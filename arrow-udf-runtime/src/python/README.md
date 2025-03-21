@@ -14,7 +14,8 @@ Create a `Runtime` and define your Python functions in string form.
 Note that the function name must match the one you pass to `add_function`.
 
 ```rust
-use arrow_udf_python::{CallMode, Runtime};
+use arrow_udf_runtime::python::Runtime;
+use arrow_udf_runtime::CallMode;
 
 let mut runtime = Runtime::new().unwrap();
 let python_code = r#"
@@ -45,7 +46,8 @@ If the function returns a struct type, you can return a class instance or a dict
 
 ```rust
 use arrow_schema::{DataType, Field};
-use arrow_udf_python::{CallMode, Runtime};
+use arrow_udf_runtime::python::Runtime;
+use arrow_udf_runtime::CallMode;
 
 let mut runtime = Runtime::new().unwrap();
 let python_code = r#"

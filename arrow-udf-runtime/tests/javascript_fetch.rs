@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg(feature = "fetch")]
+#![cfg(all(feature = "javascript", feature = "javascript-fetch"))]
 
 use std::sync::Arc;
 
 use arrow_array::{ArrayRef, Int32Array, RecordBatch};
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_js::{AggregateOptions, FunctionOptions, Runtime};
+use arrow_udf_runtime::javascript::{AggregateOptions, FunctionOptions, Runtime};
 use expect_test::{expect, Expect};
 use mockito::Server;
 use rquickjs::{async_with, AsyncContext};
@@ -44,12 +44,12 @@ async fn run_javascript_tests() {
 
     run_async_js_code(
         runtime.context(),
-        &std::fs::read_to_string("src/fetch/fetch.test.js").unwrap(),
+        &std::fs::read_to_string("src/javascript/fetch/fetch.test.js").unwrap(),
     )
     .await;
     run_async_js_code(
         runtime.context(),
-        &std::fs::read_to_string("src/fetch/headers.test.js").unwrap(),
+        &std::fs::read_to_string("src/javascript/fetch/headers.test.js").unwrap(),
     )
     .await;
 }

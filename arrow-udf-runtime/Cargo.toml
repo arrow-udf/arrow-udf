@@ -2,7 +2,7 @@
 name = "arrow-udf-runtime"
 version = "0.7.0"
 description = "Runtime for Arrow UDFs."
-keywords = ["arrow", "udf", "runtime", "wasm", "python", "javascript", "remote"]
+keywords = ["arrow", "udf", "runtime"]
 edition.workspace = true
 license.workspace = true
 repository.workspace = true

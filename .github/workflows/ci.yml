@@ -68,14 +68,14 @@ jobs:
         with:
           command: test
           # Skip test_no_gil because there is only 1 core in the CI
-          args: --all-features --no-fail-fast --workspace --exclude arrow-udf-flight -- --skip test_no_gil
+          args: --all-features --no-fail-fast --workspace -- --skip test_no_gil
       - name: Test Bench
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --bench bench
 
-  test-flight:
+  test-remote:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
@@ -92,31 +92,26 @@ jobs:
       - name: Test Python UDF Server
         run: |
           pip install pyarrow pytest
-          pytest arrow-udf-flight/python/arrow_udf/test_udf.py
+          pytest arrow-udf-remote/python/arrow_udf/test_udf.py
       - name: Test Java UDF Server
         run: |
-          cd arrow-udf-flight/java
+          cd arrow-udf-remote/java
           mvn test
           cd ../..
-      - name: Build flight test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p arrow-udf-flight --no-run
-      - name: Test flight with Python UDF Server
+      - name: Test remote with Python UDF Server
         run: |
-          python arrow-udf-flight/python/example.py &
+          python arrow-udf-remote/python/example.py &
           pid=$!
           sleep 1
-          cargo test -p arrow-udf-flight
+          cargo test --no-default-features --features remote --test remote
           kill $pid
-      - name: Test flight with Java UDF Server
+      - name: Test remote with Java UDF Server
         run: |
-          cd arrow-udf-flight/java
+          cd arrow-udf-remote/java
           _JAVA_OPTIONS="--add-opens=java.base/java.nio=ALL-UNNAMED" mvn exec:java &
           pid=$!
           sleep 10
-          cargo test -p arrow-udf-flight
+          cargo test --no-default-features --features remote --test remote
           kill $pid
           cd ../..
 

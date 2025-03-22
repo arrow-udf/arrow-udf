@@ -49,7 +49,7 @@
     <dependency>
       <groupId>org.apache.arrow</groupId>
       <artifactId>arrow-vector</artifactId>
-      <version>18.1.0</version>
+      <version>18.2.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.arrow</groupId>

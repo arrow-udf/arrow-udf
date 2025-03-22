@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1742659607389,
+  "lastUpdate": 1742661309056,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -14873,6 +14873,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 167133,
             "range": "± 1616",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "stdrc@outlook.com",
+            "name": "Richard Chien",
+            "username": "stdrc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "886deb81505ca1ad0bfe9076e77b86c677c60c17",
+          "message": "fix: make number cargo package keywords less than 5 (#124)\n\nFix\n\n```\nerror: failed to publish to registry at https://crates.io\n\nCaused by:\n  the remote server responded with an error (status 400 Bad Request): expected at most 5 keywords per crate\n```\n\nSigned-off-by: Richard Chien <stdrc@outlook.com>",
+          "timestamp": "2025-03-22T16:25:02Z",
+          "tree_id": "d1eb14a6a7d5a9a547a19ce25ee8536780a08077",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/886deb81505ca1ad0bfe9076e77b86c677c60c17"
+        },
+        "date": 1742661308015,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3929,
+            "range": "± 36",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4044,
+            "range": "± 11",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22751,
+            "range": "± 1435",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 205787,
+            "range": "± 1828",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 265342,
+            "range": "± 4701",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 77208,
+            "range": "± 851",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 397781,
+            "range": "± 18385",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6173649,
+            "range": "± 221433",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 990837,
+            "range": "± 49830",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 704555,
+            "range": "± 8095",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12291134,
+            "range": "± 179497",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 135747,
+            "range": "± 2507",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 169677,
+            "range": "± 2764",
             "unit": "ns/iter"
           }
         ]

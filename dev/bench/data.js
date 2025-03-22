@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1742548231481,
+  "lastUpdate": 1742659607389,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -14771,6 +14771,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 158781,
             "range": "± 1882",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "stdrc@outlook.com",
+            "name": "Richard Chien",
+            "username": "stdrc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7b3ddd6c1b3defdbb5865ce726e0415205878b5a",
+          "message": "refactor: merge wasm, python, js, flight runtimes all into `arrow-udf-runtime` (#121)\n\n- Merge `arrow-udf-wasm` + `arrow-udf-python` + `arrow-udf-js` +\n`arrow-udf-flight` into one package `arrow-udf-runtime`. Use one version\nfor all. Use features to enable/disable specific components.\n- Rename `arrow-udf-flight` to `arrow-udf-remote`\n- Move `arrow-udf-macros` to `arrow-udf` folder.\n\nSo that the version can be easier ti maintain, and code can be reused.\n\n---------\n\nSigned-off-by: Richard Chien <stdrc@outlook.com>",
+          "timestamp": "2025-03-22T23:56:47+08:00",
+          "tree_id": "3254aad7207b7fa8a92723a9a0dc8970d34573a0",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/7b3ddd6c1b3defdbb5865ce726e0415205878b5a"
+        },
+        "date": 1742659606917,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3925,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4046,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22405,
+            "range": "± 1339",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 202104,
+            "range": "± 1561",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 262523,
+            "range": "± 2092",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74976,
+            "range": "± 1144",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 401543,
+            "range": "± 21037",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6158689,
+            "range": "± 115196",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1000401,
+            "range": "± 79365",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 689577,
+            "range": "± 8688",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 12026280,
+            "range": "± 158153",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 150438,
+            "range": "± 2111",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 167133,
+            "range": "± 1616",
             "unit": "ns/iter"
           }
         ]

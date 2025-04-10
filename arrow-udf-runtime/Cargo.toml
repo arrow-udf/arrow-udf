@@ -42,7 +42,7 @@ wasmtime = { version = "27", optional = true }
 genawaiter2 = { version = "0.100.1", optional = true }
 tempfile = { version = "3", optional = true }
 
-pyo3 = { version = "0.24.1", optional = true }
+pyo3 = { version = "0.24.1", optional = true, features = ["auto-initialize"] }
 
 atomic-time = { version = "0.1", optional = true }
 rquickjs = { version = "0.6", features = [

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1742661309056,
+  "lastUpdate": 1744273343525,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -14975,6 +14975,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 169677,
             "range": "± 2764",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "github@xuanwo.io",
+            "name": "Xuanwo",
+            "username": "Xuanwo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "55dba2ebcbcfde93268af4e99b4cc8c0545c71fc",
+          "message": "refactor!: Remove SubInterpreter and bump pyo3 to 0.24 (#125)\n\nThis PR will remove SubInterpreter and bump pyo3 to 0.24 as we discussed\nbefore.\n\n---\n\nThe new pyo3 doesn't allow us to hack the internal lock counter anymore.\nThere is no way for us to make `SubInterpreter` work. And keep pinning\non the old version of pyo3 makes us failed to work with python 3.13.\n\nThus we decided to remove SubInterpreter entirely.\n\nThis PR also completely removes the sandbox. Callers must ensure that\nthe input is trustworthy.\n\n---------\n\nSigned-off-by: Xuanwo <github@xuanwo.io>",
+          "timestamp": "2025-04-10T16:12:35+08:00",
+          "tree_id": "1f23e7969143af2beb039988cdf96e180176658b",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/55dba2ebcbcfde93268af4e99b4cc8c0545c71fc"
+        },
+        "date": 1744273342975,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3928,
+            "range": "± 9",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4003,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 22504,
+            "range": "± 1312",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 204910,
+            "range": "± 5315",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 233095,
+            "range": "± 2432",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74684,
+            "range": "± 721",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 406434,
+            "range": "± 22019",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5913962,
+            "range": "± 52942",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 922603,
+            "range": "± 18374",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 687735,
+            "range": "± 5431",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8839419,
+            "range": "± 58582",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 135733,
+            "range": "± 1176",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 135481,
+            "range": "± 2581",
             "unit": "ns/iter"
           }
         ]

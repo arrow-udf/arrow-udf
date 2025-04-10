@@ -14,20 +14,10 @@
 
 #![doc = include_str!("README.md")]
 
-// Notice for developers:
-// This library uses the sub-interpreter and per-interpreter GIL introduced in Python 3.12
-// to support concurrent execution of different functions in multiple threads.
-// However, pyo3 has not yet safely supported sub-interpreter. We use the raw FFI API of pyo3 to implement sub-interpreter.
-// Therefore, special attention is needed:
-// **All PyObject created in a sub-interpreter must be destroyed in the same sub-interpreter.**
-// Otherwise, it will cause a crash the next time Python is called.
-// Special attention is needed for PyErr in PyResult.
-// Remember to convert `PyErr` using the `pyerr_to_anyhow` function before passing it out of the sub-interpreter.
-
 use crate::into_field::IntoField;
 use crate::CallMode;
 
-use self::interpreter::SubInterpreter;
+use self::interpreter::Interpreter;
 use anyhow::{bail, Context, Result};
 use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
 use arrow_array::{Array, ArrayRef, BooleanArray, RecordBatch};
@@ -35,6 +25,7 @@ use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
 use pyo3::types::{PyAnyMethods, PyIterator, PyModule, PyTuple};
 use pyo3::{Py, PyObject};
 use std::collections::HashMap;
+use std::ffi::CString;
 use std::fmt::Debug;
 use std::sync::Arc;
 
@@ -72,7 +63,7 @@ mod pyarrow;
 /// [`merge`]: Runtime::merge
 /// [`finish`]: Runtime::finish
 pub struct Runtime {
-    interpreter: SubInterpreter,
+    interpreter: Interpreter,
     functions: HashMap<String, Function>,
     aggregates: HashMap<String, Aggregate>,
     converter: pyarrow::Converter,
@@ -108,49 +99,12 @@ struct Aggregate {
 
 /// A builder for `Runtime`.
 #[derive(Default, Debug)]
-pub struct Builder {
-    sandboxed: bool,
-    removed_symbols: Vec<String>,
-}
+pub struct Builder {}
 
 impl Builder {
-    /// Set whether the runtime is sandboxed.
-    ///
-    /// When sandboxed, only a limited set of modules can be imported, and some built-in functions are disabled.
-    /// This is useful for running untrusted code.
-    ///
-    /// Allowed modules: `json`, `decimal`, `re`, `math`, `datetime`, `time`.
-    ///
-    /// Disallowed builtins: `breakpoint`, `exit`, `eval`, `help`, `input`, `open`, `print`.
-    ///
-    /// The default is `false`.
-    pub fn sandboxed(mut self, sandboxed: bool) -> Self {
-        self.sandboxed = sandboxed;
-        self.remove_symbol("__builtins__.breakpoint")
-            .remove_symbol("__builtins__.exit")
-            .remove_symbol("__builtins__.eval")
-            .remove_symbol("__builtins__.help")
-            .remove_symbol("__builtins__.input")
-            .remove_symbol("__builtins__.open")
-            .remove_symbol("__builtins__.print")
-    }
-
-    /// Remove a symbol from builtins.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use arrow_udf_runtime::python::Runtime;
-    /// let builder = Runtime::builder().remove_symbol("__builtins__.eval");
-    /// ```
-    pub fn remove_symbol(mut self, symbol: &str) -> Self {
-        self.removed_symbols.push(symbol.to_string());
-        self
-    }
-
     /// Build the `Runtime`.
     pub fn build(self) -> Result<Runtime> {
-        let interpreter = SubInterpreter::new()?;
+        let interpreter = Interpreter::new()?;
         interpreter.run(
             r#"
 # internal use for json types
@@ -163,44 +117,6 @@ class Struct:
     pass
 "#,
         )?;
-        if self.sandboxed {
-            let mut script = r#"
-# limit the modules that can be imported
-original_import = __builtins__.__import__
-
-def limited_import(name, globals=None, locals=None, fromlist=(), level=0):
-    # FIXME: 'sys' should not be allowed, but it is required by 'decimal'
-    # FIXME: 'time.sleep' should not be allowed, but 'time' is required by 'datetime'
-    allowlist = (
-        'json',
-        'decimal',
-        're',
-        'math',
-        'datetime',
-        'time',
-        'operator',
-        'numbers',
-        'abc',
-        'sys',
-        'contextvars',
-        '_io',
-        '_contextvars',
-        '_pydecimal',
-        '_pydatetime',
-    )
-    if level == 0 and name in allowlist:
-        return original_import(name, globals, locals, fromlist, level)
-    raise ImportError(f'import {name} is not allowed')
-
-__builtins__.__import__ = limited_import
-del limited_import
-"#
-            .to_string();
-            for symbol in self.removed_symbols {
-                script.push_str(&format!("del {}\n", symbol));
-            }
-            interpreter.run(&script)?;
-        }
         Ok(Runtime {
             interpreter,
             functions: HashMap::new(),
@@ -295,7 +211,9 @@ impl Runtime {
         handler: &str,
     ) -> Result<()> {
         let function = self.interpreter.with_gil(|py| {
-            Ok(PyModule::from_code_bound(py, code, name, name)?
+            let code = CString::new(code).unwrap();
+            let name = CString::new(name).unwrap();
+            Ok(PyModule::from_code(py, &code, &name, &name)?
                 .getattr(handler)?
                 .into())
         })?;
@@ -326,8 +244,8 @@ impl Runtime {
     /// optionally, the code can define:
     ///
     /// - `finish(state) -> value`: Get the result of the aggregate function.
-    ///     If not defined, the state is returned as the result.
-    ///     In this case, `output_type` must be the same as `state_type`.
+    ///   If not defined, the state is returned as the result.
+    ///   In this case, `output_type` must be the same as `state_type`.
     /// - `retract(state, *args) -> state`: Retract a value from the state, returning the updated state.
     /// - `merge(state, state) -> state`: Merge two states, returning the merged state.
     ///
@@ -369,7 +287,9 @@ impl Runtime {
         code: &str,
     ) -> Result<()> {
         let aggregate = self.interpreter.with_gil(|py| {
-            let module = PyModule::from_code_bound(py, code, name, name)?;
+            let c_code = CString::new(code).unwrap();
+            let c_name = CString::new(name).unwrap();
+            let module = PyModule::from_code(py, &c_code, &c_name, &c_name)?;
             Ok(Aggregate {
                 state_field: state_type.into_field(name).into(),
                 output_field: output_type.into_field(name).into(),
@@ -447,7 +367,7 @@ impl Runtime {
                     let pyobj = self.converter.get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
                 }
-                let args = PyTuple::new_bound(py, row.drain(..));
+                let args = PyTuple::new(py, row.drain(..))?;
                 match function.function.call1(py, args) {
                     Ok(result) => results.push(result),
                     Err(e) => {
@@ -585,7 +505,7 @@ impl Runtime {
                     let pyobj = self.converter.get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
                 }
-                let args = PyTuple::new_bound(py, row.drain(..));
+                let args = PyTuple::new(py, row.drain(..))?;
                 state = aggregate.accumulate.call1(py, args)?;
             }
             let output = self
@@ -645,7 +565,7 @@ impl Runtime {
                     let pyobj = self.converter.get_pyobject(py, field, column, i)?;
                     row.push(pyobj);
                 }
-                let args = PyTuple::new_bound(py, row.drain(..));
+                let args = PyTuple::new(py, row.drain(..))?;
                 let func = if ops.is_valid(i) && ops.value(i) {
                     retract
                 } else {
@@ -685,7 +605,7 @@ impl Runtime {
                 let state2 = self
                     .converter
                     .get_pyobject(py, &aggregate.state_field, states, i)?;
-                let args = PyTuple::new_bound(py, [state, state2]);
+                let args = PyTuple::new(py, [state, state2])?;
                 state = merge.call1(py, args)?;
             }
             let output = self
@@ -723,7 +643,7 @@ impl Runtime {
                 let state = self
                     .converter
                     .get_pyobject(py, &aggregate.state_field, states, i)?;
-                let args = PyTuple::new_bound(py, [state]);
+                let args = PyTuple::new(py, [state])?;
                 let result = finish.call1(py, args)?;
                 results.push(result);
             }
@@ -738,7 +658,7 @@ impl Runtime {
 
 /// An iterator over the result of a table function.
 pub struct RecordBatchIter<'a> {
-    interpreter: &'a SubInterpreter,
+    interpreter: &'a Interpreter,
     input: &'a RecordBatch,
     function: &'a Function,
     schema: SchemaRef,
@@ -784,10 +704,10 @@ impl RecordBatchIter<'_> {
                         let val = self.converter.get_pyobject(py, field, column, self.row)?;
                         row.push(val);
                     }
-                    let args = PyTuple::new_bound(py, row.drain(..));
+                    let args = PyTuple::new(py, row.drain(..))?;
                     match self.function.function.bind(py).call1(args) {
                         Ok(result) => {
-                            let iter = result.iter()?.into();
+                            let iter = result.try_iter()?.into();
                             self.generator.insert(iter)
                         }
                         Err(e) => {

@@ -19,16 +19,17 @@ use arrow_buffer::OffsetBuffer;
 use arrow_schema::{DataType, Field, Fields};
 use pyo3::{
     exceptions::PyTypeError,
+    ffi::c_str,
     prelude::PyDictMethods,
     types::{PyAnyMethods, PyDict},
-    IntoPy, PyObject, PyResult, Python,
+    IntoPyObject, PyObject, PyResult, Python,
 };
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, ffi::CString, sync::Arc};
 
 macro_rules! get_pyobject {
     ($array_type: ty, $py:expr, $array:expr, $i:expr) => {{
         let array = $array.as_any().downcast_ref::<$array_type>().unwrap();
-        array.value($i).into_py($py)
+        array.value($i).into_pyobject($py)?.to_owned().into()
     }};
 }
 
@@ -84,7 +85,7 @@ macro_rules! build_array {
 
 macro_rules! build_json_array {
     ($py:expr, $pyobjects:expr) => {{
-        let json_dumps = $py.eval_bound("json.dumps", None, None)?;
+        let json_dumps = $py.eval(&CString::new("json.dumps").unwrap(), None, None)?;
         let mut builder = StringBuilder::with_capacity($pyobjects.len(), 1024);
         for pyobj in $pyobjects {
             if pyobj.is_none($py) {
@@ -161,14 +162,14 @@ impl Converter {
                     let array = array.as_any().downcast_ref::<StringArray>().unwrap();
                     let string = array.value(i);
                     // XXX: it is slow to call eval every time
-                    let json_loads = py.eval_bound("json.loads", None, None)?;
+                    let json_loads = py.eval(c_str!("json.loads"), None, None)?;
                     json_loads.call1((string,))?.into()
                 }
                 Some(x) if x == &self.decimal_extension_name => {
                     let array = array.as_any().downcast_ref::<StringArray>().unwrap();
                     let string = array.value(i);
                     // XXX: it is slow to call eval every time
-                    let decimal_constructor = py.eval_bound("decimal.Decimal", None, None)?;
+                    let decimal_constructor = py.eval(c_str!("decimal.Decimal"), None, None)?;
                     decimal_constructor.call1((string,))?.into()
                 }
                 _ => get_pyobject!(StringArray, py, array, i),
@@ -178,7 +179,7 @@ impl Converter {
                 Some(x) if x == &self.pickle_extension_name => {
                     let array = array.as_any().downcast_ref::<BinaryArray>().unwrap();
                     let bytes = array.value(i);
-                    let pickle_loads = py.eval_bound("pickle.loads", None, None)?;
+                    let pickle_loads = py.eval(c_str!("pickle.loads"), None, None)?;
                     pickle_loads.call1((bytes,))?.into()
                 }
                 _ => get_pyobject!(BinaryArray, py, array, i),
@@ -189,7 +190,7 @@ impl Converter {
                 Some(x) if x == &self.pickle_extension_name => {
                     let array = array.as_any().downcast_ref::<BinaryViewArray>().unwrap();
                     let bytes = array.value(i);
-                    let pickle_loads = py.eval_bound("pickle.loads", None, None)?;
+                    let pickle_loads = py.eval(c_str!("pickle.loads"), None, None)?;
                     pickle_loads.call1((bytes,))?.into()
                 }
                 _ => get_pyobject!(BinaryViewArray, py, array, i),
@@ -202,7 +203,7 @@ impl Converter {
                 for j in 0..list.len() {
                     values.push(self.get_pyobject(py, field, list.as_ref(), j)?);
                 }
-                values.into_py(py)
+                values.into_pyobject(py)?.into()
             }
             DataType::LargeList(field) => {
                 let array = array.as_any().downcast_ref::<LargeListArray>().unwrap();
@@ -211,7 +212,7 @@ impl Converter {
                 for j in 0..list.len() {
                     values.push(self.get_pyobject(py, field, list.as_ref(), j)?);
                 }
-                values.into_py(py)
+                values.into_pyobject(py)?.into()
             }
             DataType::Map(_, _) => {
                 let array = array.as_any().downcast_ref::<MapArray>().unwrap();
@@ -239,7 +240,7 @@ impl Converter {
             }
             DataType::Struct(fields) => {
                 let array = array.as_any().downcast_ref::<StructArray>().unwrap();
-                let object = py.eval_bound("Struct()", None, None)?;
+                let object = py.eval(c_str!("Struct()"), None, None)?;
                 for (j, field) in fields.iter().enumerate() {
                     let value = self.get_pyobject(py, field, array.column(j).as_ref(), i)?;
                     object.setattr(field.name().as_str(), value)?;
@@ -295,7 +296,8 @@ impl Converter {
             DataType::LargeUtf8 => build_array!(LargeStringBuilder, &str, py, values),
             DataType::Binary => match field.metadata().get(self.arrow_extension_key.as_ref()) {
                 Some(x) if x == &self.pickle_extension_name => {
-                    let pickle_dumps = py.eval_bound("pickle.dumps", None, None)?;
+                    let pickle_dumps =
+                        py.eval(&CString::new("pickle.dumps").unwrap(), None, None)?;
 
                     let mut builder = BinaryBuilder::with_capacity(1, 0);
                     for value in values {
@@ -336,7 +338,7 @@ impl Converter {
                     if !val.is_none(py) {
                         let array = val.bind(py);
                         flatten_values.reserve(array.len()?);
-                        for elem in array.iter()? {
+                        for elem in array.try_iter()? {
                             flatten_values.push(elem?.into());
                         }
                     }
@@ -361,7 +363,7 @@ impl Converter {
                     if !val.is_none(py) {
                         let array = val.bind(py);
                         flatten_values.reserve(array.len()?);
-                        for elem in array.iter()? {
+                        for elem in array.try_iter()? {
                             flatten_values.push(elem?.into());
                         }
                     }

@@ -381,8 +381,8 @@ impl Runtime {
     /// optionally, the code can define:
     ///
     /// - `finish(state) -> value`: Get the result of the aggregate function.
-    ///     If not defined, the state is returned as the result.
-    ///     In this case, `output_type` must be the same as `state_type`.
+    ///   If not defined, the state is returned as the result.
+    ///   In this case, `output_type` must be the same as `state_type`.
     /// - `retract(state, *args) -> state`: Retract a value from the state, returning the updated state.
     /// - `merge(state, state) -> state`: Merge two states, returning the merged state.
     ///

@@ -42,7 +42,7 @@ wasmtime = { version = "27", optional = true }
 genawaiter2 = { version = "0.100.1", optional = true }
 tempfile = { version = "3", optional = true }
 
-pyo3 = { version = "0.21", features = ["gil-refs"], optional = true }
+pyo3 = { version = "0.24.1", optional = true }
 
 atomic-time = { version = "0.1", optional = true }
 rquickjs = { version = "0.6", features = [
@@ -60,7 +60,7 @@ tonic = { version = "0.12", optional = true }
 tracing = { version = "0.1", optional = true }
 
 [build-dependencies]
-pyo3-build-config = { version = "0.21", features = ["resolve-config"] }
+pyo3-build-config = { version = "0.24", features = ["resolve-config"] }
 
 [dev-dependencies]
 arrow-cast = { workspace = true, features = ["prettyprint"] }

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1744273343525,
+  "lastUpdate": 1744275527991,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -15077,6 +15077,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 135481,
             "range": "± 2581",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "github@xuanwo.io",
+            "name": "Xuanwo",
+            "username": "Xuanwo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8c3b6cab1519d9b6f17864add308424a6325006d",
+          "message": "chore: Bump arrow-udf-runtime to 0.8.0 (#126)\n\nSigned-off-by: Xuanwo <github@xuanwo.io>\nCo-authored-by: Richard Chien <stdrc@outlook.com>",
+          "timestamp": "2025-04-10T16:48:42+08:00",
+          "tree_id": "7f4f74d5357fe8e4c2ab2b326a264bcd760cc0e0",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/8c3b6cab1519d9b6f17864add308424a6325006d"
+        },
+        "date": 1744275527428,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3933,
+            "range": "± 15",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4009,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23116,
+            "range": "± 1459",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 202564,
+            "range": "± 1118",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 229261,
+            "range": "± 3204",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74385,
+            "range": "± 215",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 409090,
+            "range": "± 20406",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6151036,
+            "range": "± 80121",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 890023,
+            "range": "± 19407",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 685337,
+            "range": "± 6031",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8782517,
+            "range": "± 70421",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 137201,
+            "range": "± 2814",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 136649,
+            "range": "± 1173",
             "unit": "ns/iter"
           }
         ]

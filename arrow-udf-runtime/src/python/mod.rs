@@ -99,46 +99,9 @@ struct Aggregate {
 
 /// A builder for `Runtime`.
 #[derive(Default, Debug)]
-pub struct Builder {
-    sandboxed: bool,
-    removed_symbols: Vec<String>,
-}
+pub struct Builder {}
 
 impl Builder {
-    /// Set whether the runtime is sandboxed.
-    ///
-    /// When sandboxed, only a limited set of modules can be imported, and some built-in functions are disabled.
-    /// This is useful for running untrusted code.
-    ///
-    /// Allowed modules: `json`, `decimal`, `re`, `math`, `datetime`, `time`, `pickle`.
-    ///
-    /// Disallowed builtins: `breakpoint`, `exit`, `eval`, `help`, `input`, `open`, `print`.
-    ///
-    /// The default is `false`.
-    pub fn sandboxed(mut self, sandboxed: bool) -> Self {
-        self.sandboxed = sandboxed;
-        self.remove_symbol("__builtins__.breakpoint")
-            .remove_symbol("__builtins__.exit")
-            .remove_symbol("__builtins__.eval")
-            .remove_symbol("__builtins__.help")
-            .remove_symbol("__builtins__.input")
-            .remove_symbol("__builtins__.open")
-            .remove_symbol("__builtins__.print")
-    }
-
-    /// Remove a symbol from builtins.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use arrow_udf_runtime::python::Runtime;
-    /// let builder = Runtime::builder().remove_symbol("__builtins__.eval");
-    /// ```
-    pub fn remove_symbol(mut self, symbol: &str) -> Self {
-        self.removed_symbols.push(symbol.to_string());
-        self
-    }
-
     /// Build the `Runtime`.
     pub fn build(self) -> Result<Runtime> {
         let interpreter = Interpreter::new()?;
@@ -154,45 +117,6 @@ class Struct:
     pass
 "#,
         )?;
-        if self.sandboxed {
-            let mut script = r#"
-# limit the modules that can be imported
-original_import = __builtins__.__import__
-
-def limited_import(name, globals=None, locals=None, fromlist=(), level=0):
-    # FIXME: 'sys' should not be allowed, but it is required by 'decimal'
-    # FIXME: 'time.sleep' should not be allowed, but 'time' is required by 'datetime'
-    allowlist = (
-        'json',
-        'decimal',
-        're',
-        'math',
-        'datetime',
-        'time',
-        'operator',
-        'numbers',
-        'abc',
-        'sys',
-        'pickle'
-        'contextvars',
-        '_io',
-        '_contextvars',
-        '_pydecimal',
-        '_pydatetime',
-    )
-    if level == 0 and name in allowlist:
-        return original_import(name, globals, locals, fromlist, level)
-    raise ImportError(f'import {name} is not allowed')
-
-__builtins__.__import__ = limited_import
-del limited_import
-"#
-            .to_string();
-            for symbol in self.removed_symbols {
-                script.push_str(&format!("del {}\n", symbol));
-            }
-            interpreter.run(&script)?;
-        }
         Ok(Runtime {
             interpreter,
             functions: HashMap::new(),

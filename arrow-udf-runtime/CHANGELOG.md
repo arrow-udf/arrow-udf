@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Remove SubInterpreter and all related code.
+- Remove `SubInterpreter` and all related code from Python UDF runtime.
 
 ## [0.7.0] - 2025-03-22
 

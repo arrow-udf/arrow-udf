@@ -110,7 +110,7 @@ impl Builder {
     /// When sandboxed, only a limited set of modules can be imported, and some built-in functions are disabled.
     /// This is useful for running untrusted code.
     ///
-    /// Allowed modules: `json`, `decimal`, `re`, `math`, `datetime`, `time`.
+    /// Allowed modules: `json`, `decimal`, `re`, `math`, `datetime`, `time`, `pickle`.
     ///
     /// Disallowed builtins: `breakpoint`, `exit`, `eval`, `help`, `input`, `open`, `print`.
     ///
@@ -173,6 +173,7 @@ def limited_import(name, globals=None, locals=None, fromlist=(), level=0):
         'numbers',
         'abc',
         'sys',
+        'pickle'
         'contextvars',
         '_io',
         '_contextvars',

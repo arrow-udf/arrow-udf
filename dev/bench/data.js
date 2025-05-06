@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1746499065860,
+  "lastUpdate": 1746499110515,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -15281,6 +15281,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 131648,
             "range": "± 1969",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a8120a7d02e3c5c5ef4adfdbdb48ebe900a5cc2f",
+          "message": "build(deps): bump org.apache.arrow:arrow-vector from 18.1.0 to 18.2.0 in /arrow-udf-remote/java (#122)\n\nBumps\n[org.apache.arrow:arrow-vector](https://github.com/apache/arrow-java)\nfrom 18.1.0 to 18.2.0.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/apache/arrow-java/releases\">org.apache.arrow:arrow-vector's\nreleases</a>.</em></p>\n<blockquote>\n<h2>Apache Arrow Java 18.2.0</h2>\n<h2>What's Changed</h2>\n<ul>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/4\">GH-4</a>:\n[CI] Enable Dependabot by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/25\">apache/arrow-java#25</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/18\">GH-18</a>:\nAdd CODE_OF_CONDUCT.md by <a\nhref=\"https://github.com/wgtmac\"><code>@​wgtmac</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/34\">apache/arrow-java#34</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/19\">GH-19</a>:\nAdd CONTRIBUTING.md by <a\nhref=\"https://github.com/wgtmac\"><code>@​wgtmac</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/35\">apache/arrow-java#35</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/24\">GH-24</a>:\n[CI] Add self-assignable dependabot comment for issues by <a\nhref=\"https://github.com/raulcd\"><code>@​raulcd</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/36\">apache/arrow-java#36</a></li>\n<li>MINOR: [CI] Tweak Dependabot PR title prefix by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/38\">apache/arrow-java#38</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/21\">GH-21</a>:\nAdd issue template by <a\nhref=\"https://github.com/wgtmac\"><code>@​wgtmac</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/37\">apache/arrow-java#37</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/10\">GH-10</a>:\nAdd basic pre-commit-config with Apache RAT by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/430\">apache/arrow-java#430</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/6\">GH-6</a>:\nAdd Linux test CI by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/339\">apache/arrow-java#339</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/5\">GH-5</a>:\n[Docs] Add LICENSE and NOTICE files by <a\nhref=\"https://github.com/raulcd\"><code>@​raulcd</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/39\">apache/arrow-java#39</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/7\">GH-7</a>:\nAdd macOS, Windows CI by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/432\">apache/arrow-java#432</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/14\">GH-14</a>:\nAdd JNI CI test by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/441\">apache/arrow-java#441</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/22\">GH-22</a>:\nAdd CODEOWNERS by <a\nhref=\"https://github.com/wgtmac\"><code>@​wgtmac</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/444\">apache/arrow-java#444</a></li>\n<li>MINOR: Update latest java version to 23 by <a\nhref=\"https://github.com/laurentgo\"><code>@​laurentgo</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/452\">apache/arrow-java#452</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/436\">GH-436</a>:\nRemove Maven RAT check in favor of pre-commit check by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/442\">apache/arrow-java#442</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/10\">GH-10</a>:\nAdd basic checks into pre-commit-config by <a\nhref=\"https://github.com/kiszk\"><code>@​kiszk</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/435\">apache/arrow-java#435</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/466\">GH-466</a>:\nExport namespace from Flight package by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/467\">apache/arrow-java#467</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/13\">GH-13</a>:\nSet up JNI build (dataset, etc.) by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/449\">apache/arrow-java#449</a></li>\n<li>MINOR: [Java] Bump commons-io:commons-io from 2.17.0 to 2.18.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/30\">apache/arrow-java#30</a></li>\n<li>MINOR: Bump com.fasterxml.jackson:jackson-bom from 2.18.1 to 2.18.2\nby <a href=\"https://github.com/dependabot\"><code>@​dependabot</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/440\">apache/arrow-java#440</a></li>\n<li>MINOR: Bump com.github.luben:zstd-jni from 1.5.6-7 to 1.5.6-9 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/474\">apache/arrow-java#474</a></li>\n<li>MINOR: [Java] Bump org.apache.orc:orc-core from 1.9.5 to 2.0.3 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/33\">apache/arrow-java#33</a></li>\n<li>MINOR: Bump org.cyclonedx:cyclonedx-maven-plugin from 2.9.0 to 2.9.1\nby <a href=\"https://github.com/dependabot\"><code>@​dependabot</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/438\">apache/arrow-java#438</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/447\">GH-447</a>:\nPort fix from apache/arrow that was missed by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/475\">apache/arrow-java#475</a></li>\n<li>MINOR: [CI] Bump actions/setup-python from 4 to 5 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/482\">apache/arrow-java#482</a></li>\n<li>MINOR: Bump org.mockito:mockito-core from 5.14.2 to 5.15.2 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/480\">apache/arrow-java#480</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/16\">GH-16</a>:\nAdd integration test CI by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/489\">apache/arrow-java#489</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/490\">GH-490</a>:\nUse apache/arrow-java not apache/arrow in pom.xml by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/491\">apache/arrow-java#491</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/492\">GH-492</a>:\n[CI] Remove <code>java_</code> prefix from <code>ci/scripts/*.sh</code>\nby <a href=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/493\">apache/arrow-java#493</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/483\">GH-483</a>:\nUse ArrowReader instead of ArrowStreamReader in\nFlightSqlClient.executeIngest method by <a\nhref=\"https://github.com/eramitmittal\"><code>@​eramitmittal</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/485\">apache/arrow-java#485</a></li>\n<li>MINOR: Bump logback.version from 1.5.12 to 1.5.16 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/481\">apache/arrow-java#481</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/497\">GH-497</a>:\n[Dev] Use apache-arrow-java.tar.gz for RAT by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/498\">apache/arrow-java#498</a></li>\n<li>MINOR: Bump parquet.version from 1.14.4 to 1.15.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/478\">apache/arrow-java#478</a></li>\n<li>MINOR: Bump com.google.guava:guava-bom from 33.3.1-jre to 33.4.0-jre\nby <a href=\"https://github.com/dependabot\"><code>@​dependabot</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/479\">apache/arrow-java#479</a></li>\n<li>MINOR: Bump version to 18.2.0 by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/502\">apache/arrow-java#502</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/20\">GH-20</a>:\nAdd release scripts by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/496\">apache/arrow-java#496</a></li>\n<li>MINOR: Bump org.assertj:assertj-core from 3.26.3 to 3.27.2 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/505\">apache/arrow-java#505</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/512\">GH-512</a>:\n[Release] Fix <code>svn add</code> target by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/513\">apache/arrow-java#513</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/469\">GH-469</a>:\nUnify <code>ValueVector.getObject</code> and\n<code>VariableWidthFieldVector.get</code> behavior about null value by\n<a href=\"https://github.com/aqni\"><code>@​aqni</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/486\">apache/arrow-java#486</a></li>\n<li>MINOR: Bump checker.framework.version from 3.48.2 to 3.48.4 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/506\">apache/arrow-java#506</a></li>\n<li>MINOR: Bump org.mockito:mockito-junit-jupiter from 5.14.2 to 5.15.2\nby <a href=\"https://github.com/dependabot\"><code>@​dependabot</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/508\">apache/arrow-java#508</a></li>\n<li>MINOR: Bump com.gradle:develocity-maven-extension from 1.22.2 to\n1.23 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/507\">apache/arrow-java#507</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/518\">GH-518</a>:\nCleanup apache-arrow-java.tar.gz created by pre-commit by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/519\">apache/arrow-java#519</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/515\">GH-515</a>:\nPublish build scans to develocity.apache.org by <a\nhref=\"https://github.com/clayburn\"><code>@​clayburn</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/516\">apache/arrow-java#516</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/520\">GH-520</a>:\n[CI] Add cmake-format to pre-commit by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/521\">apache/arrow-java#521</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/523\">GH-523</a>:\n[Release] Add support for building .jar including JNI binaries by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/517\">apache/arrow-java#517</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/522\">GH-522</a>:\n[Release] Add support for signing .jar by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/524\">apache/arrow-java#524</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/525\">GH-525</a>:\n[Release] Use released Apache Arrow C++ for RC CI by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/526\">apache/arrow-java#526</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/527\">GH-527</a>:\n[Release] Add support for .jar for Windows by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/528\">apache/arrow-java#528</a></li>\n</ul>\n<!-- raw HTML omitted -->\n</blockquote>\n<p>... (truncated)</p>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li>See full diff in <a\nhref=\"https://github.com/apache/arrow-java/commits/v18.2.0\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=org.apache.arrow:arrow-vector&package-manager=maven&previous-version=18.1.0&new-version=18.2.0)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-05-06T10:28:42+08:00",
+          "tree_id": "ac09e86b51fa33a6319aef2a2c14077c8175dfc9",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/a8120a7d02e3c5c5ef4adfdbdb48ebe900a5cc2f"
+        },
+        "date": 1746499109899,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3934,
+            "range": "± 33",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4028,
+            "range": "± 11",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23178,
+            "range": "± 1248",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 204645,
+            "range": "± 1628",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 233955,
+            "range": "± 2092",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 75886,
+            "range": "± 582",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 404796,
+            "range": "± 19699",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6280959,
+            "range": "± 34827",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 927681,
+            "range": "± 11931",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 687320,
+            "range": "± 4478",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8741304,
+            "range": "± 65300",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 146943,
+            "range": "± 2369",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 135596,
+            "range": "± 1566",
             "unit": "ns/iter"
           }
         ]

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1744275527991,
+  "lastUpdate": 1746499065860,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -15179,6 +15179,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 136649,
             "range": "± 1173",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "88ebd26708e1a85307e60828923ac5d78dd049fe",
+          "message": "build(deps): bump opt-nc/setup-duckdb-action from 1.0.11 to 1.0.12 (#128)\n\nBumps\n[opt-nc/setup-duckdb-action](https://github.com/opt-nc/setup-duckdb-action)\nfrom 1.0.11 to 1.0.12.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/releases\">opt-nc/setup-duckdb-action's\nreleases</a>.</em></p>\n<blockquote>\n<h2>v1.0.12</h2>\n<h2><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/compare/v1.0.11...v1.0.12\">1.0.12</a>\n(2025-04-08)</h2>\n<h3>:bug: Bug Fixes</h3>\n<ul>\n<li>bump axios from 1.7.9 to 1.8.0 (<a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/a08646aab5146b6234275566760627bf8b55afe4\">a08646a</a>)</li>\n<li>bump axios from 1.8.2 to 1.8.3 (<a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/1eb3b39a20efbad244fd023304c28aa0c2f7f6e1\">1eb3b39</a>)</li>\n<li>bump axios from 1.8.3 to 1.8.4 (<a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/7ef65c53c6ac987186d51b53fee01e7f5721d532\">7ef65c5</a>)</li>\n<li>bump eslint from 9.21.0 to 9.22.0 (<a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/0153c448b92082c8f5bdb757f5c762dbea5b3d59\">0153c44</a>)</li>\n<li>bump eslint from 9.22.0 to 9.24.0 (<a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/9b0a4cecaf7bae81387c5ad2ae269fc47e9198e9\">9b0a4ce</a>)</li>\n</ul>\n</blockquote>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/a8ce9269c1f88734dbd7db49ba0cdebb3f50c3d8\"><code>a8ce926</code></a>\nMerge pull request <a\nhref=\"https://redirect.github.com/opt-nc/setup-duckdb-action/issues/156\">#156</a>\nfrom opt-nc/develop</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/1044145902b90389cb95ff55523ec1752a759ec4\"><code>1044145</code></a>\nMerge pull request <a\nhref=\"https://redirect.github.com/opt-nc/setup-duckdb-action/issues/157\">#157</a>\nfrom opt-nc/Supervinh-patch-1</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/950f8ee830af77307eaedb036509a8ebdbab0d9e\"><code>950f8ee</code></a>\ndoc: update de la version de l'action à utiliser</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/b484decada91a75638d456a585a34d9d99032614\"><code>b484dec</code></a>\nMerge pull request <a\nhref=\"https://redirect.github.com/opt-nc/setup-duckdb-action/issues/155\">#155</a>\nfrom opt-nc/Supervinh-patch-1</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/7cd1fb3ee3eb9453fc97340459ac9df4159b8dfd\"><code>7cd1fb3</code></a>\ndoc: update de la version de duckdb à utiliser</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/07daf10984423ac297388acc5a9603b4ffed6748\"><code>07daf10</code></a>\nApply dist/index.js changes</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/7ef65c53c6ac987186d51b53fee01e7f5721d532\"><code>7ef65c5</code></a>\nfix: bump axios from 1.8.3 to 1.8.4</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/9b0a4cecaf7bae81387c5ad2ae269fc47e9198e9\"><code>9b0a4ce</code></a>\nfix: bump eslint from 9.22.0 to 9.24.0</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/4342d2d828c64e1f1971f7ea8dc958eeebf49736\"><code>4342d2d</code></a>\nApply dist/index.js changes</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/1eb3b39a20efbad244fd023304c28aa0c2f7f6e1\"><code>1eb3b39</code></a>\nfix: bump axios from 1.8.2 to 1.8.3</li>\n<li>Additional commits viewable in <a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/compare/v1.0.11...v1.0.12\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=opt-nc/setup-duckdb-action&package-manager=github_actions&previous-version=1.0.11&new-version=1.0.12)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-05-06T10:27:53+08:00",
+          "tree_id": "d53e3d5dc6bb7481ca6cb9ea66b077d951825c90",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/88ebd26708e1a85307e60828923ac5d78dd049fe"
+        },
+        "date": 1746499065266,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3939,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4060,
+            "range": "± 19",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23355,
+            "range": "± 1261",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 203886,
+            "range": "± 2040",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 228219,
+            "range": "± 4816",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76730,
+            "range": "± 129",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 410979,
+            "range": "± 22384",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6218149,
+            "range": "± 81845",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 928940,
+            "range": "± 18150",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 701554,
+            "range": "± 12475",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8702315,
+            "range": "± 59455",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 137339,
+            "range": "± 2273",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 131648,
+            "range": "± 1969",
             "unit": "ns/iter"
           }
         ]

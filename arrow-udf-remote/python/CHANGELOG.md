@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2025-05-09
+
+### Fixed
+
+- Lock `pyarrow` version to `19` to avoid the `maps_as_pydicts` bug ([#129](https://github.com/arrow-udf/arrow-udf/issues/129)).
+
 ## [0.3.0] - 2025-02-12
 
 ### Added

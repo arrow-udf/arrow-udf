@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1746499110515,
+  "lastUpdate": 1746779816143,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -15383,6 +15383,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 135596,
             "range": "± 1566",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "stdrc@outlook.com",
+            "name": "Richard Chien",
+            "username": "stdrc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5a8d34a56fb780e7171a3ef1eb372de864457de3",
+          "message": "fix: lock pyarrow to v19 to avoid the maps_as_pydicts bug (#130)\n\nSigned-off-by: Richard Chien <stdrc@outlook.com>\n\nFixes #129\n\n---------\n\nSigned-off-by: Richard Chien <stdrc@outlook.com>\nCo-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>",
+          "timestamp": "2025-05-09T16:26:59+08:00",
+          "tree_id": "295442aabde73ee43f4c9e518e267724b4972a2e",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/5a8d34a56fb780e7171a3ef1eb372de864457de3"
+        },
+        "date": 1746779815463,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3932,
+            "range": "± 22",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4012,
+            "range": "± 32",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23302,
+            "range": "± 1249",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 205376,
+            "range": "± 1355",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 245387,
+            "range": "± 3865",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 75213,
+            "range": "± 575",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 406161,
+            "range": "± 19398",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6233889,
+            "range": "± 63496",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 938951,
+            "range": "± 8359",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 692012,
+            "range": "± 6683",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8850114,
+            "range": "± 80014",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 137634,
+            "range": "± 1063",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 140048,
+            "range": "± 1344",
             "unit": "ns/iter"
           }
         ]

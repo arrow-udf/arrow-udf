@@ -14,7 +14,7 @@ classifiers = [
   "License :: OSI Approved :: Apache Software License",
 ]
 requires-python = ">=3.8"
-dependencies = ["pyarrow<20"]
+dependencies = ["pyarrow>=19,<20"]
 
 [project.optional-dependencies]
 test = ["pytest"]

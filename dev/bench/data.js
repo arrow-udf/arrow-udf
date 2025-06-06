@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749224764261,
+  "lastUpdate": 1749227036519,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -15587,6 +15587,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 142722,
             "range": "± 1125",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d4bb9c6fbb48a7fa8100b5065383f4d15ccf3785",
+          "message": "build(deps): update pyarrow requirement from <20,>=19 to >=19,<21 in /arrow-udf-remote/python (#135)\n\nUpdates the requirements on [pyarrow](https://github.com/apache/arrow)\nto permit the latest version.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/apache/arrow/releases\">pyarrow's\nreleases</a>.</em></p>\n<blockquote>\n<h2>Apache Arrow 20.0.0</h2>\n<p>Release Notes URL: <a\nhref=\"https://arrow.apache.org/release/20.0.0.html\">https://arrow.apache.org/release/20.0.0.html</a></p>\n</blockquote>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/apache/arrow/commit/3ad0370a04ccdae638755b94c3c31c8760a11193\"><code>3ad0370</code></a>\nMINOR: [Release] Update versions for 20.0.0</li>\n<li><a\nhref=\"https://github.com/apache/arrow/commit/e4aed0d61b05ef055379b11e0899161422d7be39\"><code>e4aed0d</code></a>\nMINOR: [Release] Update .deb/.rpm changelogs for 20.0.0</li>\n<li><a\nhref=\"https://github.com/apache/arrow/commit/02f9dfbd25c4e2d827f89b05976fcdb46209fe75\"><code>02f9dfb</code></a>\nMINOR: [Release] Update CHANGELOG.md for 20.0.0</li>\n<li><a\nhref=\"https://github.com/apache/arrow/commit/92c3e39f3901f0343c1e6c48c25b96aafaea101c\"><code>92c3e39</code></a>\n<a\nhref=\"https://redirect.github.com/apache/arrow/issues/46077\">GH-46077</a>:\n[CI][C++] Disable -Werror on macos-13 (<a\nhref=\"https://redirect.github.com/apache/arrow/issues/46106\">#46106</a>)</li>\n<li><a\nhref=\"https://github.com/apache/arrow/commit/2f82cd86b43cca0554b849fb095109fbaa18ec3e\"><code>2f82cd8</code></a>\n<a\nhref=\"https://redirect.github.com/apache/arrow/issues/46123\">GH-46123</a>:\n[C++] Undefined behavior in <code>compare_internal.cc</code> and\n`light_array_...</li>\n<li><a\nhref=\"https://github.com/apache/arrow/commit/af15118dd065facc6e9bbeb58af13c382351600e\"><code>af15118</code></a>\n<a\nhref=\"https://redirect.github.com/apache/arrow/issues/46159\">GH-46159</a>:\n[CI][C++] Stop using possibly missing boost/process/v2.hpp on\nboost...</li>\n<li><a\nhref=\"https://github.com/apache/arrow/commit/7a6eefe3ec64ea8da4563488dc300ec432252d4b\"><code>7a6eefe</code></a>\n<a\nhref=\"https://redirect.github.com/apache/arrow/issues/46169\">GH-46169</a>:\n[CI][R] Update R version to 4.5 due to 4.4 not being on APT\nreposit...</li>\n<li><a\nhref=\"https://github.com/apache/arrow/commit/5c1eb910e2654195d4719469ee7be4ab864e2cf3\"><code>5c1eb91</code></a>\n<a\nhref=\"https://redirect.github.com/apache/arrow/issues/46167\">GH-46167</a>:\n[R][CI] Update Artifacts for R 4.5 in task.yml (<a\nhref=\"https://redirect.github.com/apache/arrow/issues/46168\">#46168</a>)</li>\n<li><a\nhref=\"https://github.com/apache/arrow/commit/0f41ecc3f7ef551614fb43277b97814e22683fdb\"><code>0f41ecc</code></a>\n<a\nhref=\"https://redirect.github.com/apache/arrow/issues/45986\">GH-45986</a>:\n[C++] Update bundled GoogleTest (<a\nhref=\"https://redirect.github.com/apache/arrow/issues/45996\">#45996</a>)</li>\n<li><a\nhref=\"https://github.com/apache/arrow/commit/1e2aa39012961e85a719857f0089fa04ab9119b3\"><code>1e2aa39</code></a>\n<a\nhref=\"https://redirect.github.com/apache/arrow/issues/46075\">GH-46075</a>:\n[Release][CI] Fix binary verification (<a\nhref=\"https://redirect.github.com/apache/arrow/issues/46076\">#46076</a>)</li>\n<li>Additional commits viewable in <a\nhref=\"https://github.com/apache/arrow/compare/apache-arrow-19.0.0...apache-arrow-20.0.0\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>\nCo-authored-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2025-06-06T16:14:05Z",
+          "tree_id": "c52f0c7fc8361d0765bb67b72eb21cdca3e0a278",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/d4bb9c6fbb48a7fa8100b5065383f4d15ccf3785"
+        },
+        "date": 1749227036087,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3943,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4041,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24051,
+            "range": "± 1537",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 233711,
+            "range": "± 8098",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 243387,
+            "range": "± 1191",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74534,
+            "range": "± 193",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 401315,
+            "range": "± 19184",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5988330,
+            "range": "± 241951",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 1104640,
+            "range": "± 9398",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 713281,
+            "range": "± 19896",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 9155365,
+            "range": "± 53216",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 134398,
+            "range": "± 756",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 145906,
+            "range": "± 14508",
             "unit": "ns/iter"
           }
         ]

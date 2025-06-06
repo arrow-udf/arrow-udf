@@ -22,7 +22,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("failed to send requests to UDF service: {0}")]
-    Tonic(#[from] tonic::Status),
+    Tonic(#[from] Box<tonic::Status>),
 
     #[error("failed to connect to UDF service: {0}")]
     Connect(#[from] tonic::transport::Error),
@@ -38,4 +38,10 @@ pub enum Error {
 
     #[error("Flight service error: {0}")]
     Service(String),
+}
+
+impl From<tonic::Status> for Error {
+    fn from(status: tonic::Status) -> Self {
+        Error::Tonic(Box::new(status))
+    }
 }

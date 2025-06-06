@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749227036519,
+  "lastUpdate": 1749227058107,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -15689,6 +15689,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 145906,
             "range": "± 14508",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e7bd5fdd3a4d7e1a3c1b90edd6bbe82e108a1a3e",
+          "message": "build(deps): bump org.apache.maven.plugins:maven-gpg-plugin from 3.1.0 to 3.2.7 in /arrow-udf-remote/java (#134)\n\nBumps\n[org.apache.maven.plugins:maven-gpg-plugin](https://github.com/apache/maven-gpg-plugin)\nfrom 3.1.0 to 3.2.7.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/apache/maven-gpg-plugin/releases\">org.apache.maven.plugins:maven-gpg-plugin's\nreleases</a>.</em></p>\n<blockquote>\n<h2>3.2.7</h2>\n<p>Fixes a lingering issue affecting whole 3.2.x lineage, that resulted\nin &quot;bad passphrase&quot; on Windows OS with GPG signer (see\nMGPG-136 for details).</p>\n<h2>What's Changed</h2>\n<ul>\n<li>[MGPG-136] Windows passphrase corruption by <a\nhref=\"https://github.com/cstamas\"><code>@​cstamas</code></a> in <a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/pull/120\">apache/maven-gpg-plugin#120</a></li>\n<li>Bump com.kohlschutter.junixsocket:junixsocket-core from 2.10.0 to\n2.10.1 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/pull/121\">apache/maven-gpg-plugin#121</a></li>\n<li>Bump commons-io:commons-io from 2.16.1 to 2.17.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/pull/119\">apache/maven-gpg-plugin#119</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/apache/maven-gpg-plugin/compare/maven-gpg-plugin-3.2.6...maven-gpg-plugin-3.2.7\">https://github.com/apache/maven-gpg-plugin/compare/maven-gpg-plugin-3.2.6...maven-gpg-plugin-3.2.7</a></p>\n<h2>3.2.6</h2>\n<h1><a\nhref=\"https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=12317521&amp;version=12354997\">Release\nNotes - Maven GPG Plugin - Version 3.2.6</a></h1>\n<!-- raw HTML omitted -->\n<!-- raw HTML omitted -->\n<hr />\n<h2>What's Changed</h2>\n<ul>\n<li>[MGPG-135] Support Overriding / Enhance the signer in\nAbstractGpgMojo by <a\nhref=\"https://github.com/laeubi\"><code>@​laeubi</code></a> in <a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/pull/112\">apache/maven-gpg-plugin#112</a></li>\n<li>Bump org.apache.maven.plugins:maven-invoker-plugin from 3.7.0 to\n3.8.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/pull/114\">apache/maven-gpg-plugin#114</a></li>\n<li>[MGPG-140] Update Maven to 3.9.9 by <a\nhref=\"https://github.com/cstamas\"><code>@​cstamas</code></a> in <a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/pull/116\">apache/maven-gpg-plugin#116</a></li>\n<li>[MGPG-138] Drop direct use of plexus-cipher and secdispatcher by <a\nhref=\"https://github.com/cstamas\"><code>@​cstamas</code></a> in <a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/pull/115\">apache/maven-gpg-plugin#115</a></li>\n<li>[MGPG-141] Remove use of deprecated classes by <a\nhref=\"https://github.com/cstamas\"><code>@​cstamas</code></a> in <a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/pull/117\">apache/maven-gpg-plugin#117</a></li>\n<li>Add FAQ for &quot;no pinentry&quot; issue by <a\nhref=\"https://github.com/cstamas\"><code>@​cstamas</code></a> in <a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/pull/118\">apache/maven-gpg-plugin#118</a></li>\n</ul>\n<h2>New Contributors</h2>\n<ul>\n<li><a href=\"https://github.com/laeubi\"><code>@​laeubi</code></a> made\ntheir first contribution in <a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/pull/112\">apache/maven-gpg-plugin#112</a></li>\n</ul>\n<!-- raw HTML omitted -->\n</blockquote>\n<p>... (truncated)</p>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/apache/maven-gpg-plugin/commit/43af21cbe6e62e417e5037c359f79dd7878b4908\"><code>43af21c</code></a>\n[maven-release-plugin] prepare release maven-gpg-plugin-3.2.7</li>\n<li><a\nhref=\"https://github.com/apache/maven-gpg-plugin/commit/8c5a8d2eb990b3d9db8bc2f5563a0aeb4dbb5eea\"><code>8c5a8d2</code></a>\n[MGPG-144] Bump commons-io:commons-io from 2.16.1 to 2.17.0 (<a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/issues/119\">#119</a>)</li>\n<li><a\nhref=\"https://github.com/apache/maven-gpg-plugin/commit/cb5422fc4f2372a58772e0b8a9a20b072696a7f4\"><code>cb5422f</code></a>\n[MGPG-143] Bump com.kohlschutter.junixsocket:junixsocket-core from\n2.10.0 to ...</li>\n<li><a\nhref=\"https://github.com/apache/maven-gpg-plugin/commit/6b2a27f3a60e8c92079f14e5240ee8c353ccfa35\"><code>6b2a27f</code></a>\n[MGPG-136] Windows passphrase corruption (<a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/issues/120\">#120</a>)</li>\n<li><a\nhref=\"https://github.com/apache/maven-gpg-plugin/commit/31e87e0062b7eacc3506fc6dea94e7ff509c16b9\"><code>31e87e0</code></a>\n[maven-release-plugin] prepare for next development iteration</li>\n<li><a\nhref=\"https://github.com/apache/maven-gpg-plugin/commit/1c9a14c0eec9dae40baa4a5db674e6a7ec012be4\"><code>1c9a14c</code></a>\n[maven-release-plugin] prepare release maven-gpg-plugin-3.2.6</li>\n<li><a\nhref=\"https://github.com/apache/maven-gpg-plugin/commit/bbe6156400212b3fe063d218399ba09c24795f44\"><code>bbe6156</code></a>\nAdd FAQ for &quot;no pinentry&quot; issue (<a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/issues/118\">#118</a>)</li>\n<li><a\nhref=\"https://github.com/apache/maven-gpg-plugin/commit/5b9427333ab4b7b48b297a8b9a4158688211f14a\"><code>5b94273</code></a>\n[MGPG-141] Remove use of deprecated classes (<a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/issues/117\">#117</a>)</li>\n<li><a\nhref=\"https://github.com/apache/maven-gpg-plugin/commit/afdfd28bab4a0530cfd655397716a36adc1644b6\"><code>afdfd28</code></a>\n[MGPG-138] Drop direct use of plexus-cipher and secdispatcher (<a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/issues/115\">#115</a>)</li>\n<li><a\nhref=\"https://github.com/apache/maven-gpg-plugin/commit/7516e7c73d6e5c8c3d6c2cbab9d55deb3987f388\"><code>7516e7c</code></a>\n[MGPG-140] Update Maven to 3.9.9 (<a\nhref=\"https://redirect.github.com/apache/maven-gpg-plugin/issues/116\">#116</a>)</li>\n<li>Additional commits viewable in <a\nhref=\"https://github.com/apache/maven-gpg-plugin/compare/maven-gpg-plugin-3.1.0...maven-gpg-plugin-3.2.7\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=org.apache.maven.plugins:maven-gpg-plugin&package-manager=maven&previous-version=3.1.0&new-version=3.2.7)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>\nCo-authored-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2025-06-06T16:14:17Z",
+          "tree_id": "51b17e8e37d41583b33c87db2235b7ceec300c11",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/e7bd5fdd3a4d7e1a3c1b90edd6bbe82e108a1a3e"
+        },
+        "date": 1749227057068,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3927,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4016,
+            "range": "± 10",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23111,
+            "range": "± 1729",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 210990,
+            "range": "± 4027",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 242015,
+            "range": "± 923",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 73336,
+            "range": "± 1534",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 401530,
+            "range": "± 18602",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6066536,
+            "range": "± 46246",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 902011,
+            "range": "± 9570",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 675102,
+            "range": "± 10615",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8698139,
+            "range": "± 59795",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 153317,
+            "range": "± 10690",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 144603,
+            "range": "± 3039",
             "unit": "ns/iter"
           }
         ]

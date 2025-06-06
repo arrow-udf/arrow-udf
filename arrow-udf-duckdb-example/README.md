@@ -7,6 +7,6 @@ $ make configure
 $ make release
 
 $ duckdb -unsigned
-D load 'build//release/arrow_udf_duckdb_example.duckdb_extension';
+D load 'build/release/arrow_udf_duckdb_example.duckdb_extension';
 D select hello('🦀');
 ```

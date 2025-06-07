@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749227058107,
+  "lastUpdate": 1749277873719,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -15791,6 +15791,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 144603,
             "range": "± 3039",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "33581930d1b3e37ab3638b2ee365ea077dbae157",
+          "message": "build(deps): bump opt-nc/setup-duckdb-action from 1.0.12 to 1.0.13 (#132)\n\nBumps\n[opt-nc/setup-duckdb-action](https://github.com/opt-nc/setup-duckdb-action)\nfrom 1.0.12 to 1.0.13.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/releases\">opt-nc/setup-duckdb-action's\nreleases</a>.</em></p>\n<blockquote>\n<h2>v1.0.13</h2>\n<h2><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/compare/v1.0.12...v1.0.13\">1.0.13</a>\n(2025-05-23)</h2>\n<h3>:bug: Bug Fixes</h3>\n<ul>\n<li>bump axios from 1.8.4 to 1.9.0 (<a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/0816fcb7c5d1df7ac9cc6c88c7f0deb9e6f9326c\">0816fcb</a>)</li>\n<li>bump eslint from 9.24.0 to 9.25.0 (<a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/72cb4b24b83736ff143f1c9e1c2463b90308f059\">72cb4b2</a>)</li>\n<li>bump eslint from 9.25.0 to 9.25.1 (<a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/68f18b9388f173c338a071e3b63015c531aca5b9\">68f18b9</a>)</li>\n<li>bump eslint from 9.25.1 to 9.27.0 (<a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/d189f9b9427856338ee7d8e0538250443dccaac4\">d189f9b</a>)</li>\n</ul>\n</blockquote>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/5a968f1436524b2fc0f2f7696c6f31ce8139d93f\"><code>5a968f1</code></a>\nMerge pull request <a\nhref=\"https://redirect.github.com/opt-nc/setup-duckdb-action/issues/162\">#162</a>\nfrom opt-nc/develop</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/ff1300c89e253d2e598ef568e7339e11121724f3\"><code>ff1300c</code></a>\nMerge pull request <a\nhref=\"https://redirect.github.com/opt-nc/setup-duckdb-action/issues/165\">#165</a>\nfrom opt-nc/update-duckdb-version</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/d04a91301f68147751859a79d271e0c38027664a\"><code>d04a913</code></a>\ndoc: update de la version de duckdb à utiliser</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/d189f9b9427856338ee7d8e0538250443dccaac4\"><code>d189f9b</code></a>\nfix: bump eslint from 9.25.1 to 9.27.0</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/690c8d9c9cb87dc77305537c5ef8ba584552003f\"><code>690c8d9</code></a>\nApply dist/index.js changes</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/0816fcb7c5d1df7ac9cc6c88c7f0deb9e6f9326c\"><code>0816fcb</code></a>\nfix: bump axios from 1.8.4 to 1.9.0</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/68f18b9388f173c338a071e3b63015c531aca5b9\"><code>68f18b9</code></a>\nfix: bump eslint from 9.25.0 to 9.25.1</li>\n<li><a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/commit/72cb4b24b83736ff143f1c9e1c2463b90308f059\"><code>72cb4b2</code></a>\nfix: bump eslint from 9.24.0 to 9.25.0</li>\n<li>See full diff in <a\nhref=\"https://github.com/opt-nc/setup-duckdb-action/compare/v1.0.12...v1.0.13\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=opt-nc/setup-duckdb-action&package-manager=github_actions&previous-version=1.0.12&new-version=1.0.13)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>\nCo-authored-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2025-06-07T14:21:13+08:00",
+          "tree_id": "188c981fe5d6f0f6d8917ee7f072d74a2cbc2dc9",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/33581930d1b3e37ab3638b2ee365ea077dbae157"
+        },
+        "date": 1749277873115,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3935,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 4056,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23213,
+            "range": "± 1447",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 211115,
+            "range": "± 1682",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 234138,
+            "range": "± 2357",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74018,
+            "range": "± 155",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 401692,
+            "range": "± 18651",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 5943304,
+            "range": "± 49231",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 912069,
+            "range": "± 10756",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 671329,
+            "range": "± 9821",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8946553,
+            "range": "± 53017",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 137611,
+            "range": "± 1296",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 140329,
+            "range": "± 1775",
             "unit": "ns/iter"
           }
         ]

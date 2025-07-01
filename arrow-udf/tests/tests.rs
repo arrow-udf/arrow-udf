@@ -154,14 +154,14 @@ fn to_string2(x: i32) -> Box<str> {
 #[function("to_string3(int) -> string")]
 #[function("to_string3(int) -> largestring")]
 fn to_string3(x: i32, output: &mut impl std::fmt::Write) {
-    write!(output, "{}", x).unwrap();
+    write!(output, "{x}").unwrap();
 }
 
 #[function("to_string4(int) -> string")]
 #[function("to_string4(int) -> largestring")]
 fn to_string4(x: i32, output: &mut impl std::fmt::Write) -> Option<()> {
     let x = usize::try_from(x).ok()?;
-    write!(output, "{}", x).unwrap();
+    write!(output, "{x}").unwrap();
     Some(())
 }
 

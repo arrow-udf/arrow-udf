@@ -68,7 +68,7 @@ pub fn build_with(opts: &BuildOpts) -> Result<Vec<u8>> {
     if !opts.offline {
         let mut command = Command::new("rustup");
         if let Some(toolchain) = &opts.toolchain {
-            command.arg(format!("+{}", toolchain));
+            command.arg(format!("+{toolchain}"));
         }
         let output = command
             .arg("target")
@@ -120,7 +120,7 @@ version = "{}"
 
     let mut command = Command::new("cargo");
     if let Some(toolchain) = &opts.toolchain {
-        command.arg(format!("+{}", toolchain));
+        command.arg(format!("+{toolchain}"));
     }
     command
         .arg("build")

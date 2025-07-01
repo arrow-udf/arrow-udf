@@ -81,7 +81,7 @@ pub fn type_of(rust_type: &str) -> String {
         Some(i) => &rust_type[..i],
         None => rust_type,
     };
-    format!("struct {}", struct_type)
+    format!("struct {struct_type}")
 }
 
 fn lookup_matrix(mut ty: &str, idx: usize) -> &str {
@@ -98,7 +98,7 @@ fn lookup_matrix(mut ty: &str, idx: usize) -> &str {
             None
         }
     });
-    s.unwrap_or_else(|| panic!("unknown type: {}", ty))
+    s.unwrap_or_else(|| panic!("unknown type: {ty}"))
 }
 
 /// Normalizes a data type string.

@@ -702,7 +702,7 @@ async fn test_typed_array() {
             .downcast_ref::<StringArray>()
             .unwrap()
             .value(0);
-        assert_eq!(object_type, format!("[object {}]", expected));
+        assert_eq!(object_type, format!("[object {expected}]"));
     }
 }
 

@@ -11,8 +11,7 @@ fn main() {
         };
         assert!(
             version >= minimum_version,
-            "arrow-udf-runtime requires Python 3.12 or later, but found {}\nhint: you can set `PYO3_PYTHON` environment varibale, e.g. `PYO3_PYTHON=python3.12`",
-            version
+            "arrow-udf-runtime requires Python 3.12 or later, but found {version}\nhint: you can set `PYO3_PYTHON` environment varibale, e.g. `PYO3_PYTHON=python3.12`"
         );
     }
 }

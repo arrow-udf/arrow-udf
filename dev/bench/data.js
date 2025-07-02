@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1751465285129,
+  "lastUpdate": 1751465345728,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -16097,6 +16097,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 142568,
             "range": "± 1620",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2fbfc0648157379a5028779e3f7a6f320926421f",
+          "message": "build(deps): bump org.apache.maven.plugins:maven-surefire-plugin from 3.2.5 to 3.5.3 in /arrow-udf-remote/java (#138)\n\nBumps\n[org.apache.maven.plugins:maven-surefire-plugin](https://github.com/apache/maven-surefire)\nfrom 3.2.5 to 3.5.3.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/apache/maven-surefire/releases\">org.apache.maven.plugins:maven-surefire-plugin's\nreleases</a>.</em></p>\n<blockquote>\n<h2>3.5.3</h2>\n<!-- raw HTML omitted -->\n<h2>🐛 Bug Fixes</h2>\n<ul>\n<li><a\nhref=\"https://issues.apache.org/jira/browse/SUREFIRE-1737\">[SUREFIRE-1737]</a>\n- Fix disable in statelessTestsetReporter (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/816\">#816</a>)\n<a\nhref=\"https://github.com/slawekjaranowski\"><code>@​slawekjaranowski</code></a></li>\n<li><a\nhref=\"https://issues.apache.org/jira/browse/SUREFIRE-1643\">[SUREFIRE-1643]</a>\n- surefire junit5 parallel tests (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/815\">#815</a>)\n<a href=\"https://github.com/olamy\"><code>@​olamy</code></a></li>\n<li><a\nhref=\"https://issues.apache.org/jira/browse/SUREFIRE-2289\">[SUREFIRE-2289]</a>\n- Make exceptions more appropriate to context (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/798\">#798</a>)\n<a href=\"https://github.com/elharo\"><code>@​elharo</code></a></li>\n</ul>\n<h2>👻 Maintenance</h2>\n<ul>\n<li>surefire shared utils version current version (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/825\">#825</a>)\n<a href=\"https://github.com/olamy\"><code>@​olamy</code></a></li>\n<li>Update site descriptors (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/821\">#821</a>)\n<a\nhref=\"https://github.com/slawekjaranowski\"><code>@​slawekjaranowski</code></a></li>\n<li>Use newer version of surefire for itself testing, enable JUnit 5 in\ntests (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/822\">#822</a>)\n<a\nhref=\"https://github.com/slawekjaranowski\"><code>@​slawekjaranowski</code></a></li>\n<li>Remove dependencies from root pom (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/819\">#819</a>)\n<a\nhref=\"https://github.com/slawekjaranowski\"><code>@​slawekjaranowski</code></a></li>\n<li>move this dependency to dptMngt (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/818\">#818</a>)\n<a href=\"https://github.com/olamy\"><code>@​olamy</code></a></li>\n<li><a\nhref=\"https://issues.apache.org/jira/browse/SUREFIRE-2291\">[SUREFIRE-2291]</a>\n- Change logger from Plexus to SLF4J (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/811\">#811</a>)\n<a\nhref=\"https://github.com/jeffjensen\"><code>@​jeffjensen</code></a></li>\n<li>Add GitHub Automation actions (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/812\">#812</a>)\n<a\nhref=\"https://github.com/slawekjaranowski\"><code>@​slawekjaranowski</code></a></li>\n<li>Convert reports to Guice (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/803\">#803</a>)\n<a href=\"https://github.com/elharo\"><code>@​elharo</code></a></li>\n<li><a\nhref=\"https://issues.apache.org/jira/browse/MNGSITE-529\">[MNGSITE-529]</a>\n- Rename &quot;Goals&quot; to &quot;Plugin Documentation&quot; (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/809\">#809</a>)\n<a href=\"https://github.com/Bukama\"><code>@​Bukama</code></a></li>\n<li>Update encoding docs (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/802\">#802</a>)\n<a href=\"https://github.com/elharo\"><code>@​elharo</code></a></li>\n<li>Guice injection (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/801\">#801</a>)\n<a href=\"https://github.com/elharo\"><code>@​elharo</code></a></li>\n</ul>\n<h2>📦 Dependency updates</h2>\n<ul>\n<li>Bump org.htmlunit:htmlunit from 4.10.0 to 4.11.1 (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/823\">#823</a>)\n@<a href=\"https://github.com/apps/dependabot\">dependabot[bot]</a></li>\n<li>Bump parent to 44 (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/817\">#817</a>)\n<a\nhref=\"https://github.com/slawekjaranowski\"><code>@​slawekjaranowski</code></a></li>\n<li>Bump org.codehaus.plexus:plexus-java from 1.3.0 to 1.4.0 (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/810\">#810</a>)\n@<a href=\"https://github.com/apps/dependabot\">dependabot[bot]</a></li>\n<li>Bump org.htmlunit:htmlunit from 4.4.0 to 4.10.0 (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/813\">#813</a>)\n@<a href=\"https://github.com/apps/dependabot\">dependabot[bot]</a></li>\n<li>Bump commons-io:commons-io from 2.17.0 to 2.18.0 (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/797\">#797</a>)\n@<a href=\"https://github.com/apps/dependabot\">dependabot[bot]</a></li>\n<li>Bump org.assertj:assertj-core from 3.27.2 to 3.27.3 (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/807\">#807</a>)\n@<a href=\"https://github.com/apps/dependabot\">dependabot[bot]</a></li>\n<li>Bump org.assertj:assertj-core from 3.27.0 to 3.27.2 (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/805\">#805</a>)\n@<a href=\"https://github.com/apps/dependabot\">dependabot[bot]</a></li>\n<li>Bump org.assertj:assertj-core from 3.26.3 to 3.27.0 (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/800\">#800</a>)\n@<a href=\"https://github.com/apps/dependabot\">dependabot[bot]</a></li>\n</ul>\n<h2>3.5.2</h2>\n<!-- raw HTML omitted -->\n<h2>🚀 New features and improvements</h2>\n<ul>\n<li><a\nhref=\"https://issues.apache.org/jira/browse/SUREFIRE-2278\">[SUREFIRE-2278]</a>\n- Don't say please. (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/792\">#792</a>)\n<a href=\"https://github.com/elharo\"><code>@​elharo</code></a></li>\n</ul>\n<h2>📦 Dependency updates</h2>\n<ul>\n<li><a\nhref=\"https://issues.apache.org/jira/browse/SUREFIRE-2281\">[SUREFIRE-2281]</a>\n- Doxia 2.0.0 ga (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/794\">#794</a>)\n<a href=\"https://github.com/michael-o\"><code>@​michael-o</code></a></li>\n<li>Bump commons-io:commons-io from 2.2 to 2.14.0 in\n/surefire-its/src/test/resources/surefire-979-smartStackTrace-wrongClassloader/module1\n(<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/789\">#789</a>)\n<a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a></li>\n</ul>\n<h2>👻 Maintenance</h2>\n<ul>\n<li><a\nhref=\"https://issues.apache.org/jira/browse/SUREFIRE-2282\">[SUREFIRE-2282]</a>\n- surefire-report-plugin: Update Introduction documenta… (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/796\">#796</a>)\n<a href=\"https://github.com/michael-o\"><code>@​michael-o</code></a></li>\n<li>Reduce cyclomatic complexity (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/pull/793\">#793</a>)\n<a href=\"https://github.com/elharo\"><code>@​elharo</code></a></li>\n</ul>\n<!-- raw HTML omitted -->\n</blockquote>\n<p>... (truncated)</p>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/apache/maven-surefire/commit/4434650a8a40edeaa931189572219c5ee51683a3\"><code>4434650</code></a>\n[maven-release-plugin] prepare release surefire-3.5.3</li>\n<li><a\nhref=\"https://github.com/apache/maven-surefire/commit/1270950bc2f01efa27e35006f04cd01cbde3ebef\"><code>1270950</code></a>\nuse github directly</li>\n<li><a\nhref=\"https://github.com/apache/maven-surefire/commit/59f3a1f547d51bbca4964ce0f26aec049db7ec4d\"><code>59f3a1f</code></a>\nrelease tag name backward compatible</li>\n<li><a\nhref=\"https://github.com/apache/maven-surefire/commit/dfbabe2cfa8a6b8e01b800b630e51fb127237388\"><code>dfbabe2</code></a>\nassertj-core must be test scope (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/issues/826\">#826</a>)</li>\n<li><a\nhref=\"https://github.com/apache/maven-surefire/commit/e1f8119bfa8ff9bbde9860ee2220b84240003f30\"><code>e1f8119</code></a>\nback to 3.5.3-SNAPSHOT</li>\n<li><a\nhref=\"https://github.com/apache/maven-surefire/commit/c497559438aa09d21e510ae454667900825cff4f\"><code>c497559</code></a>\n[maven-release-plugin] prepare for next development iteration</li>\n<li><a\nhref=\"https://github.com/apache/maven-surefire/commit/3962112f45b1edc015dd1957959092091aa31a60\"><code>3962112</code></a>\n[maven-release-plugin] prepare release v3.5.3</li>\n<li><a\nhref=\"https://github.com/apache/maven-surefire/commit/227c134e36a2066ae48157c0f34296c5d351405e\"><code>227c134</code></a>\nsurefire shared utils version current version (<a\nhref=\"https://redirect.github.com/apache/maven-surefire/issues/825\">#825</a>)</li>\n<li><a\nhref=\"https://github.com/apache/maven-surefire/commit/1d34c34a7b33791e7155a1d3ab28ec808c53ff77\"><code>1d34c34</code></a>\nBump org.htmlunit:htmlunit from 4.10.0 to 4.11.1</li>\n<li><a\nhref=\"https://github.com/apache/maven-surefire/commit/906b65aa119ff991f788283418d54c0443554e94\"><code>906b65a</code></a>\nUpdate site descriptors</li>\n<li>Additional commits viewable in <a\nhref=\"https://github.com/apache/maven-surefire/compare/surefire-3.2.5...surefire-3.5.3\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=org.apache.maven.plugins:maven-surefire-plugin&package-manager=maven&previous-version=3.2.5&new-version=3.5.3)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-07-02T13:59:10Z",
+          "tree_id": "f57dcccb6b7fca3a7872ed7f2114ca7fd34bea64",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/2fbfc0648157379a5028779e3f7a6f320926421f"
+        },
+        "date": 1751465344623,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3895,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3971,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23257,
+            "range": "± 1445",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 201948,
+            "range": "± 524",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 219640,
+            "range": "± 916",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74661,
+            "range": "± 646",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 401188,
+            "range": "± 19338",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6102353,
+            "range": "± 38851",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 878908,
+            "range": "± 9704",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 674130,
+            "range": "± 3157",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8744986,
+            "range": "± 39153",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 161569,
+            "range": "± 1803",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 133569,
+            "range": "± 1069",
             "unit": "ns/iter"
           }
         ]

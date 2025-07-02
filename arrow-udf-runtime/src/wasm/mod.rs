@@ -695,7 +695,7 @@ fn field_to_typename(field: &Field) -> Result<String> {
                 "struct<{}>",
                 fields
                     .iter()
-                    .map(|(name, typename)| format!("{}:{}", name, typename))
+                    .map(|(name, typename)| format!("{name}:{typename}"))
                     .join(",")
             )
         }

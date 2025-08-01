@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1754052757724,
+  "lastUpdate": 1754052793647,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -16301,6 +16301,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 140026,
             "range": "± 740",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "48d7b07ee8f5bc68403f40c2a8900cdf4b8e18bf",
+          "message": "build(deps): update pyarrow requirement from <21,>=19 to >=19,<22 in /arrow-udf-remote/python (#142)",
+          "timestamp": "2025-08-01T20:43:16+08:00",
+          "tree_id": "ad0766f262dc43ba417b3d8eedfd66c40373d948",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/48d7b07ee8f5bc68403f40c2a8900cdf4b8e18bf"
+        },
+        "date": 1754052793163,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3895,
+            "range": "± 15",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3984,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23555,
+            "range": "± 1520",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 204634,
+            "range": "± 1909",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 226575,
+            "range": "± 1363",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 75143,
+            "range": "± 403",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 404024,
+            "range": "± 19132",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6367711,
+            "range": "± 37203",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 890209,
+            "range": "± 10480",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 686078,
+            "range": "± 4733",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8598829,
+            "range": "± 87510",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 136685,
+            "range": "± 729",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 140808,
+            "range": "± 1060",
             "unit": "ns/iter"
           }
         ]

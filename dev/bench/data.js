@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1751465345728,
+  "lastUpdate": 1754052757724,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -16199,6 +16199,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 133569,
             "range": "± 1069",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5bc0b24b7d479ad5da3c054a095d4083eb66d109",
+          "message": "build(deps): bump org.slf4j:slf4j-simple from 2.0.13 to 2.0.17 in /arrow-udf-remote/java (#141)",
+          "timestamp": "2025-08-01T20:42:54+08:00",
+          "tree_id": "c5281f72226f9ca0b24364a9cb427bacc9ab33c1",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/5bc0b24b7d479ad5da3c054a095d4083eb66d109"
+        },
+        "date": 1754052756953,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3895,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3979,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24134,
+            "range": "± 1441",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 201559,
+            "range": "± 1278",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 226260,
+            "range": "± 1105",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74623,
+            "range": "± 168",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 404649,
+            "range": "± 18215",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6219299,
+            "range": "± 47219",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 880518,
+            "range": "± 9026",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 679777,
+            "range": "± 2543",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8689842,
+            "range": "± 66734",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 137025,
+            "range": "± 822",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 140026,
+            "range": "± 740",
             "unit": "ns/iter"
           }
         ]

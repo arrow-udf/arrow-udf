@@ -22,7 +22,7 @@ fn generate_strings(prefix: &str) -> impl Iterator<Item = String> {
 
 #[function("repeat_value(int32, int32) ->> int32", duckdb = "RepeatValue")]
 fn repeat_value(value: i32, count: i32) -> impl Iterator<Item = i32> {
-    std::iter::repeat(value).take(count as usize)
+    std::iter::repeat_n(value, count as usize)
 }
 
 #[test]

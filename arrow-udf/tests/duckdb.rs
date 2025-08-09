@@ -74,6 +74,16 @@ fn test_duckdb_table_function() -> Result<(), Box<dyn Error>> {
         assert_eq!(int_array.value(i), i as i32);
     }
 
+    // Test with a large number of rows (10000) to verify multiple batches
+    let result = conn
+        .prepare("SELECT COUNT(*) as count FROM generate_numbers(10000)")?
+        .query_row([], |row| {
+            let count: i64 = row.get(0)?;
+            Ok(count)
+        })?;
+
+    assert_eq!(result, 10000);
+
     Ok(())
 }
 

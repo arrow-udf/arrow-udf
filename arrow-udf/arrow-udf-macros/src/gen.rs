@@ -151,7 +151,6 @@ impl FunctionAttr {
     fn generate_duckdb_table_impl(&self, struct_name: &str, eval_name: &Ident) -> TokenStream2 {
         let struct_ident = format_ident!("{}", struct_name);
         let bind_data_ident = format_ident!("{}BindData", struct_name);
-        let init_data_ident = format_ident!("{}InitData", struct_name);
         let arg_types: Vec<_> = self.args.iter().map(|ty| data_type(ty)).collect();
         let ret_type = data_type(&self.ret);
         
@@ -160,18 +159,14 @@ impl FunctionAttr {
         
         quote! {
             pub struct #bind_data_ident {
-                input_batch: ::arrow_udf::codegen::arrow_array::RecordBatch,
-            }
-
-            pub struct #init_data_ident {
-                done: std::sync::atomic::AtomicBool,
+                result_reader: ::std::sync::Mutex<Box<dyn ::arrow_udf::codegen::arrow_array::RecordBatchReader + Send>>,
             }
 
             pub struct #struct_ident;
 
             impl ::duckdb::vtab::VTab for #struct_ident {
                 type BindData = #bind_data_ident;
-                type InitData = #init_data_ident;
+                type InitData = ();
 
                 fn bind(bind: &::duckdb::vtab::BindInfo) -> Result<Self::BindData, Box<dyn std::error::Error>> {
                     // Create input RecordBatch from DuckDB parameters
@@ -184,67 +179,38 @@ impl FunctionAttr {
                     let logical_type = ::duckdb::vtab::arrow::to_duckdb_logical_type(&ret_data_type)?;
                     bind.add_result_column("value", logical_type);
                     
-                    Ok(#bind_data_ident { input_batch })
+                    // Call the arrow-udf table function and store the reader
+                    let result_reader = #eval_name(&input_batch)?;
+
+                    Ok(#bind_data_ident {
+                        result_reader: ::std::sync::Mutex::new(result_reader)
+                    })
                 }
 
                 fn init(_init: &::duckdb::vtab::InitInfo) -> Result<Self::InitData, Box<dyn std::error::Error>> {
-                    Ok(#init_data_ident {
-                        done: std::sync::atomic::AtomicBool::new(false),
-                    })
+                    Ok(())
                 }
 
                 fn func(
                     func: &::duckdb::vtab::TableFunctionInfo<Self>,
                     output: &mut ::duckdb::core::DataChunkHandle,
                 ) -> Result<(), Box<dyn std::error::Error>> {
-                    use std::sync::atomic::Ordering;
-                    
-                    let init_data = func.get_init_data();
-                    
-                    if init_data.done.load(Ordering::Relaxed) {
-                        output.set_len(0);
-                        return Ok(());
-                    }
-                    
-                    // Get the pre-created input RecordBatch from bind data
                     let bind_data = func.get_bind_data();
-                    let input_batch = &bind_data.input_batch;
-                    
-                    // Call the arrow-udf table function
-                    let result_reader = #eval_name(input_batch)?;
-                    
-                    // Process all batches from the result reader and convert to DuckDB DataChunk
-                    let mut accumulated_batches = Vec::new();
-                    
-                    for batch_result in result_reader {
+                    let mut reader_lock = bind_data.result_reader.lock().unwrap();
+
+                    if let Some(batch_result) = reader_lock.next() {
                         let batch = batch_result?;
-                        accumulated_batches.push(batch);
-                    }
-                    
-                    // Convert the first output batch to DuckDB DataChunk using the built-in conversion
-                    if let Some(first_batch) = accumulated_batches.first() {
+
+                        // Convert the batch to DuckDB DataChunk
                         // Arrow-udf table functions return 2+ columns: [row_index, data, error?]
                         // We only want the data column (index 1) for DuckDB
-                        if first_batch.num_columns() >= 2 {
-                            let data_column = first_batch.column(1);
-                            let schema = std::sync::Arc::new(::arrow_udf::codegen::arrow_schema::Schema::new(vec![
-                                first_batch.schema().field(1).clone()
-                            ]));
-                            let single_column_batch = ::arrow_udf::codegen::arrow_array::RecordBatch::try_new(
-                                schema, 
-                                vec![data_column.clone()]
-                            )?;
-                            ::duckdb::vtab::arrow::record_batch_to_duckdb_data_chunk(&single_column_batch, output)?;
-                        } else {
-                            // Fallback: use the batch as-is if it doesn't have the expected structure
-                            ::duckdb::vtab::arrow::record_batch_to_duckdb_data_chunk(first_batch, output)?;
-                        }
+                        let single_column_batch = batch.project(&[1])?;
+                        ::duckdb::vtab::arrow::record_batch_to_duckdb_data_chunk(&single_column_batch, output)?;
                     } else {
+                        // No more batches, signal end of data
                         output.set_len(0);
                     }
-                    
-                    init_data.done.store(true, Ordering::Relaxed);
-                    
+
                     Ok(())
                 }
 
@@ -675,10 +641,10 @@ impl FunctionAttr {
             });
             quote! {
                 #fn_with_visibility #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
-                    -> ::arrow_udf::Result<Box<dyn ::arrow_udf::codegen::arrow_array::RecordBatchReader>>
+                    -> ::arrow_udf::Result<Box<dyn ::arrow_udf::codegen::arrow_array::RecordBatchReader + Send>>
                 {
                     const BATCH_SIZE: usize = 1024;
-                    use ::arrow_udf::codegen::genawaiter2::{self, rc::gen, yield_};
+                    use ::arrow_udf::codegen::genawaiter2::{self, sync::gen, yield_};
                     use ::arrow_udf::codegen::arrow_array::{array::*, RecordBatchIterator};
                     use ::arrow_udf::codegen::arrow_schema::{self, DataType, Field, Schema, SchemaRef};
 

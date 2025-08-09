@@ -127,7 +127,7 @@ fn call_scalar(function: ScalarFunction, input_bytes: &[u8]) -> Result<Box<[u8]>
 
 /// An opaque type for iterating over record batches.
 pub struct RecordBatchIter {
-    iter: Box<dyn RecordBatchReader>,
+    iter: Box<dyn RecordBatchReader + Send>,
 }
 
 /// A wrapper for calling table functions from C.

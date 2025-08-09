@@ -229,7 +229,6 @@ impl FunctionAttr {
     /// Generate type-specific code for creating input RecordBatch from DuckDB parameters
     fn generate_input_batch_creation(&self) -> TokenStream2 {
         let param_count = self.args.len();
-        let param_indices = (0..param_count).collect::<Vec<_>>();
         
         // Generate code to extract each parameter based on its type
         let param_extractions: Vec<TokenStream2> = self.args.iter().enumerate().map(|(i, ty)| {
@@ -246,40 +245,40 @@ impl FunctionAttr {
                     // Parse as string since direct access to ptr is private
                     let param_str = #param_ident.to_string();
                     let #value_ident: i32 = param_str.parse().unwrap_or(0);
-                    let #array_ident = std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Int32Array::from(vec![#value_ident]));
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Int32Array::from(vec![#value_ident]));
                     let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Int32, false);
                 },
                 "int64" | "bigint" => quote! {
                     let #param_ident = bind.get_parameter(#param_idx);
                     let #value_ident: i64 = #param_ident.to_int64();
-                    let #array_ident = std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Int64Array::from(vec![#value_ident]));
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Int64Array::from(vec![#value_ident]));
                     let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Int64, false);
                 },
                 "string" | "varchar" => quote! {
                     let #param_ident = bind.get_parameter(#param_idx);
                     let #value_ident: String = #param_ident.to_string();
-                    let #array_ident = std::sync::Arc::new(::arrow_udf::codegen::arrow_array::StringArray::from(vec![#value_ident.as_str()]));
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::StringArray::from(vec![#value_ident.as_str()]));
                     let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Utf8, false);
                 },
                 "float32" | "real" => quote! {
                     let #param_ident = bind.get_parameter(#param_idx);
                     let param_str = #param_ident.to_string();
                     let #value_ident: f32 = param_str.parse().unwrap_or(0.0);
-                    let #array_ident = std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Float32Array::from(vec![#value_ident]));
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Float32Array::from(vec![#value_ident]));
                     let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Float32, false);
                 },
                 "float64" | "double" => quote! {
                     let #param_ident = bind.get_parameter(#param_idx);
                     let param_str = #param_ident.to_string();
                     let #value_ident: f64 = param_str.parse().unwrap_or(0.0);
-                    let #array_ident = std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Float64Array::from(vec![#value_ident]));
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Float64Array::from(vec![#value_ident]));
                     let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Float64, false);
                 },
                 "bool" | "boolean" => quote! {
                     let #param_ident = bind.get_parameter(#param_idx);
                     let param_str = #param_ident.to_string();
                     let #value_ident: bool = param_str.parse().unwrap_or(false);
-                    let #array_ident = std::sync::Arc::new(::arrow_udf::codegen::arrow_array::BooleanArray::from(vec![#value_ident]));
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::BooleanArray::from(vec![#value_ident]));
                     let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Boolean, false);
                 },
                 _ => {
@@ -287,27 +286,27 @@ impl FunctionAttr {
                     quote! {
                         let #param_ident = bind.get_parameter(#param_idx);
                         let #value_ident: String = #param_ident.to_string();
-                        let #array_ident = std::sync::Arc::new(::arrow_udf::codegen::arrow_array::StringArray::from(vec![#value_ident.as_str()]));
+                        let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::StringArray::from(vec![#value_ident.as_str()]));
                         let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Utf8, false);
                     }
                 }
             }
         }).collect();
 
-        let array_idents = param_indices.iter().map(|i| format_ident!("array_{}", i));
-        let field_idents = param_indices.iter().map(|i| format_ident!("field_{}", i));
+        let array_idents = (0..param_count).map(|i| format_ident!("array_{}", i));
+        let field_idents = (0..param_count).map(|i| format_ident!("field_{}", i));
 
         quote! {
             use ::arrow_udf::codegen::arrow_array::RecordBatch;
             use ::arrow_udf::codegen::arrow_schema::{Schema, Field};
-            use std::sync::Arc;
+            use ::std::sync::Arc;
             
             // Extract parameters based on their compile-time known types
             #(#param_extractions)*
             
             // Create schema and arrays
             let schema = Arc::new(Schema::new(vec![#(#field_idents),*]));
-            let arrays: Vec<Arc<dyn ::arrow_udf::codegen::arrow_array::Array>> = vec![#(#array_idents as Arc<dyn ::arrow_udf::codegen::arrow_array::Array>),*];
+            let arrays = vec![#(#array_idents as Arc<dyn ::arrow_udf::codegen::arrow_array::Array>),*];
             
             // Create RecordBatch
             RecordBatch::try_new(schema, arrays)?

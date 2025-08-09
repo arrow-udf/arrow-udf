@@ -18,7 +18,7 @@ fn split_words(input: &str) -> impl Iterator<Item = &str> {
 // Example table function using the ->> syntax for table functions
 #[function("generate_series(int32) ->> int32", duckdb = "GenerateSeries")]
 fn generate_series(n: i32) -> impl Iterator<Item = i32> {
-    (0..n)
+    0..n
 }
 
 #[duckdb_entrypoint_c_api(ext_name = "arrow_udf_duckdb_example", min_duckdb_version = "v1.0.0")]

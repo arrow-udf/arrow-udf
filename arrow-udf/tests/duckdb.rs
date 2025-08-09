@@ -1,3 +1,5 @@
+#![cfg(feature = "duckdb")]
+
 use arrow_udf::function;
 use duckdb::{Connection, Result};
 use std::error::Error;

@@ -24,8 +24,9 @@ fn generate_numbers(n: i32) -> impl Iterator<Item = i32> {
 pub unsafe fn extension_entrypoint(con: Connection) -> Result<(), Box<dyn Error>> {
     con.register_scalar_function::<Hello>("hello")
         .expect("Failed to register hello function");
-    con.register_scalar_function::<SplitWords>("split_words")
-        .expect("Failed to register split_words function");
+    // waiting for bug fix: https://github.com/duckdb/duckdb-rs/pull/574
+    // con.register_scalar_function::<SplitWords>("split_words")
+    //     .expect("Failed to register split_words function");
     con.register_table_function::<GenerateNumbers>("generate_numbers")
         .expect("Failed to register generate_numbers table function");
     Ok(())

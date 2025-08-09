@@ -15,9 +15,8 @@ fn split_words(input: &str) -> impl Iterator<Item = &str> {
     input.split_whitespace()
 }
 
-// Example table function using the ->> syntax for table functions
-#[function("generate_series(int32) ->> int32", duckdb = "GenerateSeries")]
-fn generate_series(n: i32) -> impl Iterator<Item = i32> {
+#[function("generate_numbers(int32) ->> int32", duckdb = "GenerateNumbers")]
+fn generate_numbers(n: i32) -> impl Iterator<Item = i32> {
     0..n
 }
 
@@ -27,7 +26,7 @@ pub unsafe fn extension_entrypoint(con: Connection) -> Result<(), Box<dyn Error>
         .expect("Failed to register hello function");
     con.register_scalar_function::<SplitWords>("split_words")
         .expect("Failed to register split_words function");
-    con.register_table_function::<GenerateSeries>("generate_series")
-        .expect("Failed to register generate_series table function");
+    con.register_table_function::<GenerateNumbers>("generate_numbers")
+        .expect("Failed to register generate_numbers table function");
     Ok(())
 }

@@ -172,13 +172,10 @@ impl FunctionAttr {
                     use ::arrow_udf::codegen::arrow_schema;
 
                     // Create input RecordBatch from DuckDB parameters
-                    let input_batch = {
-                        #create_input_batch
-                    };
+                    let input_batch = { #create_input_batch };
 
                     // Add result column for the table function output
-                    let ret_data_type = #ret_type;
-                    let logical_type = ::duckdb::vtab::arrow::to_duckdb_logical_type(&ret_data_type)?;
+                    let logical_type = ::duckdb::vtab::arrow::to_duckdb_logical_type(&#ret_type)?;
                     bind.add_result_column("value", logical_type);
                     
                     // Call the arrow-udf table function and store the reader
@@ -219,10 +216,7 @@ impl FunctionAttr {
                 fn parameters() -> Option<Vec<::duckdb::core::LogicalTypeHandle>> {
                     use ::arrow_udf::codegen::arrow_schema;
                     use ::duckdb::vtab::arrow::to_duckdb_logical_type;
-                    let data_types = vec![#(#arg_types),*];
-                    let logical_types: Result<Vec<_>, _> = data_types.iter()
-                        .map(|dt| to_duckdb_logical_type(dt))
-                        .collect();
+                    let logical_types: Result<Vec<_>, _> = [#(#arg_types),*].iter().map(to_duckdb_logical_type).collect();
                     logical_types.ok()
                 }
             }

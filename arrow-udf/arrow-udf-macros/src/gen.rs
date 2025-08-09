@@ -60,10 +60,13 @@ impl FunctionAttr {
             true => quote! { table_wrapper },
             false => quote! { scalar_wrapper },
         };
-        let duckdb_impl = self
-            .duckdb
-            .as_ref()
-            .map(|struct_name| self.generate_duckdb_scalar_impl(struct_name, &eval_name));
+        let duckdb_impl = self.duckdb.as_ref().map(|struct_name| {
+            if self.is_table_function {
+                self.generate_duckdb_table_impl(struct_name, &eval_name)
+            } else {
+                self.generate_duckdb_scalar_impl(struct_name, &eval_name)
+            }
+        });
 
         let global_registry = if cfg!(feature = "global_registry") {
             let name = self.name.clone();
@@ -142,6 +145,168 @@ impl FunctionAttr {
                     )]
                 }
             }
+        }
+    }
+
+    fn generate_duckdb_table_impl(&self, struct_name: &str, eval_name: &Ident) -> TokenStream2 {
+        let struct_ident = format_ident!("{}", struct_name);
+        let bind_data_ident = format_ident!("{}BindData", struct_name);
+        let arg_types: Vec<_> = self.args.iter().map(|ty| data_type(ty)).collect();
+        let ret_type = data_type(&self.ret);
+
+        // Generate type-specific code for creating input RecordBatch
+        let create_input_batch = self.generate_input_batch_creation();
+
+        quote! {
+            pub struct #bind_data_ident {
+                result_reader: ::std::sync::Mutex<Box<dyn ::arrow_udf::codegen::arrow_array::RecordBatchReader + Send>>,
+            }
+
+            pub struct #struct_ident;
+
+            impl ::duckdb::vtab::VTab for #struct_ident {
+                type BindData = #bind_data_ident;
+                type InitData = ();
+
+                fn bind(bind: &::duckdb::vtab::BindInfo) -> Result<Self::BindData, Box<dyn std::error::Error>> {
+                    use ::arrow_udf::codegen::arrow_schema;
+
+                    // Create input RecordBatch from DuckDB parameters
+                    let input_batch = { #create_input_batch };
+
+                    // Add result column for the table function output
+                    let logical_type = ::duckdb::vtab::arrow::to_duckdb_logical_type(&#ret_type)?;
+                    bind.add_result_column("value", logical_type);
+
+                    // Call the arrow-udf table function and store the reader
+                    let result_reader = #eval_name(&input_batch)?;
+
+                    Ok(#bind_data_ident {
+                        result_reader: ::std::sync::Mutex::new(result_reader)
+                    })
+                }
+
+                fn init(_init: &::duckdb::vtab::InitInfo) -> Result<Self::InitData, Box<dyn std::error::Error>> {
+                    Ok(())
+                }
+
+                fn func(
+                    func: &::duckdb::vtab::TableFunctionInfo<Self>,
+                    output: &mut ::duckdb::core::DataChunkHandle,
+                ) -> Result<(), Box<dyn std::error::Error>> {
+                    let bind_data = func.get_bind_data();
+                    let mut reader_lock = bind_data.result_reader.lock().unwrap();
+
+                    if let Some(batch_result) = reader_lock.next() {
+                        let batch = batch_result?;
+
+                        // Convert the batch to DuckDB DataChunk
+                        // Arrow-udf table functions return 2+ columns: [row_index, data, error?]
+                        // We only want the data column (index 1) for DuckDB
+                        let single_column_batch = batch.project(&[1])?;
+                        ::duckdb::vtab::arrow::record_batch_to_duckdb_data_chunk(&single_column_batch, output)?;
+                    } else {
+                        // No more batches, signal end of data
+                        output.set_len(0);
+                    }
+
+                    Ok(())
+                }
+
+                fn parameters() -> Option<Vec<::duckdb::core::LogicalTypeHandle>> {
+                    use ::arrow_udf::codegen::arrow_schema;
+                    use ::duckdb::vtab::arrow::to_duckdb_logical_type;
+                    let logical_types: Result<Vec<_>, _> = [#(#arg_types),*].iter().map(to_duckdb_logical_type).collect();
+                    logical_types.ok()
+                }
+            }
+        }
+    }
+
+    /// Generate type-specific code for creating input RecordBatch from DuckDB parameters
+    fn generate_input_batch_creation(&self) -> TokenStream2 {
+        let param_count = self.args.len();
+
+        // Generate code to extract each parameter based on its type
+        let param_extractions: Vec<TokenStream2> = self.args.iter().enumerate().map(|(i, ty)| {
+            let param_idx = i as u64;
+            let param_ident = format_ident!("param_{}", i);
+            let value_ident = format_ident!("value_{}", i);
+            let array_ident = format_ident!("array_{}", i);
+            let field_ident = format_ident!("field_{}", i);
+            let param_name = format!("param_{}", i);
+
+            match ty.as_str() {
+                "int32" | "int" => quote! {
+                    let #param_ident = bind.get_parameter(#param_idx);
+                    // Parse as string since direct access to ptr is private
+                    let param_str = #param_ident.to_string();
+                    let #value_ident: i32 = param_str.parse().unwrap_or(0);
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Int32Array::from(vec![#value_ident]));
+                    let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Int32, false);
+                },
+                "int64" | "bigint" => quote! {
+                    let #param_ident = bind.get_parameter(#param_idx);
+                    let #value_ident: i64 = #param_ident.to_int64();
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Int64Array::from(vec![#value_ident]));
+                    let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Int64, false);
+                },
+                "string" | "varchar" => quote! {
+                    let #param_ident = bind.get_parameter(#param_idx);
+                    let #value_ident: String = #param_ident.to_string();
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::StringArray::from(vec![#value_ident.as_str()]));
+                    let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Utf8, false);
+                },
+                "float32" | "real" => quote! {
+                    let #param_ident = bind.get_parameter(#param_idx);
+                    let param_str = #param_ident.to_string();
+                    let #value_ident: f32 = param_str.parse().unwrap_or(0.0);
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Float32Array::from(vec![#value_ident]));
+                    let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Float32, false);
+                },
+                "float64" | "double" => quote! {
+                    let #param_ident = bind.get_parameter(#param_idx);
+                    let param_str = #param_ident.to_string();
+                    let #value_ident: f64 = param_str.parse().unwrap_or(0.0);
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::Float64Array::from(vec![#value_ident]));
+                    let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Float64, false);
+                },
+                "bool" | "boolean" => quote! {
+                    let #param_ident = bind.get_parameter(#param_idx);
+                    let param_str = #param_ident.to_string();
+                    let #value_ident: bool = param_str.parse().unwrap_or(false);
+                    let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::BooleanArray::from(vec![#value_ident]));
+                    let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Boolean, false);
+                },
+                _ => {
+                    // Default to string for unknown types
+                    quote! {
+                        let #param_ident = bind.get_parameter(#param_idx);
+                        let #value_ident: String = #param_ident.to_string();
+                        let #array_ident = ::std::sync::Arc::new(::arrow_udf::codegen::arrow_array::StringArray::from(vec![#value_ident.as_str()]));
+                        let #field_ident = ::arrow_udf::codegen::arrow_schema::Field::new(#param_name, ::arrow_udf::codegen::arrow_schema::DataType::Utf8, false);
+                    }
+                }
+            }
+        }).collect();
+
+        let array_idents = (0..param_count).map(|i| format_ident!("array_{}", i));
+        let field_idents = (0..param_count).map(|i| format_ident!("field_{}", i));
+
+        quote! {
+            use ::arrow_udf::codegen::arrow_array::RecordBatch;
+            use ::arrow_udf::codegen::arrow_schema::{Schema, Field};
+            use ::std::sync::Arc;
+
+            // Extract parameters based on their compile-time known types
+            #(#param_extractions)*
+
+            // Create schema and arrays
+            let schema = Arc::new(Schema::new(vec![#(#field_idents),*]));
+            let arrays = vec![#(#array_idents as Arc<dyn ::arrow_udf::codegen::arrow_array::Array>),*];
+
+            // Create RecordBatch
+            RecordBatch::try_new(schema, arrays)?
         }
     }
 
@@ -472,10 +637,10 @@ impl FunctionAttr {
             });
             quote! {
                 #fn_with_visibility #eval_fn_name(input: &::arrow_udf::codegen::arrow_array::RecordBatch)
-                    -> ::arrow_udf::Result<Box<dyn ::arrow_udf::codegen::arrow_array::RecordBatchReader>>
+                    -> ::arrow_udf::Result<Box<dyn ::arrow_udf::codegen::arrow_array::RecordBatchReader + Send>>
                 {
                     const BATCH_SIZE: usize = 1024;
-                    use ::arrow_udf::codegen::genawaiter2::{self, rc::gen, yield_};
+                    use ::arrow_udf::codegen::genawaiter2::{self, sync::gen, yield_};
                     use ::arrow_udf::codegen::arrow_array::{array::*, RecordBatchIterator};
                     use ::arrow_udf::codegen::arrow_schema::{self, DataType, Field, Schema, SchemaRef};
 

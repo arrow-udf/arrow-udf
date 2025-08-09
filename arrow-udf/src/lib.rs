@@ -30,7 +30,7 @@ pub mod types;
 pub type ScalarFunction = fn(input: &RecordBatch) -> Result<RecordBatch>;
 
 /// A table function that operates on a record batch and returns an iterator of record batches.
-pub type TableFunction = fn(input: &RecordBatch) -> Result<Box<dyn RecordBatchReader>>;
+pub type TableFunction = fn(input: &RecordBatch) -> Result<Box<dyn RecordBatchReader + Send>>;
 
 /// Internal APIs used by macros.
 #[doc(hidden)]

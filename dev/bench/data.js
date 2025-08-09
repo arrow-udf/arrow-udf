@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1754052793647,
+  "lastUpdate": 1754728045764,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -16403,6 +16403,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 140808,
             "range": "± 1060",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7390af5f0e3da3497c269515266a61f978dd1a8a",
+          "message": "feat: support duckdb table function (#144)\n\n> This PR was built with Claude Code.\n\n---------\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2025-08-09T16:17:37+08:00",
+          "tree_id": "4775fda37ee299e38d3f96e15ffbfdcd6e20e272",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/7390af5f0e3da3497c269515266a61f978dd1a8a"
+        },
+        "date": 1754728044750,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3899,
+            "range": "± 10",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3971,
+            "range": "± 20",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24882,
+            "range": "± 1491",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 213927,
+            "range": "± 3027",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 230970,
+            "range": "± 4165",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 74599,
+            "range": "± 1691",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 409300,
+            "range": "± 19427",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6102112,
+            "range": "± 48914",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 896858,
+            "range": "± 12623",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 677501,
+            "range": "± 3348",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8640601,
+            "range": "± 65448",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 139486,
+            "range": "± 914",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 147023,
+            "range": "± 1166",
             "unit": "ns/iter"
           }
         ]

@@ -153,10 +153,10 @@ impl FunctionAttr {
         let bind_data_ident = format_ident!("{}BindData", struct_name);
         let arg_types: Vec<_> = self.args.iter().map(|ty| data_type(ty)).collect();
         let ret_type = data_type(&self.ret);
-        
+
         // Generate type-specific code for creating input RecordBatch
         let create_input_batch = self.generate_input_batch_creation();
-        
+
         quote! {
             pub struct #bind_data_ident {
                 result_reader: ::std::sync::Mutex<Box<dyn ::arrow_udf::codegen::arrow_array::RecordBatchReader + Send>>,
@@ -177,7 +177,7 @@ impl FunctionAttr {
                     // Add result column for the table function output
                     let logical_type = ::duckdb::vtab::arrow::to_duckdb_logical_type(&#ret_type)?;
                     bind.add_result_column("value", logical_type);
-                    
+
                     // Call the arrow-udf table function and store the reader
                     let result_reader = #eval_name(&input_batch)?;
 
@@ -226,7 +226,7 @@ impl FunctionAttr {
     /// Generate type-specific code for creating input RecordBatch from DuckDB parameters
     fn generate_input_batch_creation(&self) -> TokenStream2 {
         let param_count = self.args.len();
-        
+
         // Generate code to extract each parameter based on its type
         let param_extractions: Vec<TokenStream2> = self.args.iter().enumerate().map(|(i, ty)| {
             let param_idx = i as u64;
@@ -235,7 +235,7 @@ impl FunctionAttr {
             let array_ident = format_ident!("array_{}", i);
             let field_ident = format_ident!("field_{}", i);
             let param_name = format!("param_{}", i);
-            
+
             match ty.as_str() {
                 "int32" | "int" => quote! {
                     let #param_ident = bind.get_parameter(#param_idx);
@@ -297,14 +297,14 @@ impl FunctionAttr {
             use ::arrow_udf::codegen::arrow_array::RecordBatch;
             use ::arrow_udf::codegen::arrow_schema::{Schema, Field};
             use ::std::sync::Arc;
-            
+
             // Extract parameters based on their compile-time known types
             #(#param_extractions)*
-            
+
             // Create schema and arrays
             let schema = Arc::new(Schema::new(vec![#(#field_idents),*]));
             let arrays = vec![#(#array_idents as Arc<dyn ::arrow_udf::codegen::arrow_array::Array>),*];
-            
+
             // Create RecordBatch
             RecordBatch::try_new(schema, arrays)?
         }

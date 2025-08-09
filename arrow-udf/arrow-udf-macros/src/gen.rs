@@ -169,6 +169,8 @@ impl FunctionAttr {
                 type InitData = ();
 
                 fn bind(bind: &::duckdb::vtab::BindInfo) -> Result<Self::BindData, Box<dyn std::error::Error>> {
+                    use ::arrow_udf::codegen::arrow_schema;
+
                     // Create input RecordBatch from DuckDB parameters
                     let input_batch = {
                         #create_input_batch
@@ -215,6 +217,7 @@ impl FunctionAttr {
                 }
 
                 fn parameters() -> Option<Vec<::duckdb::core::LogicalTypeHandle>> {
+                    use ::arrow_udf::codegen::arrow_schema;
                     use ::duckdb::vtab::arrow::to_duckdb_logical_type;
                     let data_types = vec![#(#arg_types),*];
                     let logical_types: Result<Vec<_>, _> = data_types.iter()

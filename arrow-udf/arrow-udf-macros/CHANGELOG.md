@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-08-26
+
+### Added
+
+- Support duckdb table function
+
+### Fixed
+
+- Fix unimported `Arc`.
+
 ## [0.6.0] - 2025-03-21
 
 ### Changed

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-08-26
+
+### Changed
+
+- Update `arrow` version from `54` to `55`.
+- `TableFunction` is `Send`.
+
 ## [0.6.2] - 2025-03-21
 
 ### Fixed

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1756818346903,
+  "lastUpdate": 1756818368943,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -16709,6 +16709,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 142047,
             "range": "± 6776",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9bdf2e3c6999bb4b5dc6d4c8a36ef74837a65736",
+          "message": "build(deps): bump org.apache.arrow:arrow-vector from 18.2.0 to 18.3.0 in /arrow-udf-remote/java (#146)\n\nBumps\n[org.apache.arrow:arrow-vector](https://github.com/apache/arrow-java)\nfrom 18.2.0 to 18.3.0.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/apache/arrow-java/releases\">org.apache.arrow:arrow-vector's\nreleases</a>.</em></p>\n<blockquote>\n<h2>Apache Arrow Java 18.3.0</h2>\n<!-- raw HTML omitted -->\n<h2>What's Changed</h2>\n<h3>New Features and Enhancements</h3>\n<ul>\n<li>MINOR: ZstdCompressionCodec should use decompressedSize to get error\nname by <a\nhref=\"https://github.com/libenchao\"><code>@​libenchao</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/619\">apache/arrow-java#619</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/499\">GH-499</a>:\nRequire PR labels for changelog by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/594\">apache/arrow-java#594</a></li>\n<li>MINOR: Add explicit exception when no more buffer can be read when\nloading buffers by <a\nhref=\"https://github.com/viirya\"><code>@​viirya</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/649\">apache/arrow-java#649</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/81\">GH-81</a>:\n[Flight] Expose gRPC in Flight client builder by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/660\">apache/arrow-java#660</a></li>\n<li>MINOR: Use mockito bom and upgrade to Mockito 5.16.0 by <a\nhref=\"https://github.com/jbonofre\"><code>@​jbonofre</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/672\">apache/arrow-java#672</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/615\">GH-615</a>:\nProduce Avro core data types out of Arrow VSR by <a\nhref=\"https://github.com/martin-traverse\"><code>@​martin-traverse</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/638\">apache/arrow-java#638</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/494\">GH-494</a>:\n[Flight] Allow configuring connect timeout in JDBC by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/495\">apache/arrow-java#495</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/87\">GH-87</a>:\n[Vector] Add ExtensionWriter by <a\nhref=\"https://github.com/xxlaykxx\"><code>@​xxlaykxx</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/697\">apache/arrow-java#697</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/698\">GH-698</a>:\nImprove and fix Avro read consumers by <a\nhref=\"https://github.com/martin-traverse\"><code>@​martin-traverse</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/718\">apache/arrow-java#718</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/737\">GH-737</a>:\n[FlightSQL] Allow returning column remarks in FlightSQL's\nCommandGetTables by <a\nhref=\"https://github.com/mateuszrzeszutek\"><code>@​mateuszrzeszutek</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/727\">apache/arrow-java#727</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/661\">GH-661</a>:\n[Flight] JDBC: Cache failed locations by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/662\">apache/arrow-java#662</a></li>\n</ul>\n<h3>Bug Fixes</h3>\n<ul>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/55\">GH-55</a>:\n[Gandiva] Re-enable tests by <a\nhref=\"https://github.com/lriggs\"><code>@​lriggs</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/595\">apache/arrow-java#595</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/601\">GH-601</a>:\n[Gandiva] Synchronize some methods on the Projector by <a\nhref=\"https://github.com/lriggs\"><code>@​lriggs</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/602\">apache/arrow-java#602</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/625\">GH-625</a>:\nMap MinorType getNewFieldWriter returns UnionMapWriter by <a\nhref=\"https://github.com/wsuppiger\"><code>@​wsuppiger</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/627\">apache/arrow-java#627</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/653\">GH-653</a>:\nNullify fieldReader when invalidating parent object by <a\nhref=\"https://github.com/lriggs\"><code>@​lriggs</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/654\">apache/arrow-java#654</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/655\">GH-655</a>:\nFailure in UnionReader.read after DecimalVector promotion to UnionVector\nby <a href=\"https://github.com/lriggs\"><code>@​lriggs</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/656\">apache/arrow-java#656</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/692\">GH-692</a>:\nPreserve nullability information while transfering DecimalVector and\nDecimal256Vector by <a\nhref=\"https://github.com/bodduv\"><code>@​bodduv</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/693\">apache/arrow-java#693</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/704\">GH-704</a>:\nFix initialization of offset buffer when exporting VarChar vectors\nthrough C Data Interface by <a\nhref=\"https://github.com/Kontinuation\"><code>@​Kontinuation</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/705\">apache/arrow-java#705</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/709\">GH-709</a>:\nCorrect length calculation of value buffers of variable-sized arrays by\n<a href=\"https://github.com/pepijnve\"><code>@​pepijnve</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/707\">apache/arrow-java#707</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/721\">GH-721</a>:\nAllow using 1GB+ data buffers in variable width vectors by <a\nhref=\"https://github.com/gszadovszky\"><code>@​gszadovszky</code></a> in\n<a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/722\">apache/arrow-java#722</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/463\">GH-463</a>:\nImprove TZ support for JDBC driver by <a\nhref=\"https://github.com/aiguofer\"><code>@​aiguofer</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/464\">apache/arrow-java#464</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/729\">GH-729</a>:\n[JDBC] Fix BinaryConsumer consuming null value by <a\nhref=\"https://github.com/hnwyllmm\"><code>@​hnwyllmm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/730\">apache/arrow-java#730</a></li>\n</ul>\n<h3>Other Changes</h3>\n<ul>\n<li>MINOR: Upgrade to Google flatbuffers 25.1.24 by <a\nhref=\"https://github.com/jbonofre\"><code>@​jbonofre</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/600\">apache/arrow-java#600</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/603\">GH-603</a>:\n[Release] Suppress a nested tag warning in\n<code>dev/release/release.sh</code> by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/606\">apache/arrow-java#606</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/605\">GH-605</a>:\n[Release] Show the repository.apache.org step by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/608\">apache/arrow-java#608</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/604\">GH-604</a>:\n[Release] Upload only source archive to dist.apache.org by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/607\">apache/arrow-java#607</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/609\">GH-609</a>:\n[Release] Wait between artifact uploads by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/610\">apache/arrow-java#610</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/611\">GH-611</a>:\n[Docs] Detect version from pom.xml by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/613\">apache/arrow-java#613</a></li>\n<li>MINOR: Bump version to 19.0.0-SNAPSHOT by <a\nhref=\"https://github.com/jbonofre\"><code>@​jbonofre</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/614\">apache/arrow-java#614</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/620\">GH-620</a>:\nUpgrade to Google flatbuffers 25.2.10 by <a\nhref=\"https://github.com/jbonofre\"><code>@​jbonofre</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/622\">apache/arrow-java#622</a></li>\n<li>MINOR: Bump io.netty:netty-bom from 4.1.117.Final to 4.1.118.Final\nby <a href=\"https://github.com/dependabot\"><code>@​dependabot</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/616\">apache/arrow-java#616</a></li>\n<li>MINOR: Bump com.google.api.grpc:proto-google-common-protos from\n2.51.0 to 2.52.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/617\">apache/arrow-java#617</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/623\">GH-623</a>:\nCleanup enabling Gandiva tests change by <a\nhref=\"https://github.com/kou\"><code>@​kou</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/624\">apache/arrow-java#624</a></li>\n<li>MINOR: Fix typo in dev_pr.js by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/626\">apache/arrow-java#626</a></li>\n<li>MINOR: Bump checker.framework.version from 3.48.4 to 3.49.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/598\">apache/arrow-java#598</a></li>\n<li>MINOR: Bump org.bouncycastle:bcpkix-jdk18on from 1.79 to 1.80 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/597\">apache/arrow-java#597</a></li>\n<li>MINOR: Bump com.github.luben:zstd-jni from 1.5.6-9 to 1.5.7-1 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/628\">apache/arrow-java#628</a></li>\n<li><a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/629\">GH-629</a>:\nAdd post-release tasks to dev/release/README.md by <a\nhref=\"https://github.com/lidavidm\"><code>@​lidavidm</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/630\">apache/arrow-java#630</a></li>\n<li>MINOR: Bump dep.junit.jupiter.version from 5.11.4 to 5.12.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/631\">apache/arrow-java#631</a></li>\n<li>MINOR: Bump com.puppycrawl.tools:checkstyle from 10.21.2 to 10.21.3\nby <a href=\"https://github.com/dependabot\"><code>@​dependabot</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/633\">apache/arrow-java#633</a></li>\n<li>MINOR: [CI] Bump actions/upload-artifact from 4.6.0 to 4.6.1 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/635\">apache/arrow-java#635</a></li>\n<li>MINOR: Bump org.apache.calcite.avatica:avatica from 1.25.0 to 1.26.0\nby <a href=\"https://github.com/dependabot\"><code>@​dependabot</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/634\">apache/arrow-java#634</a></li>\n<li>MINOR: Bump com.fasterxml.jackson:jackson-bom from 2.18.2 to 2.18.3\nby <a href=\"https://github.com/dependabot\"><code>@​dependabot</code></a>\nin <a\nhref=\"https://redirect.github.com/apache/arrow-java/pull/645\">apache/arrow-java#645</a></li>\n</ul>\n<!-- raw HTML omitted -->\n</blockquote>\n<p>... (truncated)</p>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/apache/arrow-java/commit/8e84e4c8bbe041f362690e4ea54280ec682dbb1f\"><code>8e84e4c</code></a>\nMINOR: Bump version to 18.3.0 (<a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/741\">#741</a>)</li>\n<li><a\nhref=\"https://github.com/apache/arrow-java/commit/a956cedf3e413b27642424f9373311527dba7abb\"><code>a956ced</code></a>\n<a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/661\">GH-661</a>:\n[Flight] JDBC: Cache failed locations (<a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/662\">#662</a>)</li>\n<li><a\nhref=\"https://github.com/apache/arrow-java/commit/f6f1710ffe9314856bccf0e7dade4d32f25265c8\"><code>f6f1710</code></a>\nMINOR: Update third party versions in LICENSE and NOTICE (<a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/739\">#739</a>)</li>\n<li><a\nhref=\"https://github.com/apache/arrow-java/commit/195745e8071c3890ddaac5052306399265f74e7f\"><code>195745e</code></a>\nMINOR: Revert &quot;MINOR: Bump io.netty:netty-bom from 4.1.119.Final to\n4.2.0.Fin...</li>\n<li><a\nhref=\"https://github.com/apache/arrow-java/commit/1e1f9654b61d05f25be58873335952773b02e39f\"><code>1e1f965</code></a>\nMINOR: Bump com.gradle:develocity-maven-extension from 1.23.1 to 2.0 (<a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/716\">#716</a>)</li>\n<li><a\nhref=\"https://github.com/apache/arrow-java/commit/34aaa8a56f8309b56c9f642a7e42668b94e3ea10\"><code>34aaa8a</code></a>\nMINOR: Bump io.netty:netty-bom from 4.1.119.Final to 4.2.0.Final (<a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/700\">#700</a>)</li>\n<li><a\nhref=\"https://github.com/apache/arrow-java/commit/2daf13040bc4084311b625499b949d4fabed182c\"><code>2daf130</code></a>\nMINOR: Bump commons-io:commons-io from 2.18.0 to 2.19.0 (<a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/715\">#715</a>)</li>\n<li><a\nhref=\"https://github.com/apache/arrow-java/commit/8f6db9f705ecabe1666026ede5d67544dff4991f\"><code>8f6db9f</code></a>\nMINOR: Bump org.apache.parquet:parquet-avro from 1.15.1 to 1.15.2 in\n/dataset...</li>\n<li><a\nhref=\"https://github.com/apache/arrow-java/commit/b0cc03d4c62dabc44746f462f274b20003890e95\"><code>b0cc03d</code></a>\nMINOR: Bump org.jacoco:jacoco-maven-plugin from 0.8.12 to 0.8.13 (<a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/699\">#699</a>)</li>\n<li><a\nhref=\"https://github.com/apache/arrow-java/commit/f32198fe28687c6e43df21149272764f2710947a\"><code>f32198f</code></a>\nMINOR: Bump org.apache.commons:commons-text from 1.13.0 to 1.13.1 (<a\nhref=\"https://redirect.github.com/apache/arrow-java/issues/714\">#714</a>)</li>\n<li>Additional commits viewable in <a\nhref=\"https://github.com/apache/arrow-java/compare/v18.2.0...v18.3.0\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=org.apache.arrow:arrow-vector&package-manager=maven&previous-version=18.2.0&new-version=18.3.0)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2025-09-02T20:56:04+08:00",
+          "tree_id": "3fe64b1a41dd190e61897065f2f867de11110652",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/9bdf2e3c6999bb4b5dc6d4c8a36ef74837a65736"
+        },
+        "date": 1756818368411,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3895,
+            "range": "± 1116",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3987,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24370,
+            "range": "± 1411",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 213885,
+            "range": "± 2401",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 230041,
+            "range": "± 1482",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 77951,
+            "range": "± 209",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 409894,
+            "range": "± 19660",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6054290,
+            "range": "± 58275",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 900644,
+            "range": "± 14055",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 669849,
+            "range": "± 3281",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8980531,
+            "range": "± 55270",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 138845,
+            "range": "± 1050",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 139706,
+            "range": "± 6313",
             "unit": "ns/iter"
           }
         ]

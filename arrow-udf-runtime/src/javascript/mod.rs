@@ -572,11 +572,12 @@ impl Runtime {
                 let n_rows = input.num_rows();
 
                 // 1. Build a bitmap of which rows have nulls
-                let mut bitmap = Vec::with_capacity(n_rows);
-                for i in 0..n_rows {
-                    let has_null = (0..n_cols).any(|j| js_columns[j][i].is_null());
-                    bitmap.push(!has_null);
-                }
+                let bitmap: Vec<bool> = (0..n_rows)
+                    .map(|row_idx| {
+                        let has_null = (0..n_cols).any(|j| js_columns[j][row_idx].is_null());
+                        !has_null
+                    })
+                    .collect();
 
                 // 2. Build new inputs with only the rows that don't have nulls
                 let mut filtered_columns = Vec::with_capacity(n_cols);

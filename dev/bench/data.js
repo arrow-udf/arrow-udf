@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1768404922169,
+  "lastUpdate": 1768405034870,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -17015,6 +17015,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 145050,
             "range": "± 1801",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5df2fbe9c69ff5d031a5b0fed297bfae9b13106a",
+          "message": "build(deps): bump org.sonatype.plugins:nexus-staging-maven-plugin from 1.6.13 to 1.7.0 in /arrow-udf-remote/java (#149)\n\nBumps org.sonatype.plugins:nexus-staging-maven-plugin from 1.6.13 to\n1.7.0.\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=org.sonatype.plugins:nexus-staging-maven-plugin&package-manager=maven&previous-version=1.6.13&new-version=1.7.0)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nYou can trigger a rebase of this PR by commenting `@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\n> **Note**\n> Automatic rebases have been disabled on this pull request as it has\nbeen open for over 30 days.\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-01-14T15:25:25Z",
+          "tree_id": "13184cf07ba243cbc92f9c7910c58031ee5e5e83",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/5df2fbe9c69ff5d031a5b0fed297bfae9b13106a"
+        },
+        "date": 1768405034236,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3893,
+            "range": "± 10",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3975,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24264,
+            "range": "± 1637",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 205950,
+            "range": "± 1192",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 227514,
+            "range": "± 1417",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 76451,
+            "range": "± 281",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 394291,
+            "range": "± 23064",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6427959,
+            "range": "± 116803",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 909645,
+            "range": "± 9535",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 695796,
+            "range": "± 16533",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8687100,
+            "range": "± 46659",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 136182,
+            "range": "± 1696",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 146662,
+            "range": "± 12291",
             "unit": "ns/iter"
           }
         ]

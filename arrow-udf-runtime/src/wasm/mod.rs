@@ -662,11 +662,11 @@ fn function_signature_of(
 }
 
 fn field_to_typename(field: &Field) -> Result<String> {
-    if let Some(ext_typename) = field.metadata().get("ARROW:extension:name") {
-        if let Some(typename) = ext_typename.strip_prefix("arrowudf.") {
-            // cases like "arrowudf.decimal" and "arrowudf.json"
-            return Ok(typename.to_owned());
-        }
+    if let Some(ext_typename) = field.metadata().get("ARROW:extension:name")
+        && let Some(typename) = ext_typename.strip_prefix("arrowudf.")
+    {
+        // cases like "arrowudf.decimal" and "arrowudf.json"
+        return Ok(typename.to_owned());
     }
     let ty = field.data_type();
     // Convert arrow types to type names in `arrow-udf-macros` according

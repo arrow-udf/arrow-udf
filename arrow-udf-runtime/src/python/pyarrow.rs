@@ -18,11 +18,11 @@ use arrow_array::{array::*, builder::*};
 use arrow_buffer::OffsetBuffer;
 use arrow_schema::{DataType, Field, Fields};
 use pyo3::{
+    IntoPyObject, PyObject, PyResult, Python,
     exceptions::PyTypeError,
     ffi::c_str,
     prelude::PyDictMethods,
     types::{PyAnyMethods, PyDict},
-    IntoPyObject, PyObject, PyResult, Python,
 };
 use std::{borrow::Cow, ffi::CString, sync::Arc};
 
@@ -250,7 +250,7 @@ impl Converter {
             other => {
                 return Err(PyTypeError::new_err(format!(
                     "Unimplemented datatype {other}"
-                )))
+                )));
             }
         })
     }

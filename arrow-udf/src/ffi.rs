@@ -29,7 +29,7 @@ use arrow_ipc::{reader::FileReader, writer::FileWriter};
 /// - 3.0: Change type names in signatures.
 /// - 2.0: Add user defined struct type.
 /// - 1.0: Initial version.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[used]
 pub static ARROWUDF_VERSION_3_0: () = ();
 
@@ -38,9 +38,9 @@ pub static ARROWUDF_VERSION_3_0: () = ();
 /// # Safety
 ///
 /// See [`std::alloc::GlobalAlloc::alloc`].
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn alloc(len: usize, align: usize) -> *mut u8 {
-    std::alloc::alloc(std::alloc::Layout::from_size_align_unchecked(len, align))
+    unsafe { std::alloc::alloc(std::alloc::Layout::from_size_align_unchecked(len, align)) }
 }
 
 /// Deallocate memory.
@@ -48,12 +48,14 @@ pub unsafe extern "C" fn alloc(len: usize, align: usize) -> *mut u8 {
 /// # Safety
 ///
 /// See [`std::alloc::GlobalAlloc::dealloc`].
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn dealloc(ptr: *mut u8, len: usize, align: usize) {
-    std::alloc::dealloc(
-        ptr,
-        std::alloc::Layout::from_size_align_unchecked(len, align),
-    );
+    unsafe {
+        std::alloc::dealloc(
+            ptr,
+            std::alloc::Layout::from_size_align_unchecked(len, align),
+        );
+    }
 }
 
 /// A FFI-safe slice.
@@ -84,24 +86,26 @@ pub unsafe fn scalar_wrapper(
     len: usize,
     out_slice: *mut CSlice,
 ) -> i32 {
-    let input = std::slice::from_raw_parts(ptr, len);
-    match call_scalar(function, input) {
-        Ok(data) => {
-            out_slice.write(CSlice {
-                ptr: data.as_ptr(),
-                len: data.len(),
-            });
-            std::mem::forget(data);
-            0
-        }
-        Err(err) => {
-            let msg = err.to_string().into_boxed_str();
-            out_slice.write(CSlice {
-                ptr: msg.as_ptr(),
-                len: msg.len(),
-            });
-            std::mem::forget(msg);
-            -1
+    unsafe {
+        let input = std::slice::from_raw_parts(ptr, len);
+        match call_scalar(function, input) {
+            Ok(data) => {
+                out_slice.write(CSlice {
+                    ptr: data.as_ptr(),
+                    len: data.len(),
+                });
+                std::mem::forget(data);
+                0
+            }
+            Err(err) => {
+                let msg = err.to_string().into_boxed_str();
+                out_slice.write(CSlice {
+                    ptr: msg.as_ptr(),
+                    len: msg.len(),
+                });
+                std::mem::forget(msg);
+                -1
+            }
         }
     }
 }
@@ -149,23 +153,25 @@ pub unsafe fn table_wrapper(
     len: usize,
     out_slice: *mut CSlice,
 ) -> i32 {
-    let input = std::slice::from_raw_parts(ptr, len);
-    match call_table(function, input) {
-        Ok(iter) => {
-            out_slice.write(CSlice {
-                ptr: Box::into_raw(iter) as *const u8,
-                len: std::mem::size_of::<RecordBatchIter>(),
-            });
-            0
-        }
-        Err(err) => {
-            let msg = err.to_string().into_boxed_str();
-            out_slice.write(CSlice {
-                ptr: msg.as_ptr(),
-                len: msg.len(),
-            });
-            std::mem::forget(msg);
-            -1
+    unsafe {
+        let input = std::slice::from_raw_parts(ptr, len);
+        match call_table(function, input) {
+            Ok(iter) => {
+                out_slice.write(CSlice {
+                    ptr: Box::into_raw(iter) as *const u8,
+                    len: std::mem::size_of::<RecordBatchIter>(),
+                });
+                0
+            }
+            Err(err) => {
+                let msg = err.to_string().into_boxed_str();
+                out_slice.write(CSlice {
+                    ptr: msg.as_ptr(),
+                    len: msg.len(),
+                });
+                std::mem::forget(msg);
+                -1
+            }
         }
     }
 }
@@ -188,28 +194,30 @@ fn call_table(function: TableFunction, input_bytes: &[u8]) -> Result<Box<RecordB
 /// # Safety
 ///
 /// `iter` and `out` must be valid pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn record_batch_iterator_next(iter: *mut RecordBatchIter, out: *mut CSlice) {
-    let iter = iter.as_mut().expect("null pointer");
-    if let Some(Ok(batch)) = iter.iter.next() {
-        let mut buf = vec![];
-        let mut writer = FileWriter::try_new(&mut buf, &batch.schema()).unwrap();
-        writer.write(&batch).unwrap();
-        writer.finish().unwrap();
-        drop(writer);
-        let buf = buf.into_boxed_slice();
+    unsafe {
+        let iter = iter.as_mut().expect("null pointer");
+        if let Some(Ok(batch)) = iter.iter.next() {
+            let mut buf = vec![];
+            let mut writer = FileWriter::try_new(&mut buf, &batch.schema()).unwrap();
+            writer.write(&batch).unwrap();
+            writer.finish().unwrap();
+            drop(writer);
+            let buf = buf.into_boxed_slice();
 
-        out.write(CSlice {
-            ptr: buf.as_ptr(),
-            len: buf.len(),
-        });
-        std::mem::forget(buf);
-    } else {
-        // TODO: return error message
-        out.write(CSlice {
-            ptr: std::ptr::null(),
-            len: 0,
-        });
+            out.write(CSlice {
+                ptr: buf.as_ptr(),
+                len: buf.len(),
+            });
+            std::mem::forget(buf);
+        } else {
+            // TODO: return error message
+            out.write(CSlice {
+                ptr: std::ptr::null(),
+                len: 0,
+            });
+        }
     }
 }
 
@@ -218,7 +226,9 @@ pub unsafe extern "C" fn record_batch_iterator_next(iter: *mut RecordBatchIter, 
 /// # Safety
 ///
 /// `iter` must be valid pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn record_batch_iterator_drop(iter: *mut RecordBatchIter) {
-    drop(Box::from_raw(iter));
+    unsafe {
+        drop(Box::from_raw(iter));
+    }
 }

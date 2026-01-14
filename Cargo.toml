@@ -27,4 +27,4 @@ tokio = "1"
 [workspace.package]
 repository = "https://github.com/arrow-udf/arrow-udf"
 license = "Apache-2.0"
-edition = "2021"
+edition = "2024"

@@ -18,8 +18,8 @@ use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
-use arrow_udf_runtime::python::Runtime;
 use arrow_udf_runtime::CallMode;
+use arrow_udf_runtime::python::Runtime;
 
 fn main() {
     let mut runtime = Runtime::new().unwrap();

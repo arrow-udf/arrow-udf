@@ -20,7 +20,7 @@ use arrow_array::{Int32Array, RecordBatch, StringArray};
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_runtime::remote::Client;
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use futures_util::StreamExt;
 
 const SERVER_ADDR: &str = "http://localhost:8815";

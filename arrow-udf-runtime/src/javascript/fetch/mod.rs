@@ -19,7 +19,7 @@ use response::Response;
 use rquickjs::loader::Bundle;
 use rquickjs::prelude::*;
 use rquickjs::{
-    async_with, embed, AsyncContext, AsyncRuntime, Class, Ctx, Exception, Module, Result,
+    AsyncContext, AsyncRuntime, Class, Ctx, Exception, Module, Result, async_with, embed,
 };
 
 use std::collections::HashMap;

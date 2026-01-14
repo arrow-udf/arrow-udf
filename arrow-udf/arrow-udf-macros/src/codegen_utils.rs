@@ -108,7 +108,7 @@ impl FunctionAttr {
         Ok(quote! {
             #eval_function
 
-            #[export_name = #export_name]
+            #[unsafe(export_name = #export_name)]
             unsafe extern "C" fn #ffi_name(ptr: *const u8, len: usize, out: *mut arrow_udf::ffi::CSlice) -> i32 {
                 arrow_udf::ffi::#ffi_wrapper(#eval_name, ptr, len, out)
             }
@@ -640,7 +640,8 @@ impl FunctionAttr {
                     -> ::arrow_udf::Result<Box<dyn ::arrow_udf::codegen::arrow_array::RecordBatchReader + Send>>
                 {
                     const BATCH_SIZE: usize = 1024;
-                    use ::arrow_udf::codegen::genawaiter2::{self, sync::gen, yield_};
+                    use ::arrow_udf::codegen::genawaiter2::{self, yield_};
+                    use ::arrow_udf::codegen::genawaiter2::sync::r#gen as generator;
                     use ::arrow_udf::codegen::arrow_array::{array::*, RecordBatchIterator};
                     use ::arrow_udf::codegen::arrow_schema::{self, DataType, Field, Schema, SchemaRef};
 
@@ -653,7 +654,7 @@ impl FunctionAttr {
                     });
                     #downcast_arrays // check the input data types only
                     let input = input.clone();
-                    let gen_ = gen!({
+                    let gen_ = generator!({
                         // input is moved into the closure
                         // data types are checked above, so we can safely unwrap here
                         #(
@@ -883,9 +884,9 @@ fn transform_input(input: &Ident, ty: &str) -> TokenStream2 {
 /// Encode a string to a symbol name using customized base64.
 pub fn base64_encode(input: &str) -> String {
     use base64::{
-        alphabet::Alphabet,
-        engine::{general_purpose::NO_PAD, GeneralPurpose},
         Engine,
+        alphabet::Alphabet,
+        engine::{GeneralPurpose, general_purpose::NO_PAD},
     };
     // standard base64 uses '+' and '/', which is not a valid symbol name.
     // we use '$' and '_' instead.

@@ -16,12 +16,12 @@
 //! Convert arrow array from/to js objects.
 
 use anyhow::{Context, Result};
-use arrow_array::{array::*, builder::*, ArrowNativeTypeOp};
-use arrow_buffer::{i256, OffsetBuffer};
+use arrow_array::{ArrowNativeTypeOp, array::*, builder::*};
+use arrow_buffer::{OffsetBuffer, i256};
 use arrow_schema::{DataType, Field, Fields};
 use rquickjs::{
-    function::Args, function::Constructor, Ctx, Error, FromJs, Function, IntoJs, Object,
-    TypedArray, Value,
+    Ctx, Error, FromJs, Function, IntoJs, Object, TypedArray, Value, function::Args,
+    function::Constructor,
 };
 use std::{borrow::Cow, sync::Arc};
 

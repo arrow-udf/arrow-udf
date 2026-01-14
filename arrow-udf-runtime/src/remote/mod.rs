@@ -28,7 +28,7 @@ use arrow_flight::encode::FlightDataEncoderBuilder;
 use arrow_flight::flight_service_client::FlightServiceClient;
 use arrow_flight::{Action, Criteria, FlightData, FlightDescriptor};
 use arrow_schema::Schema;
-use futures_util::{stream, Stream, StreamExt, TryStreamExt};
+use futures_util::{Stream, StreamExt, TryStreamExt, stream};
 use tonic::transport::Channel;
 
 /// Client for a remote Arrow UDF service.

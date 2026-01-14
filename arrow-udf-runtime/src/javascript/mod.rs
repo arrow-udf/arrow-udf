@@ -17,23 +17,23 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::pin::Pin;
-use std::sync::{atomic::Ordering, Arc};
+use std::sync::{Arc, atomic::Ordering};
 use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
 
-use anyhow::{anyhow, bail, Context as _, Result};
-use arrow_array::{builder::Int32Builder, Array, ArrayRef, BooleanArray, RecordBatch};
+use anyhow::{Context as _, Result, anyhow, bail};
+use arrow_array::{Array, ArrayRef, BooleanArray, RecordBatch, builder::Int32Builder};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
 use futures_util::{FutureExt, Stream};
 use rquickjs::context::intrinsic::{All, Base};
 pub use rquickjs::runtime::MemoryUsage;
 use rquickjs::{
-    async_with, function::Args, module::Evaluated, Array as JsArray, AsyncContext, AsyncRuntime,
-    Ctx, FromJs, IteratorJs as _, Module, Object, Persistent, Promise, Value,
+    Array as JsArray, AsyncContext, AsyncRuntime, Ctx, FromJs, IteratorJs as _, Module, Object,
+    Persistent, Promise, Value, async_with, function::Args, module::Evaluated,
 };
 
-use crate::into_field::IntoField;
 use crate::CallMode;
+use crate::into_field::IntoField;
 
 #[cfg(feature = "javascript-fetch")]
 mod fetch;
@@ -572,11 +572,12 @@ impl Runtime {
                 let n_rows = input.num_rows();
 
                 // 1. Build a bitmap of which rows have nulls
-                let mut bitmap = Vec::with_capacity(n_rows);
-                for i in 0..n_rows {
-                    let has_null = (0..n_cols).any(|j| js_columns[j][i].is_null());
-                    bitmap.push(!has_null);
-                }
+                let bitmap: Vec<bool> = (0..n_rows)
+                    .map(|row_idx| {
+                        let has_null = (0..n_cols).any(|j| js_columns[j][row_idx].is_null());
+                        !has_null
+                    })
+                    .collect();
 
                 // 2. Build new inputs with only the rows that don't have nulls
                 let mut filtered_columns = Vec::with_capacity(n_cols);
@@ -1040,15 +1041,15 @@ impl RecordBatchIter<'_> {
             // restore generator from state
             let mut generator = match self.generator.take() {
                 Some(generator) => {
-                    let gen = generator.restore(&ctx)?;
+                    let generator_obj = generator.restore(&ctx)?;
                     let next: rquickjs::Function =
-                        gen.get("next").context("failed to get 'next' method")?;
-                    Some((gen, next))
+                        generator_obj.get("next").context("failed to get 'next' method")?;
+                    Some((generator_obj, next))
                 }
                 None => None,
             };
             while self.row < self.input.num_rows() && results.len() < self.chunk_size {
-                let (gen, next) = if let Some(g) = generator.as_ref() {
+                let (generator_obj, next) = if let Some(g) = generator.as_ref() {
                     g
                 } else {
                     // call the table function to get a generator
@@ -1073,18 +1074,18 @@ impl RecordBatchIter<'_> {
                     // NOTE: A async generator function, defined by `async function*`, itself is NOT async.
                     // That's why we call it with `is_async = false` here.
                     // The result is a `AsyncGenerator`, which has a async `next` method.
-                    let gen: Object = self
+                    let generator_obj: Object = self
                         .rt
                         .call_user_fn(&ctx, &js_function, args, false).await
                         .context("failed to call function")?;
                     let next: rquickjs::Function =
-                        gen.get("next").context("failed to get 'next' method")?;
+                        generator_obj.get("next").context("failed to get 'next' method")?;
                     let mut args = Args::new(ctx.clone(), 0);
-                    args.this(gen.clone())?;
-                    generator.insert((gen, next))
+                    args.this(generator_obj.clone())?;
+                    generator.insert((generator_obj, next))
                 };
                 let mut args = Args::new(ctx.clone(), 0);
-                args.this(gen.clone())?;
+                args.this(generator_obj.clone())?;
                 let object: Object = self
                     .rt
                     .call_user_fn(&ctx, next, args, self.function.options.is_async).await
@@ -1099,7 +1100,7 @@ impl RecordBatchIter<'_> {
                 indexes.append_value(self.row as i32);
                 results.push(value);
             }
-            self.generator = generator.map(|(gen, _)| Persistent::save(&ctx, gen));
+            self.generator = generator.map(|(generator_obj, _)| Persistent::save(&ctx, generator_obj));
 
             if results.is_empty() {
                 return Ok(None);

@@ -16,21 +16,21 @@
 
 use std::{sync::Arc, time::Duration};
 
-use arrow_array::builder::{MapBuilder, StringBuilder};
 use arrow_array::Array;
+use arrow_array::builder::{MapBuilder, StringBuilder};
 use arrow_array::{
-    types::*, ArrayRef, BinaryArray, Date32Array, Decimal128Array, Decimal256Array, Int32Array,
+    ArrayRef, BinaryArray, Date32Array, Decimal128Array, Decimal256Array, Int32Array,
     LargeBinaryArray, LargeListArray, LargeStringArray, ListArray, RecordBatch, StringArray,
     StringViewArray, StructArray, TimestampMicrosecondArray, TimestampMillisecondArray,
-    TimestampNanosecondArray, TimestampSecondArray,
+    TimestampNanosecondArray, TimestampSecondArray, types::*,
 };
 use arrow_buffer::i256;
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Fields, Schema};
 use arrow_udf_runtime::javascript::{AggregateOptions, FunctionOptions, Runtime};
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use rquickjs::prelude::Async;
-use rquickjs::{async_with, Function};
+use rquickjs::{Function, async_with};
 
 #[tokio::test]
 async fn test_gcd() {

@@ -14,7 +14,7 @@
 
 #![doc = include_str!("README.md")]
 
-use anyhow::{anyhow, bail, ensure, Context};
+use anyhow::{Context, anyhow, bail, ensure};
 use arrow_array::RecordBatch;
 use arrow_schema::{DataType, Field, IntervalUnit, TimeUnit};
 use itertools::Itertools;
@@ -22,7 +22,7 @@ use ram_file::{RamFile, RamFileRef};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
-use wasi_common::{sync::WasiCtxBuilder, WasiCtx};
+use wasi_common::{WasiCtx, sync::WasiCtxBuilder};
 use wasmtime::*;
 
 use crate::into_field::IntoField;
@@ -173,7 +173,10 @@ impl Runtime {
             "function not found in wasm binary: \"{}\"\nHINT: available functions:\n  {}\navailable types:\n  {}",
             sig,
             self.functions.iter().join("\n  "),
-            self.types.iter().map(|(k, v)| format!("{k}: {v}")).join("\n  "),
+            self.types
+                .iter()
+                .map(|(k, v)| format!("{k}: {v}"))
+                .join("\n  "),
         )
     }
 
@@ -202,7 +205,10 @@ impl Runtime {
             "table function not found in wasm binary: \"{}\"\nHINT: available functions:\n  {}\navailable types:\n  {}",
             sig,
             self.functions.iter().join("\n  "),
-            self.types.iter().map(|(k, v)| format!("{k}: {v}")).join("\n  "),
+            self.types
+                .iter()
+                .map(|(k, v)| format!("{k}: {v}"))
+                .join("\n  "),
         )
     }
 
@@ -278,7 +284,8 @@ impl Runtime {
         func: &'a TableFunctionHandle,
         input: &'a RecordBatch,
     ) -> Result<impl Iterator<Item = Result<RecordBatch>> + 'a> {
-        use genawaiter2::{sync::gen, yield_};
+        use genawaiter2::sync::r#gen as generator;
+        use genawaiter2::yield_;
 
         let export_name = &func.export_name;
         if !self.functions.contains(export_name) {
@@ -292,7 +299,7 @@ impl Runtime {
             Instance::new(self)?
         };
 
-        Ok(gen!({
+        Ok(generator!({
             // call the function
             let iter = match instance.call_table_function(export_name, input) {
                 Ok(iter) => iter,
@@ -608,9 +615,9 @@ impl Instance {
 /// Decode a string from symbol name using customized base64.
 fn base64_decode(input: &str) -> Result<String> {
     use base64::{
-        alphabet::Alphabet,
-        engine::{general_purpose::NO_PAD, GeneralPurpose},
         Engine,
+        alphabet::Alphabet,
+        engine::{GeneralPurpose, general_purpose::NO_PAD},
     };
     // standard base64 uses '+' and '/', which is not a valid symbol name.
     // we use '$' and '_' instead.
@@ -655,11 +662,11 @@ fn function_signature_of(
 }
 
 fn field_to_typename(field: &Field) -> Result<String> {
-    if let Some(ext_typename) = field.metadata().get("ARROW:extension:name") {
-        if let Some(typename) = ext_typename.strip_prefix("arrowudf.") {
-            // cases like "arrowudf.decimal" and "arrowudf.json"
-            return Ok(typename.to_owned());
-        }
+    if let Some(ext_typename) = field.metadata().get("ARROW:extension:name")
+        && let Some(typename) = ext_typename.strip_prefix("arrowudf.")
+    {
+        // cases like "arrowudf.decimal" and "arrowudf.json"
+        return Ok(typename.to_owned());
     }
     let ty = field.data_type();
     // Convert arrow types to type names in `arrow-udf-macros` according

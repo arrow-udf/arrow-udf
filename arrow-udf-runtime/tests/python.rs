@@ -16,15 +16,15 @@
 
 use std::sync::Arc;
 
+use arrow_array::Array;
 use arrow_array::builder::{MapBuilder, StringBuilder};
 use arrow_array::types::Int32Type;
-use arrow_array::Array;
 use arrow_array::*;
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Fields, Schema};
-use arrow_udf_runtime::python::Runtime;
 use arrow_udf_runtime::CallMode;
-use expect_test::{expect, Expect};
+use arrow_udf_runtime::python::Runtime;
+use expect_test::{Expect, expect};
 
 #[test]
 fn test_gcd() {

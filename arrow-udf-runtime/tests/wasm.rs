@@ -20,7 +20,7 @@ use arrow_array::{Int32Array, RecordBatch, RecordBatchOptions, StringArray};
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_schema::{DataType, Field, Fields, Schema};
 use arrow_udf_runtime::wasm::Runtime;
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 
 const BINARY_PATH: &str = "../target/wasm32-wasip1/release/arrow_udf_example.wasm";
 
@@ -43,10 +43,12 @@ fn test_oom() {
         .unwrap();
     let output = RUNTIME.call(&oom, &input);
     // panic message should be contained in the error message
-    assert!(output
-        .unwrap_err()
-        .to_string()
-        .contains("capacity overflow"));
+    assert!(
+        output
+            .unwrap_err()
+            .to_string()
+            .contains("capacity overflow")
+    );
 }
 
 #[test]

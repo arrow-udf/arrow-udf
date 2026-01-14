@@ -20,7 +20,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use wasi_common::{file::FileType, Error, ErrorExt, WasiFile};
+use wasi_common::{Error, ErrorExt, WasiFile, file::FileType};
 
 pub struct RamFile {
     data: Mutex<Vec<u8>>,

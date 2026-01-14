@@ -14,11 +14,11 @@
 
 #![doc = include_str!("README.md")]
 
-use crate::into_field::IntoField;
 use crate::CallMode;
+use crate::into_field::IntoField;
 
 use self::interpreter::Interpreter;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use arrow_array::builder::{ArrayBuilder, Int32Builder, StringBuilder};
 use arrow_array::{Array, ArrayRef, BooleanArray, RecordBatch};
 use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};

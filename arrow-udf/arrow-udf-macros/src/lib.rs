@@ -16,7 +16,7 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use syn::{Error, Result};
 
-mod gen;
+mod codegen_utils;
 mod parse;
 mod struct_type;
 mod types;
@@ -45,7 +45,7 @@ mod utils;
 /// ```
 #[proc_macro_derive(StructType)]
 pub fn struct_type(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    match struct_type::gen(tokens.into()) {
+    match struct_type::generate(tokens.into()) {
         Ok(output) => output.into(),
         Err(err) => err.to_compile_error().into(),
     }

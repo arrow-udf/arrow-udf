@@ -217,27 +217,27 @@ fn split(s: &str) -> impl Iterator<Item = &str> {
 #[function("uint64_array(uint64[]) -> uint64[]")]
 #[function("float32_array(float32[]) -> float32[]")]
 #[function("float64_array(float64[]) -> float64[]")]
-fn primitive_array<T>(_: &[T]) -> impl Iterator<Item = T> {
+fn primitive_array<T>(_: &[T]) -> impl Iterator<Item = T> + use<T> {
     [].into_iter()
 }
 
 #[function("string_array(string[]) -> string[]")]
-fn string_array<'b>(_: &StringArray) -> impl Iterator<Item = &'b str> {
+fn string_array<'b>(_: &StringArray) -> impl Iterator<Item = &'b str> + use<'b> {
     [].into_iter()
 }
 
 #[function("large_string_array(largestring[]) -> largestring[]")]
-fn large_string_array(_: &LargeStringArray) -> impl Iterator<Item = String> {
+fn large_string_array(_: &LargeStringArray) -> impl Iterator<Item = String> + use<> {
     [].into_iter()
 }
 
 #[function("binary_array(binary[]) -> binary[]")]
-fn binary_array<'b>(_: &BinaryArray) -> impl Iterator<Item = &'b [u8]> {
+fn binary_array<'b>(_: &BinaryArray) -> impl Iterator<Item = &'b [u8]> + use<'b> {
     [].into_iter()
 }
 
 #[function("large_binary_array(largebinary[]) -> largebinary[]")]
-fn large_binary_array(_: &LargeBinaryArray) -> impl Iterator<Item = Vec<u8>> {
+fn large_binary_array(_: &LargeBinaryArray) -> impl Iterator<Item = Vec<u8>> + use<> {
     [].into_iter()
 }
 
@@ -341,7 +341,9 @@ fn json_array_elements(
     }
 }
 
-#[function("many_args(int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int) -> int")]
+#[function(
+    "many_args(int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int) -> int"
+)]
 #[allow(clippy::too_many_arguments)]
 fn many_args(
     a: i32,

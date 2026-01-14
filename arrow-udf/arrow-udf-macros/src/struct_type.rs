@@ -14,12 +14,12 @@
 
 use itertools::Itertools;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use syn::{Data, DeriveInput, Result};
 
-use crate::{gen, types};
+use crate::{codegen_utils, types};
 
-pub fn gen(tokens: TokenStream) -> Result<TokenStream> {
+pub fn generate(tokens: TokenStream) -> Result<TokenStream> {
     let input: DeriveInput = syn::parse2(tokens)?;
 
     let struct_name = &input.ident;
@@ -34,12 +34,14 @@ pub fn gen(tokens: TokenStream) -> Result<TokenStream> {
         .map(Field::parse)
         .collect::<Result<Vec<Field>>>()?;
 
-    let fields0 = fields.iter().map(|f| gen::field(&f.name, &f.type_));
+    let fields0 = fields
+        .iter()
+        .map(|f| codegen_utils::field(&f.name, &f.type_));
     let append_values = fields.iter().enumerate().map(|(i, f)| {
         let field = &f.ident;
-        let append_value = gen::gen_append_value(&f.type_);
-        let append_null = gen::gen_append_null(&f.type_);
-        let builder_type = gen::builder_type(&f.type_);
+        let append_value = codegen_utils::gen_append_value(&f.type_);
+        let append_null = codegen_utils::gen_append_null(&f.type_);
+        let builder_type = codegen_utils::builder_type(&f.type_);
         match f.option {
             false => quote! {{
                 let builder = builder.field_builder::<#builder_type>(#i).unwrap();
@@ -56,8 +58,8 @@ pub fn gen(tokens: TokenStream) -> Result<TokenStream> {
         }
     });
     let append_nulls = fields.iter().enumerate().map(|(i, f)| {
-        let builder_type = gen::builder_type(&f.type_);
-        let append_null = gen::gen_append_null(&f.type_);
+        let builder_type = codegen_utils::builder_type(&f.type_);
+        let append_null = codegen_utils::gen_append_null(&f.type_);
         quote! {{
             let builder = builder.field_builder::<#builder_type>(#i).unwrap();
             #append_null
@@ -67,7 +69,7 @@ pub fn gen(tokens: TokenStream) -> Result<TokenStream> {
     let export_name = format!(
         "arrowudt_{}",
         // example: "KeyValue=key:string,value:string"
-        gen::base64_encode(&format!(
+        codegen_utils::base64_encode(&format!(
             "{}={}",
             struct_name,
             fields
@@ -79,7 +81,7 @@ pub fn gen(tokens: TokenStream) -> Result<TokenStream> {
 
     Ok(quote! {
         // export a symbol to describe the struct type
-        #[export_name = #export_name]
+        #[unsafe(export_name = #export_name)]
         static #static_name: () = ();
 
         impl #generics ::arrow_udf::types::StructType for #struct_name #generics {
@@ -182,7 +184,7 @@ mod tests {
     fn test_struct_type() {
         let code = include_str!("testdata/struct.input.rs");
         let input: TokenStream = str::parse(code).unwrap();
-        let output = super::gen(input).unwrap();
+        let output = super::generate(input).unwrap();
         let output = pretty_print(output);
         let expected = expect_test::expect_file!["testdata/struct.output.rs"];
         expected.assert_eq(&output);

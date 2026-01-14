@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rquickjs::prelude::*;
 use rquickjs::Exception;
 use rquickjs::Result;
+use rquickjs::prelude::*;
 
 /// The Response interface of the Fetch API represents the response to a request.
 ///

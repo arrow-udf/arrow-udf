@@ -20,9 +20,9 @@ use arrow_array::{ArrayRef, Int32Array, RecordBatch};
 use arrow_cast::pretty::{pretty_format_batches, pretty_format_columns};
 use arrow_schema::{DataType, Field, Schema};
 use arrow_udf_runtime::javascript::{AggregateOptions, FunctionOptions, Runtime};
-use expect_test::{expect, Expect};
+use expect_test::{Expect, expect};
 use mockito::Server;
-use rquickjs::{async_with, AsyncContext};
+use rquickjs::{AsyncContext, async_with};
 
 async fn run_async_js_code(context: &AsyncContext, js_code: &str) {
     async_with!(context => |ctx| {

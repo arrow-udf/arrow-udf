@@ -56,7 +56,7 @@ jobs:
       - name: Install duckdb on Ubuntu
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          wget https://github.com/duckdb/duckdb/releases/download/v1.3.2/libduckdb-linux-amd64.zip
+          wget https://github.com/duckdb/duckdb/releases/download/v1.4.3/libduckdb-linux-amd64.zip
           unzip libduckdb-linux-amd64.zip -d libduckdb
           echo "DUCKDB_LIB_DIR=$PWD/libduckdb" >> $GITHUB_ENV
           echo "DUCKDB_INCLUDE_DIR=$PWD/libduckdb" >> $GITHUB_ENV
@@ -64,7 +64,7 @@ jobs:
       - name: Install duckdb on macOS
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
-          wget https://github.com/duckdb/duckdb/releases/download/v1.3.2/libduckdb-osx-universal.zip
+          wget https://github.com/duckdb/duckdb/releases/download/v1.4.3/libduckdb-osx-universal.zip
           unzip libduckdb-osx-universal.zip -d libduckdb
           echo "DUCKDB_LIB_DIR=$PWD/libduckdb" >> $GITHUB_ENV
           echo "DUCKDB_INCLUDE_DIR=$PWD/libduckdb" >> $GITHUB_ENV
@@ -150,7 +150,7 @@ jobs:
         uses: opt-nc/setup-duckdb-action@v1.0.14
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
-          version: v1.3.2
+          version: v1.4.3
       - name: Install duckdb on macOS
         if: ${{ matrix.os == 'macos-latest' }}
         run: brew install duckdb

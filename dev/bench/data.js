@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1756818368943,
+  "lastUpdate": 1768404205446,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -16811,6 +16811,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 139706,
             "range": "± 6313",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fd90d1894758c62efc7ccb575d9025e1b2022cd7",
+          "message": "fix: lock duckdb-rs version to v1.3 (#150)\n\nSigned-off-by: Runji Wang <wangrunji0408@163.com>",
+          "timestamp": "2026-01-14T15:12:04Z",
+          "tree_id": "375b7b61e862e062b9aecfa1a5691982028a9f07",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/fd90d1894758c62efc7ccb575d9025e1b2022cd7"
+        },
+        "date": 1768404204930,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3895,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3973,
+            "range": "± 10",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 23707,
+            "range": "± 1434",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 201905,
+            "range": "± 2644",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 233105,
+            "range": "± 1486",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 73662,
+            "range": "± 178",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 390024,
+            "range": "± 20732",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6416109,
+            "range": "± 111556",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 905688,
+            "range": "± 13890",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 692522,
+            "range": "± 5007",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8752799,
+            "range": "± 75471",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 138000,
+            "range": "± 1346",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 145380,
+            "range": "± 1375",
             "unit": "ns/iter"
           }
         ]

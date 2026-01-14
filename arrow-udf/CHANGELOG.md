@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.1] - 2026-01-14
+## [0.8.0] - 2026-01-14
 
-### Fixed
+### Changed
 
-- Lock `duckdb` version to `1.4`.
+- Update `duckdb` version to `1.4`.
+- Update `arrow` version to `56`.
+- Update to edition 2024.
 
 ## [0.7.0] - 2025-08-26
 

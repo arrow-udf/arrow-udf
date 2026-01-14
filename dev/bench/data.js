@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1768404205446,
+  "lastUpdate": 1768404922169,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -16913,6 +16913,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 145380,
             "range": "± 1375",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5d0582d6d7db1ca05c63ecd03978f79f35f19b41",
+          "message": "build(deps): bump actions/setup-java from 4 to 5 (#148)\n\nBumps [actions/setup-java](https://github.com/actions/setup-java) from 4\nto 5.\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/actions/setup-java/releases\">actions/setup-java's\nreleases</a>.</em></p>\n<blockquote>\n<h2>v5.0.0</h2>\n<h2>What's Changed</h2>\n<h3>Breaking Changes</h3>\n<ul>\n<li>Upgrade to node 24 by <a\nhref=\"https://github.com/salmanmkc\"><code>@​salmanmkc</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/888\">actions/setup-java#888</a></li>\n</ul>\n<p>Make sure your runner is updated to this version or newer to use this\nrelease. v2.327.1 <a\nhref=\"https://github.com/actions/runner/releases/tag/v2.327.1\">Release\nNotes</a></p>\n<h3>Dependency Upgrades</h3>\n<ul>\n<li>Upgrade Publish Immutable Action by <a\nhref=\"https://github.com/HarithaVattikuti\"><code>@​HarithaVattikuti</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/798\">actions/setup-java#798</a></li>\n<li>Upgrade eslint-plugin-jest from 27.9.0 to 28.11.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/730\">actions/setup-java#730</a></li>\n<li>Upgrade undici from 5.28.5 to 5.29.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/833\">actions/setup-java#833</a></li>\n<li>Upgrade form-data to bring in fix for critical vulnerability by <a\nhref=\"https://github.com/gowridurgad\"><code>@​gowridurgad</code></a> in\n<a\nhref=\"https://redirect.github.com/actions/setup-java/pull/887\">actions/setup-java#887</a></li>\n<li>Upgrade actions/checkout from 4 to 5 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a>[bot]\nin <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/896\">actions/setup-java#896</a></li>\n</ul>\n<h3>Bug Fixes</h3>\n<ul>\n<li>Prevent default installation of JetBrains pre-releases by <a\nhref=\"https://github.com/priyagupta108\"><code>@​priyagupta108</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/859\">actions/setup-java#859</a></li>\n<li>Improve Error Handling for Setup-Java Action to Help Debug\nIntermittent Failures by <a\nhref=\"https://github.com/gowridurgad\"><code>@​gowridurgad</code></a> in\n<a\nhref=\"https://redirect.github.com/actions/setup-java/pull/848\">actions/setup-java#848</a></li>\n</ul>\n<h2>New Contributors</h2>\n<ul>\n<li><a\nhref=\"https://github.com/gowridurgad\"><code>@​gowridurgad</code></a>\nmade their first contribution in <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/848\">actions/setup-java#848</a></li>\n<li><a href=\"https://github.com/salmanmkc\"><code>@​salmanmkc</code></a>\nmade their first contribution in <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/888\">actions/setup-java#888</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/actions/setup-java/compare/v4...v5.0.0\">https://github.com/actions/setup-java/compare/v4...v5.0.0</a></p>\n<h2>v4.7.1</h2>\n<h2>What's Changed</h2>\n<h3>Documentation changes</h3>\n<ul>\n<li>Add Documentation to Recommend Using GraalVM JDK 17 Version to\n17.0.12 to Align with GFTC License Terms by <a\nhref=\"https://github.com/aparnajyothi-y\"><code>@​aparnajyothi-y</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/704\">actions/setup-java#704</a></li>\n<li>Remove duplicated GraalVM section in documentation by <a\nhref=\"https://github.com/Marcono1234\"><code>@​Marcono1234</code></a> in\n<a\nhref=\"https://redirect.github.com/actions/setup-java/pull/716\">actions/setup-java#716</a></li>\n</ul>\n<h3>Dependency updates:</h3>\n<ul>\n<li>Upgrade <code>@​action/cache</code> from 4.0.0 to 4.0.2 by <a\nhref=\"https://github.com/aparnajyothi-y\"><code>@​aparnajyothi-y</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/766\">actions/setup-java#766</a></li>\n<li>Upgrade <code>@​actions/glob</code> from 0.4.0 to 0.5.0 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/744\">actions/setup-java#744</a></li>\n<li>Upgrade ts-jest from 29.1.2 to 29.2.5 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/743\">actions/setup-java#743</a></li>\n<li>Upgrade <code>@​action/cache</code> to 4.0.3 by <a\nhref=\"https://github.com/aparnajyothi-y\"><code>@​aparnajyothi-y</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/773\">actions/setup-java#773</a></li>\n</ul>\n<p><strong>Full Changelog</strong>: <a\nhref=\"https://github.com/actions/setup-java/compare/v4...v4.7.1\">https://github.com/actions/setup-java/compare/v4...v4.7.1</a></p>\n<h2>v4.7.0</h2>\n<h2>What's Changed</h2>\n<ul>\n<li>Configure Dependabot settings by <a\nhref=\"https://github.com/HarithaVattikuti\"><code>@​HarithaVattikuti</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/722\">actions/setup-java#722</a></li>\n<li>README Update: Added a permissions section by <a\nhref=\"https://github.com/benwells\"><code>@​benwells</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/723\">actions/setup-java#723</a></li>\n<li>Upgrade <code>cache</code> from version 3.2.4 to 4.0.0 by <a\nhref=\"https://github.com/aparnajyothi-y\"><code>@​aparnajyothi-y</code></a>\nin <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/724\">actions/setup-java#724</a></li>\n<li>Upgrade <code>@actions/http-client</code> from 2.2.1 to 2.2.3 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/728\">actions/setup-java#728</a></li>\n<li>Upgrade <code>actions/publish-immutable-action</code> from 0.0.3 to\n0.0.4 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/727\">actions/setup-java#727</a></li>\n<li>Upgrade <code>@types/jest</code> from 29.5.12 to 29.5.14 by <a\nhref=\"https://github.com/dependabot\"><code>@​dependabot</code></a> in <a\nhref=\"https://redirect.github.com/actions/setup-java/pull/729\">actions/setup-java#729</a></li>\n</ul>\n<!-- raw HTML omitted -->\n</blockquote>\n<p>... (truncated)</p>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/actions/setup-java/commit/dded0888837ed1f317902acf8a20df0ad188d165\"><code>dded088</code></a>\nBump actions/checkout from 4 to 5 (<a\nhref=\"https://redirect.github.com/actions/setup-java/issues/896\">#896</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-java/commit/0913e9a06eb8b69c62db76aa61f580c2b3a5b4e0\"><code>0913e9a</code></a>\nUpgrade to node 24 (<a\nhref=\"https://redirect.github.com/actions/setup-java/issues/888\">#888</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-java/commit/e9343db97e09d87a3c50e544105d99fe912c204b\"><code>e9343db</code></a>\nBumps form-data (<a\nhref=\"https://redirect.github.com/actions/setup-java/issues/887\">#887</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-java/commit/ae2b61dbc685e60e4427b2e8ed4f0135c6ea8597\"><code>ae2b61d</code></a>\nBump undici from 5.28.5 to 5.29.0 (<a\nhref=\"https://redirect.github.com/actions/setup-java/issues/833\">#833</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-java/commit/c190c18febcf6c040d80b10ea201a05a2c320263\"><code>c190c18</code></a>\nBump eslint-plugin-jest from 27.9.0 to 29.0.1 (<a\nhref=\"https://redirect.github.com/actions/setup-java/issues/730\">#730</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-java/commit/67aec007b3fcabe15ca665bfccc1e255dd52e30d\"><code>67aec00</code></a>\nFix: prevent default installation of JetBrains pre-releases (<a\nhref=\"https://redirect.github.com/actions/setup-java/issues/859\">#859</a>)</li>\n<li><a\nhref=\"https://github.com/actions/setup-java/commit/ebb356cc4e59bcf94f518203228485f5d40e4b58\"><code>ebb356c</code></a>\nImprove Error Handling for Setup-Java Action to Help Debug Intermittent\nFailu...</li>\n<li><a\nhref=\"https://github.com/actions/setup-java/commit/f4f1212c880fdec8162ea9a6493f4495191887b4\"><code>f4f1212</code></a>\nUpdate publish-immutable-actions.yml (<a\nhref=\"https://redirect.github.com/actions/setup-java/issues/798\">#798</a>)</li>\n<li>See full diff in <a\nhref=\"https://github.com/actions/setup-java/compare/v4...v5\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=actions/setup-java&package-manager=github_actions&previous-version=4&new-version=5)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nYou can trigger a rebase of this PR by commenting `@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot merge` will merge this PR after your CI passes on it\n- `@dependabot squash and merge` will squash and merge this PR after\nyour CI passes on it\n- `@dependabot cancel merge` will cancel a previously requested merge\nand block automerging\n- `@dependabot reopen` will reopen this PR if it is closed\n- `@dependabot close` will close this PR and stop Dependabot recreating\nit. You can achieve the same result by closing it manually\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore this major version` will close this PR and stop\nDependabot creating any more for this major version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this minor version` will close this PR and stop\nDependabot creating any more for this minor version (unless you reopen\nthe PR or upgrade to it yourself)\n- `@dependabot ignore this dependency` will close this PR and stop\nDependabot creating any more for this dependency (unless you reopen the\nPR or upgrade to it yourself)\n\n\n</details>\n\n> **Note**\n> Automatic rebases have been disabled on this pull request as it has\nbeen open for over 30 days.\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-01-14T15:24:14Z",
+          "tree_id": "a60451a31bfce899c0c20294cbaa95a562ffde67",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/5d0582d6d7db1ca05c63ecd03978f79f35f19b41"
+        },
+        "date": 1768404921576,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3893,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3972,
+            "range": "± 14",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24042,
+            "range": "± 1552",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 212451,
+            "range": "± 1497",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 226696,
+            "range": "± 1382",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 75104,
+            "range": "± 116",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 391050,
+            "range": "± 21878",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6309529,
+            "range": "± 99741",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 895253,
+            "range": "± 11108",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 694979,
+            "range": "± 3573",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8637355,
+            "range": "± 48115",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 137663,
+            "range": "± 505",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 145050,
+            "range": "± 1801",
             "unit": "ns/iter"
           }
         ]

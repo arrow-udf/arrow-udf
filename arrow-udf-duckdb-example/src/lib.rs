@@ -1,6 +1,5 @@
 use arrow_udf::function;
-use duckdb::{ffi, Connection, Result};
-use duckdb_loadable_macros::duckdb_entrypoint_c_api;
+use duckdb::{duckdb_entrypoint_c_api, Connection, Result};
 use std::error::Error;
 use std::fmt::Write;
 use std::sync::Arc;

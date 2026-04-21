@@ -26,7 +26,6 @@ duckdb = { version = "=1.4", features = [
     "vscalar",
     "vscalar-arrow",
     "vtab-arrow",
-    "vtab-loadable",
 ], optional = true }
 
 [dev-dependencies]

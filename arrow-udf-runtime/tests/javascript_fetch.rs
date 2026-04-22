@@ -531,11 +531,25 @@ async fn test_fetch_get_503() {
 
 #[tokio::test]
 async fn test_fetch_timeout() {
+    // Bind a local port that accepts TCP connections but never writes a
+    // response, so the fetch client times out waiting for the response
+    // headers. mockito can't cover this case because its delay hooks run
+    // after headers are already flushed.
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        let mut conns = Vec::new();
+        while let Ok((stream, _)) = listener.accept().await {
+            conns.push(stream);
+        }
+    });
+
+    let url = format!("http://{addr}");
     test(
-        "",
+        &url,
         r#"
             try {
-                const response = await fetch("https://httpbin.org/delay/1", { timeout_ms: 500 });
+                const response = await fetch("$URL/", { timeout_ms: 500 });
                 assert(false); // should not reach here
             } catch (e) {
                 assert(e.message.includes("operation timed out"));

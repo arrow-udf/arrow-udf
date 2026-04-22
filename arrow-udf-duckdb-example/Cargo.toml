@@ -13,7 +13,6 @@ duckdb = { version = "=1.4", features = [
     "vscalar",
     "vscalar-arrow",
     "vtab-arrow",
-    "vtab-loadable",
+    "loadable-extension",
 ] }
-duckdb-loadable-macros = { version = "0.1" }
-libduckdb-sys = { version = "=1.4", features = ["loadable-extension"] }
+libduckdb-sys = "=1.4"

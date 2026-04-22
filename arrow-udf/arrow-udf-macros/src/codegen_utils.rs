@@ -839,7 +839,7 @@ fn transform_input(input: &Ident, ty: &str) -> TokenStream2 {
     if ty == "decimal" {
         return quote! { #input.parse::<rust_decimal::Decimal>().expect("invalid decimal") };
     } else if ty == "date32" {
-        return quote! { arrow_array::types::Date32Type::to_naive_date(#input) };
+        return quote! { arrow_array::types::Date32Type::to_naive_date_opt(#input).expect("invalid date") };
     } else if ty == "time64" {
         return quote! { arrow_array::temporal_conversions::as_time::<arrow_array::types::Time64MicrosecondType>(#input).expect("invalid time") };
     } else if ty == "timestamp" {

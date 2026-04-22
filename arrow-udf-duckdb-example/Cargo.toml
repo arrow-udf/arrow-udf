@@ -9,10 +9,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 arrow-udf = { path = "../arrow-udf" }
-duckdb = { version = "=1.4", features = [
+duckdb = { version = "=1.10502", features = [
     "vscalar",
     "vscalar-arrow",
     "vtab-arrow",
     "loadable-extension",
 ] }
-libduckdb-sys = "=1.4"
+libduckdb-sys = "=1.10502"

@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1776844191499,
+  "lastUpdate": 1776866492340,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -17423,6 +17423,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 134980,
             "range": "± 1724",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "31772373+yuhao-su@users.noreply.github.com",
+            "name": "Yuhao Su",
+            "username": "yuhao-su"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8189edb3c41e0327a2746171dd7877e765dcac71",
+          "message": "chore: bump arrow-udf and arrow-udf-runtime to v0.9.0 (#157)\n\n## Summary\n\nPrepare a 0.9.0 release for both publishable crates.\n\n### arrow-udf 0.8.0 → 0.9.0\n\n- Update `arrow` from `56` to `58`.\n- Update `duckdb` from `=1.4` to `=1.10502`.\n- **Breaking:** The `duckdb` feature no longer enables\n`loadable-extension` on `duckdb-rs`. Users building a DuckDB loadable\nextension should enable it explicitly on their own `duckdb` dependency.\n\n### arrow-udf-runtime 0.8.0 → 0.9.0\n\n- Update `arrow` from `54` to `58`.\n- Update `wasmtime` and `wasi-common` from `27` to `36`.\n- Update `tonic` from `0.12` to `0.14`.\n\n`arrow-udf-macros` is bumped to `0.9.0` in lock step (pinned via\n`=0.9.0` by `arrow-udf`).\n\n## Test plan\n\n- [x] `cargo check -p arrow-udf -p arrow-udf-macros`\n- [x] `cargo check -p arrow-udf-runtime --no-default-features --features\n\"wasm,javascript,remote\"`\n- [ ] CI green\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+          "timestamp": "2026-04-22T21:48:49+08:00",
+          "tree_id": "55df5e841f1db24438f2a5c7b5ee0be31ccb5ba0",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/8189edb3c41e0327a2746171dd7877e765dcac71"
+        },
+        "date": 1776866491176,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3898,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3980,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 24372,
+            "range": "± 1771",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 217136,
+            "range": "± 1431",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 224728,
+            "range": "± 9204",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 23523,
+            "range": "± 2755",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 394894,
+            "range": "± 21998",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 6211165,
+            "range": "± 298706",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 894574,
+            "range": "± 11390",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 685212,
+            "range": "± 5310",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 8721186,
+            "range": "± 84548",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 149924,
+            "range": "± 6220",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 134804,
+            "range": "± 7697",
             "unit": "ns/iter"
           }
         ]

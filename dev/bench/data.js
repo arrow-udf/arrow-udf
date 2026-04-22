@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1768405034870,
+  "lastUpdate": 1776840059093,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -17117,6 +17117,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 146662,
             "range": "± 12291",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "31772373+yuhao-su@users.noreply.github.com",
+            "name": "Yuhao Su",
+            "username": "yuhao-su"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0b3a25fb30e93bd01a41d62b6d0ea5f45cb61232",
+          "message": "fix: drop vtab-loadable from arrow-udf duckdb feature (#155)\n\n## Summary\n- The `duckdb` feature of `arrow-udf` declared `features = [...,\n\"vtab-loadable\"]`, which transitively enables\n`libduckdb-sys/loadable-extension`.\n- Under Cargo feature unification, this switches every `libduckdb-sys`\nFFI call in the whole build graph to go through a function-pointer table\nthat only gets populated when the binary is `dlopen`'d by DuckDB as an\nextension.\n- In embedded usage (`Connection::open_in_memory()` — what\n`arrow-udf/tests/duckdb.rs` does, and what downstream users will do),\nthe table is never populated, so the first FFI call panics with `DuckDB\nAPI not initialized or DuckDB feature omitted`.\nhttps://github.com/arrow-udf/arrow-udf/actions/runs/24740116474/job/72377286777?pr=154\n- `duckdb 1.4.3` tolerated this; `1.4.4` made the check a hard panic,\nwhich is why `main`'s CI was green in January and started failing today\non a new PR against the same base commit.\n- Fix: drop `vtab-loadable` from `arrow-udf`. The `#[function]` macro\nonly needs `vscalar` / `vscalar-arrow` / `vtab-arrow` for the embedded\n`VScalar` / `VTab` impls. `arrow-udf-duckdb-example` (the actual\n`cdylib` extension) is in the workspace `exclude` list and keeps its own\n`loadable-extension` setup untouched.\n- \n- Also in 1.4.x the ` vtab-loadable ` should be deprecated and should\nuse `loadable-extension ` instead\n\ncc @wangrunji0408 \n\n## Test plan\n- [x] Repro with libduckdb 1.4.3 + duckdb-rs 1.4.4: `cargo test -p\narrow-udf --features duckdb --test duckdb` → 5/5 panic, same signature\nas CI.\n- [x] After the fix: `cargo test -p arrow-udf --features duckdb --test\nduckdb` → 5 passed.\n- [x] Full suite: `cargo test -p arrow-udf --features duckdb` → 20\npassed + 3 doctests.\n- [x] `cargo tree -p arrow-udf --features duckdb -e features` no longer\nshows `libduckdb-sys feature \"loadable-extension\"`.\n- [x] `arrow-udf-duckdb-example` still builds as `cdylib`: `cargo build\n--release` in that crate succeeds.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n---------\n\nCo-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+          "timestamp": "2026-04-22T14:32:03+08:00",
+          "tree_id": "fd742a4aa5eb2b1745bc5ea4bc84cc874c187faa",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/0b3a25fb30e93bd01a41d62b6d0ea5f45cb61232"
+        },
+        "date": 1776840058516,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3421,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3489,
+            "range": "± 45",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 16243,
+            "range": "± 1034",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 192657,
+            "range": "± 1139",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 201280,
+            "range": "± 2242",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 79215,
+            "range": "± 95",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 292753,
+            "range": "± 15397",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 4443435,
+            "range": "± 49612",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 729502,
+            "range": "± 10850",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 523399,
+            "range": "± 2417",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 6684852,
+            "range": "± 48913",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 128148,
+            "range": "± 3219",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 113075,
+            "range": "± 736",
             "unit": "ns/iter"
           }
         ]

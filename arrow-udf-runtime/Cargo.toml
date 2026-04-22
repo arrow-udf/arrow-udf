@@ -37,8 +37,8 @@ futures-util = "0.3"
 tokio = { workspace = true, features = ["time", "test-util", "macros"] }
 thiserror = "2"
 
-wasi-common = { version = "27", optional = true }
-wasmtime = { version = "27", optional = true }
+wasi-common = { version = "36", optional = true }
+wasmtime = { version = "36", optional = true }
 genawaiter2 = { version = "0.100.1", optional = true }
 tempfile = { version = "3", optional = true }
 

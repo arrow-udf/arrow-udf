@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-22
+
+### Changed
+
+- Update `arrow` version from `56` to `58`.
+- Update `duckdb` version from `=1.4` to `=1.10502`.
+
+### Breaking Changes
+
+- The `duckdb` feature no longer enables `loadable-extension` on `duckdb-rs`. Users building a DuckDB loadable extension should enable it explicitly on their own `duckdb` dependency.
+
 ## [0.8.0] - 2026-01-14
 
 ### Changed

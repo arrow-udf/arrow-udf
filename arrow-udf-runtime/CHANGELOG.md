@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.9.0] - 2026-04-22
+
+### Changed
+
+- Update `arrow` version from `54` to `58`.
+- Update `wasmtime` and `wasi-common` version from `27` to `36`.
+- Update `tonic` version from `0.12` to `0.14`.
+
 ## [0.8.0] - 2025-04-10
 
 ### Changed

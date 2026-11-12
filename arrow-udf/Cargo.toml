@@ -25,7 +25,7 @@ genawaiter2 = "0.100.1"
 linkme = { version = "0.3", optional = true }
 rust_decimal = "1"
 serde_json = "1"
-duckdb = { version = "=1.10502", features = [
+duckdb = { version = "=1.20000.1", features = [
     "vscalar",
     "vscalar-arrow",
     "vtab-arrow",
@@ -33,5 +33,5 @@ duckdb = { version = "=1.10502", features = [
 
 [dev-dependencies]
 arrow-cast = { workspace = true, features = ["prettyprint"] }
-duckdb = { version = "=1.10502", features = ["bundled"] }
+duckdb = { version = "=1.20000.1", features = ["bundled"] }
 expect-test = "1"

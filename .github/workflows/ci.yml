@@ -58,8 +58,9 @@ jobs:
       - name: Install duckdb on Ubuntu
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          wget https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-linux-amd64.zip
-          unzip libduckdb-linux-amd64.zip -d libduckdb
+          wget https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-shared-libs-linux-amd64.tar.gz
+          mkdir -p libduckdb
+          tar -xzf duckdb-shared-libs-linux-amd64.tar.gz -C libduckdb
           echo "DUCKDB_LIB_DIR=$PWD/libduckdb" >> $GITHUB_ENV
           echo "DUCKDB_INCLUDE_DIR=$PWD/libduckdb" >> $GITHUB_ENV
           # Prepend: setup-python already put the shared libpython on the path.
@@ -67,8 +68,9 @@ jobs:
       - name: Install duckdb on macOS
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
-          wget https://github.com/duckdb/duckdb/releases/download/v1.5.2/libduckdb-osx-universal.zip
-          unzip libduckdb-osx-universal.zip -d libduckdb
+          wget https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-shared-libs-osx-universal.tar.gz
+          mkdir -p libduckdb
+          tar -xzf duckdb-shared-libs-osx-universal.tar.gz -C libduckdb
           echo "DUCKDB_LIB_DIR=$PWD/libduckdb" >> $GITHUB_ENV
           echo "DUCKDB_INCLUDE_DIR=$PWD/libduckdb" >> $GITHUB_ENV
           echo "DYLD_FALLBACK_LIBRARY_PATH=$PWD/libduckdb" >> $GITHUB_ENV
@@ -165,14 +167,6 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - name: Install duckdb on Ubuntu
-        uses: opt-nc/setup-duckdb-action@v1.0.14
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        with:
-          version: v1.5.2
-      - name: Install duckdb on macOS
-        if: ${{ matrix.os == 'macos-latest' }}
-        run: brew install duckdb
       - name: Build duckdb-example
         run: |
           cd arrow-udf-duckdb-example

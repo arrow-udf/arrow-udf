@@ -954,7 +954,7 @@ async fn test_return_map() {
                 Arc::new(Field::new(
                     "entries",
                     DataType::Struct(Fields::from(vec![
-                        Field::new("keys", DataType::Utf8, true),
+                        Field::new("keys", DataType::Utf8, false),
                         Field::new("values", DataType::Utf8, true),
                     ])),
                     false,
@@ -1608,24 +1608,32 @@ fn check_array(actual: &[ArrayRef], expect: Expect) {
 
 /// Returns a field with JSON type.
 fn json_field(name: &str) -> Field {
-    Field::new(name, DataType::Utf8, true)
-        .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into())
+    Field::new(name, DataType::Utf8, true).with_metadata([(
+        "ARROW:extension:name".to_owned(),
+        "arrowudf.json".to_owned(),
+    )])
 }
 
 /// Returns a field with JSON type.
 fn binary_json_field(name: &str) -> Field {
-    Field::new(name, DataType::Binary, true)
-        .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into())
+    Field::new(name, DataType::Binary, true).with_metadata([(
+        "ARROW:extension:name".to_owned(),
+        "arrowudf.json".to_owned(),
+    )])
 }
 
 /// Returns a field with JSON type.
 fn large_binary_json_field(name: &str) -> Field {
-    Field::new(name, DataType::LargeBinary, true)
-        .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into())
+    Field::new(name, DataType::LargeBinary, true).with_metadata([(
+        "ARROW:extension:name".to_owned(),
+        "arrowudf.json".to_owned(),
+    )])
 }
 
 /// Returns a field with decimal type.
 fn decimal_field(name: &str) -> Field {
-    Field::new(name, DataType::Utf8, true)
-        .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into())
+    Field::new(name, DataType::Utf8, true).with_metadata([(
+        "ARROW:extension:name".to_owned(),
+        "arrowudf.decimal".to_owned(),
+    )])
 }

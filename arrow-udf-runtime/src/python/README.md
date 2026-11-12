@@ -94,7 +94,7 @@ When a field is pickle type, the data is stored in a binary array in serialized 
 # use arrow_schema::{Field, DataType};
 # use arrow_array::BinaryArray;
 let pickle_field = Field::new("pickle", DataType::Binary, true)
-    .with_metadata([("ARROW:extension:name".into(), "arrowudf.pickle".into())].into());
+    .with_metadata([("ARROW:extension:name".to_owned(), "arrowudf.pickle".to_owned())]);
 let pickle_array = BinaryArray::from(vec![&b"xxxxx"[..]]);
 ```
 

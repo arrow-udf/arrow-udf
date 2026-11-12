@@ -131,12 +131,12 @@ impl FunctionAttr {
                 impl ::duckdb::vscalar::VScalar for #struct_ident {
                     type State = ();
 
-                    unsafe fn invoke(
+                    fn invoke(
                         _: &Self::State,
                         input: &mut ::duckdb::core::DataChunkHandle,
                         output: &mut dyn ::duckdb::vtab::arrow::WritableVector,
                     ) -> Result<(), Box<dyn std::error::Error>> {
-                        let array = ::arrow_udf::duckdb::invoke_scalar_with_lists(#eval_name, input)?;
+                        let array = unsafe { ::arrow_udf::duckdb::invoke_scalar_with_lists(#eval_name, input)? };
                         ::duckdb::vtab::arrow::write_arrow_array_to_vector(&array, output)
                     }
 
@@ -725,10 +725,10 @@ pub fn field(name: &str, ty: &str) -> TokenStream2 {
     let data_type = data_type(ty);
     let with_metadata = match ty {
         "json" => {
-            quote! { .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into()) }
+            quote! { .with_metadata([("ARROW:extension:name".to_owned(), "arrowudf.json".to_owned())]) }
         }
         "decimal" => {
-            quote! { .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into()) }
+            quote! { .with_metadata([("ARROW:extension:name".to_owned(), "arrowudf.decimal".to_owned())]) }
         }
         _ => quote! {},
     };

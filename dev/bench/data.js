@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788426267230,
+  "lastUpdate": 1794473092074,
   "repoUrl": "https://github.com/arrow-udf/arrow-udf",
   "entries": {
     "Rust Benchmark": [
@@ -17933,6 +17933,108 @@ window.BENCHMARK_DATA = {
             "name": "sum/python",
             "value": 113008,
             "range": "± 1890",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "wangrunji0408@163.com",
+            "name": "Runji Wang",
+            "username": "wangrunji0408"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7bac417c88d10195346091fadb1c578c950ea906",
+          "message": "feat(duckdb): support DuckDB 2.0 and Arrow 60 (#165)\n\n## Summary\n\n- Upgrade duckdb-rs and libduckdb-sys to 1.20000.1 (DuckDB 2.0), and\nworkspace Arrow dependencies to 60.\n- Adapt scalar UDF generation to the safe `VScalar::invoke` signature\nand explicitly guard raw LIST entry access.\n- Update metadata construction for Arrow 60, including JSON/Decimal code\ngeneration, tests, snapshots and documentation.\n- Update the loadable extension example to stable V1 C API v1.5.6 and\nenable its LIST-returning function.\n- Add a 10,000-row regression covering constant and varying LIST\narguments, empty lists and NULL values.\n\nThe extension uses the stable V1 C API shipped with DuckDB 2.0. It does\nnot use the unstable V2 API.\n\n## Validation\n\n- UDF tests: 20 passed.\n- DuckDB integration tests against a DuckDB 2.0 shared library: 7\npassed.\n- Macro tests and snapshot update passed.\n- `cargo clippy -p arrow-udf --features duckdb --all-targets` passed.\n- Extension example compiled and loaded in DuckDB 2.0; scalar, LIST,\ntable function and 10,000-row checks passed.\n\nCo-authored-by: wangrunji0408 <15158738+wangrunji0408@users.noreply.github.com>",
+          "timestamp": "2026-11-12T08:34:34Z",
+          "tree_id": "7fff271c91ad314ceddb246cf6c006988f772504",
+          "url": "https://github.com/arrow-udf/arrow-udf/commit/7bac417c88d10195346091fadb1c578c950ea906"
+        },
+        "date": 1794473091247,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "gcd/native",
+            "value": 3415,
+            "range": "± 14",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/rust",
+            "value": 3477,
+            "range": "± 26",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/wasm",
+            "value": 15694,
+            "range": "± 1202",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/js",
+            "value": 195939,
+            "range": "± 1210",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "gcd/python",
+            "value": 189149,
+            "range": "± 5484",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/native",
+            "value": 24055,
+            "range": "± 97",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/wasm",
+            "value": 319999,
+            "range": "± 18565",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/js",
+            "value": 4609695,
+            "range": "± 71612",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "range/python",
+            "value": 672452,
+            "range": "± 20252",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/js",
+            "value": 512219,
+            "range": "± 2175",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "decimal/python",
+            "value": 6695570,
+            "range": "± 34685",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/js",
+            "value": 127639,
+            "range": "± 575",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "sum/python",
+            "value": 111752,
+            "range": "± 1133",
             "unit": "ns/iter"
           }
         ]

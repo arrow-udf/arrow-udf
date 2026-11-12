@@ -238,3 +238,23 @@ fn test_duckdb_multi_param_table_function() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+#[test]
+fn test_duckdb_list_scalar_across_chunks() -> Result<(), Box<dyn Error>> {
+    let conn = Connection::open_in_memory()?;
+    conn.register_scalar_function::<ListLengths>("list_lengths")?;
+    conn.register_scalar_function::<SumLists>("sum_lists")?;
+
+    // Constant lists reuse child ranges; varying lists exercise per-row offsets.
+    let count: i64 = conn.query_row(
+        "SELECT count(*) FROM range(10000) t(i)
+         WHERE list_lengths(['a', 'hello', NULL]) = [1, 5, -1]
+           AND list_lengths([]::VARCHAR[]) = []::INTEGER[]
+           AND list_lengths(NULL::VARCHAR[]) IS NULL
+           AND sum_lists([i::INTEGER], [1, 2]) = i + 3",
+        [],
+        |row| row.get(0),
+    )?;
+    assert_eq!(count, 10000);
+    Ok(())
+}

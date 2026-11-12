@@ -59,7 +59,7 @@ JSON type is stored in string array in text form.
 
 ```rust
 let json_field = Field::new(name, DataType::Utf8, true)
-    .with_metadata([("ARROW:extension:name".into(), "arrowudf.json".into())].into());
+    .with_metadata([("ARROW:extension:name".to_owned(), "arrowudf.json".to_owned())]);
 let json_array = StringArray::from(vec![r#"{"key": "value"}"#]);
 ```
 
@@ -69,7 +69,7 @@ Different from the fixed-point decimal type built into Arrow, this decimal type 
 
 ```rust
 let decimal_field = Field::new(name, DataType::Utf8, true)
-    .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into());
+    .with_metadata([("ARROW:extension:name".to_owned(), "arrowudf.decimal".to_owned())]);
 let decimal_array = StringArray::from(vec!["0.0001", "-1.23", "0"]);
 ```
 

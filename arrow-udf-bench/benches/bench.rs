@@ -361,6 +361,8 @@ criterion_main!(benches);
 
 /// Returns a field with decimal type.
 fn decimal_field(name: &str) -> Field {
-    Field::new(name, DataType::Utf8, true)
-        .with_metadata([("ARROW:extension:name".into(), "arrowudf.decimal".into())].into())
+    Field::new(name, DataType::Utf8, true).with_metadata([(
+        "ARROW:extension:name".to_owned(),
+        "arrowudf.decimal".to_owned(),
+    )])
 }

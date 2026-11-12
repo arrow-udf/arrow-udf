@@ -74,22 +74,23 @@ pub unsafe fn invoke_scalar_with_lists(
     let mut columns = Vec::with_capacity(input.num_columns());
 
     for index in 0..input.num_columns() {
-        let mut flat = input.flat_vector(index);
+        let flat = input.flat_vector(index);
         if flat.logical_type().id() != LogicalTypeId::List {
             columns.push(InputColumn::Flat(
-                duckdb::vtab::arrow::flat_vector_to_arrow_array(&mut flat, len)?,
+                duckdb::vtab::arrow::flat_vector_to_arrow_array(&flat, len)?,
             ));
             continue;
         }
 
-        let entries = flat.as_slice_with_len::<duckdb_list_entry>(len).to_vec();
+        // The input vector is a valid LIST vector with exactly len entries.
+        let entries = unsafe { flat.as_slice_with_len::<duckdb_list_entry>(len) }.to_vec();
         let valid = (0..len).map(|row| !flat.row_is_null(row as u64)).collect();
         let list = input.list_vector(index);
-        let mut child = list.child(list.len());
+        let child = list.child(list.len());
         if child.logical_type().id() == LogicalTypeId::List {
             return Err("nested DuckDB LIST arguments are not supported".into());
         }
-        let values = duckdb::vtab::arrow::flat_vector_to_arrow_array(&mut child, list.len())?;
+        let values = duckdb::vtab::arrow::flat_vector_to_arrow_array(&child, list.len())?;
         columns.push(InputColumn::List {
             entries,
             valid,

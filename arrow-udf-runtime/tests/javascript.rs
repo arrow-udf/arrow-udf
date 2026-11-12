@@ -954,7 +954,7 @@ async fn test_return_map() {
                 Arc::new(Field::new(
                     "entries",
                     DataType::Struct(Fields::from(vec![
-                        Field::new("keys", DataType::Utf8, true),
+                        Field::new("keys", DataType::Utf8, false),
                         Field::new("values", DataType::Utf8, true),
                     ])),
                     false,
